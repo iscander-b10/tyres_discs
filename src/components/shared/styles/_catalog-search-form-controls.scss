@@ -1,0 +1,333 @@
+$catalog-accent-green: #00c853;
+$catalog-accent-green-hover: #00b84d;
+$catalog-accent-green-light: rgba(0, 200, 83, 0.12);
+$catalog-accent-green-light-hover: rgba(0, 200, 83, 0.2);
+$catalog-accent-green-selected: rgba(0, 200, 83, 0.15);
+$catalog-accent-green-outline: rgba(0, 200, 83, 0.18);
+$catalog-text: #262626;
+
+@mixin catalog-search-form-theme-tokens() {
+  --ant-color-primary: #{$catalog-accent-green};
+  --ant-color-primary-hover: #{$catalog-accent-green-hover};
+  --ant-color-primary-active: #{$catalog-accent-green-hover};
+  --ant-color-primary-bg: #{$catalog-accent-green-light};
+  --ant-color-primary-bg-hover: #{$catalog-accent-green-light-hover};
+  --ant-color-primary-border: #{$catalog-accent-green};
+  --ant-color-primary-border-hover: #{$catalog-accent-green-hover};
+  --ant-control-outline: #{$catalog-accent-green-outline};
+}
+
+@mixin catalog-green-wave-targets() {
+  .ant-wave,
+  .ant-checkbox,
+  .ant-select,
+  .ant-input,
+  .ant-input-affix-wrapper {
+    --ant-wave-color: #{$catalog-accent-green};
+  }
+}
+
+@mixin catalog-green-ant-select($selector-height: 34px, $border-radius: 10px) {
+  .ant-select {
+    @include catalog-search-form-theme-tokens();
+
+    width: 100%;
+
+    .ant-select-selector {
+      border-radius: $border-radius;
+      height: $selector-height;
+      border: 1px solid #e6e6e6 !important;
+      transition: border-color 0.2s, box-shadow 0.2s;
+
+      .ant-select-selection-item,
+      .ant-select-selection-placeholder {
+        color: $catalog-text;
+        font-weight: 600;
+        font-size: 13px;
+        line-height: $selector-height - 2px;
+      }
+
+      .ant-select-selection-placeholder {
+        font-weight: 500;
+      }
+
+      .ant-select-selection-search-input {
+        color: $catalog-text;
+      }
+    }
+
+    &.ant-select-outlined:not(.ant-select-disabled):hover .ant-select-selector,
+    &.ant-select-outlined:not(.ant-select-disabled).ant-select-focused .ant-select-selector,
+    &.ant-select-outlined:not(.ant-select-disabled).ant-select-open .ant-select-selector {
+      border-color: $catalog-accent-green !important;
+    }
+
+    &.ant-select-outlined:not(.ant-select-disabled).ant-select-focused .ant-select-selector,
+    &.ant-select-outlined:not(.ant-select-disabled).ant-select-open .ant-select-selector {
+      box-shadow: 0 0 0 3px $catalog-accent-green-outline !important;
+    }
+
+    .ant-select-arrow,
+    .ant-select-clear {
+      color: $catalog-text !important;
+    }
+
+    .ant-select-clear:hover {
+      color: $catalog-accent-green !important;
+    }
+
+    &.ant-select-outlined:not(.ant-select-disabled):hover .ant-select-arrow,
+    &.ant-select-outlined:not(.ant-select-disabled).ant-select-focused .ant-select-arrow,
+    &.ant-select-outlined:not(.ant-select-disabled).ant-select-open .ant-select-arrow {
+      color: $catalog-text !important;
+    }
+
+    &.ant-select-multiple .ant-select-selector {
+      min-height: $selector-height;
+      height: auto;
+      padding: 2px 4px;
+
+      .ant-select-selection-overflow {
+        align-items: center;
+      }
+
+      .ant-select-selection-overflow-item {
+        align-self: center;
+      }
+
+      .ant-select-selection-item {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 22px;
+        margin-top: 0;
+        margin-bottom: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+        border-radius: 6px;
+        font-size: 12px;
+        line-height: 1;
+        background: $catalog-accent-green-light;
+        border-color: rgba(0, 200, 83, 0.25);
+        color: $catalog-text;
+
+        .ant-select-selection-item-content {
+          display: inline-flex;
+          align-items: center;
+          line-height: 1;
+          margin-inline-end: 4px;
+        }
+      }
+
+      .ant-select-selection-item-remove {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        align-self: center;
+        height: 12px;
+        line-height: 1;
+        color: $catalog-text;
+
+        .anticon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          vertical-align: 0;
+        }
+
+        &:hover {
+          color: $catalog-accent-green !important;
+        }
+      }
+    }
+
+    &.ant-select-status-success .ant-select-selector {
+      border-color: #e6e6e6 !important;
+    }
+
+    &.ant-select-status-success.ant-select-outlined:not(.ant-select-disabled):hover .ant-select-selector,
+    &.ant-select-status-success.ant-select-outlined:not(.ant-select-disabled).ant-select-focused .ant-select-selector,
+    &.ant-select-status-success.ant-select-outlined:not(.ant-select-disabled).ant-select-open .ant-select-selector {
+      border-color: $catalog-accent-green !important;
+    }
+  }
+}
+
+@mixin catalog-green-ant-input($height: 32px, $border-radius: 8px) {
+  .ant-input-affix-wrapper {
+    @include catalog-search-form-theme-tokens();
+
+    display: inline-flex;
+    align-items: center;
+    height: $height !important;
+    min-height: $height;
+    padding-block: 0;
+    padding-inline: 11px;
+    border-radius: $border-radius;
+    border: 1px solid #e6e6e6 !important;
+    transition: border-color 0.2s, box-shadow 0.2s;
+
+    .ant-input {
+      height: 100%;
+      min-height: 0;
+      padding: 0;
+      line-height: $height - 2px;
+      color: $catalog-text;
+      font-size: 13px;
+    }
+
+    .ant-input::placeholder {
+      color: #9aa0a6;
+    }
+
+    .ant-input-clear-icon,
+    .ant-input-prefix .anticon,
+    .ant-input-suffix .anticon {
+      color: $catalog-text;
+    }
+
+    .ant-input-clear-icon:hover {
+      color: $catalog-accent-green !important;
+    }
+  }
+
+  .ant-input-affix-wrapper.ant-input-outlined:not(.ant-input-disabled):hover,
+  .ant-input-affix-wrapper.ant-input-outlined:not(.ant-input-disabled).ant-input-affix-wrapper-focused {
+    border-color: $catalog-accent-green !important;
+  }
+
+  .ant-input-affix-wrapper.ant-input-outlined:not(.ant-input-disabled).ant-input-affix-wrapper-focused {
+    box-shadow: 0 0 0 3px $catalog-accent-green-outline !important;
+  }
+}
+
+@mixin catalog-search-form-controls() {
+  @include catalog-search-form-theme-tokens();
+  @include catalog-green-wave-targets();
+  @include catalog-green-ant-select(34px, 10px);
+
+  .ant-btn {
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
+    height: 40px;
+    border: 1px solid transparent;
+    box-shadow: none;
+    transition: all 0.2s;
+
+    &:focus {
+      outline: none;
+    }
+  }
+
+  .ant-btn-primary {
+    background: $catalog-accent-green;
+    color: #ffffff;
+
+    &:hover {
+      background: $catalog-accent-green-hover;
+      color: #ffffff;
+    }
+  }
+
+  .ant-btn-default {
+    background: #f5f5f5;
+    border-color: #f0f0f0;
+    color: $catalog-text;
+
+    &:hover {
+      background: $catalog-accent-green-light;
+      border-color: rgba(0, 200, 83, 0.35);
+      color: $catalog-text;
+    }
+  }
+
+  .ant-checkbox-wrapper {
+    @include catalog-search-form-theme-tokens();
+
+    font-size: 14px;
+    color: $catalog-text;
+  }
+
+  .ant-checkbox {
+    @include catalog-search-form-theme-tokens();
+  }
+
+  .ant-checkbox-checked .ant-checkbox-inner {
+    background-color: $catalog-accent-green !important;
+    border-color: $catalog-accent-green !important;
+  }
+
+  .ant-checkbox-wrapper:not(.ant-checkbox-wrapper-disabled):hover .ant-checkbox-inner,
+  .ant-checkbox:not(.ant-checkbox-disabled):hover .ant-checkbox-inner,
+  .ant-checkbox-input:focus + .ant-checkbox-inner,
+  .ant-checkbox-input:focus-visible + .ant-checkbox-inner {
+    border-color: $catalog-accent-green !important;
+  }
+
+  .ant-checkbox-wrapper:not(.ant-checkbox-wrapper-disabled):hover .ant-checkbox-checked:not(.ant-checkbox-disabled) .ant-checkbox-inner,
+  .ant-checkbox-checked:not(.ant-checkbox-disabled):hover .ant-checkbox-inner {
+    background-color: $catalog-accent-green-hover !important;
+    border-color: $catalog-accent-green-hover !important;
+  }
+
+  .ant-checkbox-wrapper-checked:not(.ant-checkbox-wrapper-disabled):hover .ant-checkbox-inner,
+  .ant-checkbox-checked:not(.ant-checkbox-disabled):hover .ant-checkbox-inner::after {
+    border-color: #ffffff !important;
+  }
+
+  .form-actions {
+    margin-top: 12px;
+    margin-bottom: 0;
+
+    .ant-space {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+  }
+}
+
+@mixin catalog-list-toolbar-controls() {
+  @include catalog-search-form-theme-tokens();
+  @include catalog-green-wave-targets();
+  @include catalog-green-ant-select(32px, 8px);
+  @include catalog-green-ant-input(32px, 8px);
+}
+
+.catalog-search-select-dropdown {
+  @include catalog-search-form-theme-tokens();
+
+  border-radius: 12px;
+  padding: 4px;
+
+  .ant-select-item {
+    border-radius: 8px;
+    margin: 2px 0;
+    padding: 6px 10px;
+    font-weight: 500;
+    font-size: 12px;
+    color: $catalog-text;
+    transition: background 0.1s;
+
+    &.ant-select-item-option-selected {
+      background: $catalog-accent-green-selected;
+      font-weight: 600;
+      color: $catalog-text;
+
+      .ant-select-item-option-state {
+        color: $catalog-accent-green;
+      }
+    }
+
+    &.ant-select-item-option-active,
+    &.ant-select-item-option-active:not(.ant-select-item-option-disabled) {
+      background: $catalog-accent-green-light !important;
+    }
+  }
+}

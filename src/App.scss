@@ -1,0 +1,37 @@
+.app-layout {
+  min-height: 100vh;
+}
+
+.app-content-layout {
+  display: flex;
+}
+
+.app-content {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding-block: 24px;
+}
+
+.app-content-wrapper {
+  width: min(100%, 1380px);
+  padding-inline: clamp(16px, 2vw, 32px);
+
+  .catalog-tabs {
+    .ant-tabs-tab-btn {
+      font-weight: 700;
+      font-size: 16px;
+      color: #262626;
+      transition: color 0.2s ease;
+    }
+
+    .ant-tabs-tab:hover .ant-tabs-tab-btn,
+    .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+      color: #262626;
+    }
+
+    .ant-tabs-ink-bar {
+      background: #00c853;
+    }
+  }
+}

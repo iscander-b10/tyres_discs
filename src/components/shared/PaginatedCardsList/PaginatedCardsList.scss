@@ -1,0 +1,98 @@
+@use '../styles/catalog-search-form-controls' as catalog;
+
+/* Общий контейнер списка (шины + диски) */
+.items-list-container {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Поиск и сортировка над списком */
+.list-toolbar {
+  @include catalog.catalog-list-toolbar-controls();
+
+  align-items: flex-end;
+  gap: 16px 24px;
+  margin-bottom: 12px;
+}
+
+.list-toolbar__group {
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.list-toolbar__label {
+  flex-shrink: 0;
+  white-space: nowrap;
+  text-align: center;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.list-toolbar__search,
+.list-toolbar__sort {
+  height: 32px;
+}
+
+.list-toolbar__search {
+  min-width: 220px;
+  width: 220px;
+}
+
+.list-toolbar__sort {
+  min-width: 260px;
+  width: 260px;
+
+  .ant-select-selector {
+    height: 32px !important;
+  }
+}
+
+/* Общая сетка карточек (auto-fill — карточки не растягиваются при 1–2 товарах) */
+.items-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+
+/* Пустое состояние */
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px 20px;
+}
+
+/* Пагинация */
+.pagination-container {
+  margin-top: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-top: 20px;
+  border-top: 1px solid #333333;
+  position: relative;
+  z-index: 1;
+}
+
+/* Ошибка */
+.error-alert.ant-alert-error {
+  background: rgba(255, 71, 87, 0.1);
+  border: 1px solid rgba(255, 71, 87, 0.3);
+  border-radius: 12px;
+  margin-top: 20px;
+}
+
+.error-alert.ant-alert-error .ant-alert-message {
+  color: #ff6b81;
+  font-weight: 700;
+}
+
+.error-alert.ant-alert-error .ant-alert-description {
+  color: #e2e8f0;
+}
+
+.error-alert.ant-alert-error .ant-alert-icon {
+  color: #ff4757;
+}
