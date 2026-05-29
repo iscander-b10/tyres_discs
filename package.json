@@ -1,6 +1,7 @@
 {
   "name": "ivanor",
   "version": "0.1.0",
+  "homepage": "https://iscander-b10.github.io/tyres_discs",
   "private": true,
   "proxy": "http://api-b2b.4tochki.ru",
   "dependencies": {
@@ -25,7 +26,9 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build"
   },
   "eslintConfig": {
     "extends": [
@@ -46,6 +49,7 @@
     ]
   },
   "devDependencies": {
-    "baseline-browser-mapping": "^2.9.0"
+    "baseline-browser-mapping": "^2.9.0",
+    "gh-pages": "^6.3.0"
   }
 }
