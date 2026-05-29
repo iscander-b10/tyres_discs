@@ -35,7 +35,7 @@ export const requestSemisotnovTyres = async () => {
     
     return jsonData;
   } catch (err) {
-    console.error('❌ Ошибка при загрузке через прокси:', err);
+    console.error('❌ Ошибка при загрузке данных z34:', err);
     throw new Error(`Не удалось загрузить данные: ${err.message}`);
   }
 };
@@ -72,7 +72,7 @@ export const requestSemisotnovDiscs = async () => {
     
     return jsonData;
   } catch (err) {
-    console.error('❌ Ошибка при загрузке дисков через прокси:', err);
+    console.error('❌ Ошибка при загрузке дисков z34:', err);
     throw new Error(`Не удалось загрузить данные дисков: ${err.message}`);
   }
 };

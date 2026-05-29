@@ -34,7 +34,7 @@ export const requestVershinaTyres = async () => {
 
     return parser.parse(xmlText);
   } catch (error) {
-    console.error('❌ Ошибка при загрузке данных Вершины через прокси:', error);
+    console.error('❌ Ошибка при загрузке данных Вершины:', error);
     throw new Error(`Не удалось загрузить данные Вершины: ${error.message}`);
   }
 };
@@ -71,7 +71,7 @@ export const requestVershinaDiscs = async () => {
     
     return jsonData;
   } catch (err) {
-    console.error('❌ Ошибка при загрузке дисков через прокси:', err);
+    console.error('❌ Ошибка при загрузке дисков Вершины:', err);
     throw new Error(`Не удалось загрузить данные дисков: ${err.message}`);
   }
 };
