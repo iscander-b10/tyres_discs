@@ -1,15 +1,15 @@
 import { XMLParser } from 'fast-xml-parser';
+import { fetchSupplier } from '../../../utils/fetchSupplier';
 
 const TYRES_URL = process.env.REACT_APP_SEMISOTNOV_TYRES_URL;
 const DISCS_URL = process.env.REACT_APP_SEMISOTNOV_DISCS_URL;
 
 export const requestSemisotnovTyres = async () => {
   try {
-    const response = await fetch(TYRES_URL, {
+    const response = await fetchSupplier(TYRES_URL, {
       method: 'GET',
       headers: {
-        'Accept': 'application/xml, text/xml, */*',
-        'Content-Type': 'application/xml',
+        Accept: 'application/xml, text/xml, */*',
       },
     });
     
@@ -42,11 +42,10 @@ export const requestSemisotnovTyres = async () => {
 
 export const requestSemisotnovDiscs = async () => {
   try {
-    const response = await fetch(DISCS_URL, {
+    const response = await fetchSupplier(DISCS_URL, {
       method: 'GET',
       headers: {
-        'Accept': 'application/xml, text/xml, */*',
-        'Content-Type': 'application/xml',
+        Accept: 'application/xml, text/xml, */*',
       },
     });
     

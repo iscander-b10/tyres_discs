@@ -1,4 +1,5 @@
 import { XMLParser } from 'fast-xml-parser';
+import { fetchSupplier } from '../../../utils/fetchSupplier';
 
 const VERSHINA_URL = process.env.REACT_APP_VERSHINA_TYRES_URL;
 const VERSHINA_DISCS_URL = process.env.REACT_APP_VERSHINA_DISCS_URL;
@@ -9,11 +10,10 @@ export const requestVershinaTyres = async () => {
   }
 
   try {
-    const response = await fetch(VERSHINA_URL, {
+    const response = await fetchSupplier(VERSHINA_URL, {
       method: 'GET',
       headers: {
         Accept: 'application/xml, text/xml, */*',
-        'Content-Type': 'application/xml',
       },
     });
 
@@ -41,11 +41,10 @@ export const requestVershinaTyres = async () => {
 
 export const requestVershinaDiscs = async () => {
   try {
-    const response = await fetch(VERSHINA_DISCS_URL, {
+    const response = await fetchSupplier(VERSHINA_DISCS_URL, {
       method: 'GET',
       headers: {
-        'Accept': 'application/xml, text/xml, */*',
-        'Content-Type': 'application/xml',
+        Accept: 'application/xml, text/xml, */*',
       },
     });
     

@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import { fetchSupplier } from '../../../utils/fetchSupplier';
 
 const SHINASU_EXCEL_URL = process.env.REACT_APP_SHINASU_URL;
 
@@ -8,7 +9,7 @@ export const requestShinaSuData = async () => {
   }
 
   try {
-    const response = await fetch(SHINASU_EXCEL_URL, {cache: 'no-store'});
+    const response = await fetchSupplier(SHINASU_EXCEL_URL, { cache: 'no-store' });
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);

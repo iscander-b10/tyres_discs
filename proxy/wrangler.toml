@@ -1,0 +1,4 @@
+name = "tyres-discs-proxy"
+main = "worker.mjs"
+compatibility_date = "2024-11-01"
+account_id = "b3e2be36974b130216e6035ddcaea169"
