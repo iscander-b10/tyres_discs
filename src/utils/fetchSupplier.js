@@ -4,7 +4,7 @@
  */
 const CORS_PROXY = process.env.REACT_APP_CORS_PROXY?.trim() || '';
 
-const RETRY_ATTEMPTS_WITH_PROXY = 3;
+const RETRY_ATTEMPTS_WITH_PROXY = 1;
 const RETRY_ATTEMPTS_DEFAULT = 2;
 const RETRY_BASE_DELAY_MS = 1500;
 
@@ -34,7 +34,18 @@ function delay(ms) {
 }
 
 function isRetryableResponse(response) {
+  if (response.status === 503 || response.status === 504) return false;
   return response.status >= 500 || response.status === 429;
+}
+
+async function readProxyError(response) {
+  try {
+    const data = await response.clone().json();
+    if (data?.error) return data.error;
+  } catch {
+    /* not JSON */
+  }
+  return `HTTP ${response.status}`;
 }
 
 function isRetryableError(error) {
@@ -59,9 +70,11 @@ export async function fetchWithRetry(url, init = {}, options = {}) {
     try {
       const response = await fetch(url, init);
 
-      if (!response.ok && isRetryableResponse(response) && attempt < maxAttempts) {
-        await delay(RETRY_BASE_DELAY_MS * attempt);
-        continue;
+      if (!response.ok) {
+        if (isRetryableResponse(response) && attempt < maxAttempts) {
+          await delay(RETRY_BASE_DELAY_MS * attempt);
+          continue;
+        }
       }
 
       return response;

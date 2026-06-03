@@ -1,0 +1,40 @@
+openapi: 3.0.0
+info:
+  title: tyres-discs supplier proxy
+  version: 1.0.0
+
+x-yc-apigateway:
+  variables:
+    SUPPLIER_PROXY_FUNCTION_ID:
+      default: "d4e_replace_me"
+      description: "Yandex Cloud Function ID for supplier-proxy"
+
+paths:
+  /:
+    options:
+      summary: CORS preflight
+      responses:
+        "204":
+          description: No content
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: ${var.SUPPLIER_PROXY_FUNCTION_ID}
+    get:
+      summary: Proxy supplier request
+      parameters:
+        - name: url
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Encoded target URL (https://...)
+      responses:
+        "200":
+          description: Upstream response
+        "4XX":
+          description: Validation / allowlist errors
+        "5XX":
+          description: Upstream/proxy errors
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: ${var.SUPPLIER_PROXY_FUNCTION_ID}
