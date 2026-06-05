@@ -188,8 +188,8 @@ async function readBodyForGateway(upstreamResponse, maxBytes) {
 }
 
 module.exports.handler = async function handler(event) {
-  // ДОБАВЛЕНО: Логируем входящий запрос (метод и URL)
-  console.log('Incoming request:', event?.httpMethod || event?.requestContext?.http?.method, event?.queryStringParameters?.url);
+  // Заменили log на error
+  console.error('Incoming request:', event?.httpMethod || event?.requestContext?.http?.method, event?.queryStringParameters?.url);
 
   try {
     const method = (event?.httpMethod || event?.requestContext?.http?.method || 'GET').toUpperCase();
@@ -224,13 +224,11 @@ module.exports.handler = async function handler(event) {
     }
 
     if (!isAllowedHost(targetUrl.hostname, allowedHosts)) {
-      // ДОБАВЛЕНО: Логируем попытку обращения к запрещённому хосту
-      console.warn('Blocked host:', targetUrl.hostname);
+      console.error('Blocked host:', targetUrl.hostname);   // warn → error
       return json(403, { error: `Host not allowed: ${targetUrl.hostname}` });
     }
 
-    // ДОБАВЛЕНО: Логируем начало запроса к поставщику
-    console.log('Fetching:', targetUrl.toString());
+    console.error('Fetching:', targetUrl.toString());   // log → error
     const startTime = Date.now();
 
     try {
@@ -247,8 +245,7 @@ module.exports.handler = async function handler(event) {
       );
 
       const fetchDuration = Date.now() - startTime;
-      // ДОБАВЛЕНО: Логируем статус ответа и время запроса
-      console.log('Upstream responded with', upstream.status, 'in', fetchDuration, 'ms');
+      console.error('Upstream responded with', upstream.status, 'in', fetchDuration, 'ms');   // log → error
 
       const { body, isBase64Encoded, contentType } = await readBodyForGateway(upstream, maxBytes);
 
@@ -262,13 +259,11 @@ module.exports.handler = async function handler(event) {
         isBase64Encoded,
       };
 
-      // ДОБАВЛЕНО: Логируем размер итогового ответа
       const responseSize = JSON.stringify(responseObj).length;
-      console.log('Response size:', responseSize, 'bytes');
+      console.error('Response size:', responseSize, 'bytes');   // log → error
 
-      // ДОБАВЛЕНО: Если передан параметр debug=1, выводим дополнительную информацию
       if (event?.queryStringParameters?.debug === '1') {
-        console.log('Debug info:', {
+        console.error('Debug info:', {   // log → error
           targetUrl: targetUrl.toString(),
           upstreamStatus: upstream.status,
           contentType,
@@ -281,8 +276,7 @@ module.exports.handler = async function handler(event) {
       return responseObj;
     } catch (e) {
       const fetchDuration = Date.now() - startTime;
-      // ДОБАВЛЕНО: Расширенное логирование ошибки с контекстом
-      console.error('proxy error', {
+      console.error('proxy error', {   // уже error, оставляем
         error: e?.message || String(e),
         code: e?.code,
         status: e?.status,

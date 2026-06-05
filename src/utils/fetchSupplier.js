@@ -3,6 +3,8 @@
  * На GitHub Pages — через REACT_APP_CORS_PROXY (Cloudflare Worker), если задан.
  */
 const CORS_PROXY = process.env.REACT_APP_CORS_PROXY?.trim() || '';
+/** Включить ?debug=1 в запросах к API Gateway (подробные логи в Cloud Function). */
+const CORS_PROXY_DEBUG = process.env.REACT_APP_CORS_PROXY_DEBUG === '1';
 
 const RETRY_ATTEMPTS_WITH_PROXY = 1;
 const RETRY_ATTEMPTS_DEFAULT = 2;
@@ -23,7 +25,8 @@ export function resolveSupplierFetchUrl(targetUrl) {
 
   if (CORS_PROXY) {
     const proxyBase = CORS_PROXY.endsWith('/') ? CORS_PROXY : `${CORS_PROXY}/`;
-    return `${proxyBase}?url=${encodeURIComponent(targetUrl)}`;
+    const debugSuffix = CORS_PROXY_DEBUG ? '&debug=1' : '';
+    return `${proxyBase}?url=${encodeURIComponent(targetUrl)}${debugSuffix}`;
   }
 
   return targetUrl;
