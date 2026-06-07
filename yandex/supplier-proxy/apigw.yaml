@@ -3,16 +3,31 @@ info:
   title: tyres-discs supplier proxy
   version: 1.0.0
 
+# Глобальный CORS (заменяет CORS-заголовки из облачной функции для всех маршрутов)
+x-yc-apigateway-cors:
+  origins:
+    - "*"
+  methods:
+    - GET
+    - OPTIONS
+  headers:
+    - "*"
+  max-age: 86400
+
 x-yc-apigateway:
+  service_account_id: "ajebole4ctgqp45f4437" # ← замени на свой реальный ID сервисного аккаунта
   variables:
     SUPPLIER_PROXY_FUNCTION_ID:
-      default: "d4e_replace_me"
+      default: "d4ehp73ttejr687820if" # ← замени на актуальный ID облачной функции
       description: "Yandex Cloud Function ID for supplier-proxy"
 
 paths:
+  # =========================================================================
+  #  1. Основной маршрут – вызов облачной функции (для shina.su, shinservice и др.)
+  # =========================================================================
   /:
     options:
-      summary: CORS preflight
+      summary: CORS preflight (облачная функция)
       responses:
         "204":
           description: No content
@@ -20,7 +35,7 @@ paths:
         type: cloud_functions
         function_id: ${var.SUPPLIER_PROXY_FUNCTION_ID}
     get:
-      summary: Proxy supplier request
+      summary: Proxy supplier request (cloud function)
       parameters:
         - name: url
           in: query
@@ -38,3 +53,81 @@ paths:
       x-yc-apigateway-integration:
         type: cloud_functions
         function_id: ${var.SUPPLIER_PROXY_FUNCTION_ID}
+
+  # =========================================================================
+  #  2. Прямой прокси до b2b.4tochki.ru
+  # =========================================================================
+  /b2b/{path+}:
+    get:
+      summary: Прямой прокси → b2b.4tochki.ru
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Остаток пути после /b2b/
+      responses:
+        "200":
+          description: Ответ от b2b.4tochki.ru
+      x-yc-apigateway-integration:
+        type: http
+        url: https://b2b.4tochki.ru/{path}
+        method: GET
+
+  # =========================================================================
+  #  3. Прямой прокси до z34.ru
+  # =========================================================================
+  /z34/{path+}:
+    get:
+      summary: Прямой прокси → z34.ru
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Ответ от z34.ru
+      x-yc-apigateway-integration:
+        type: http
+        url: https://z34.ru/{path}
+        method: GET
+        query:
+          '*': '*'
+        headers:
+          Host: z34.ru
+          Accept: '{Accept}'
+          '*': '*'
+        omitEmptyHeaders: true
+
+  # =========================================================================
+  #  4. Прямой прокси до vershinatyres.ru
+  # =========================================================================
+  /vershina/{path+}:
+    get:
+      summary: Прямой прокси → vershinatyres.ru
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Ответ от vershinatyres.ru
+      x-yc-apigateway-integration:
+        type: http
+        url: https://vershinatyres.ru/{path}
+        method: GET
+        query:
+          '*': '*'
+        headers:
+          Host: vershinatyres.ru
+          Accept: '{Accept}'
+          '*': '*'
+        omitEmptyHeaders: true
+        timeouts:
+          connect: 5
+          read: 60

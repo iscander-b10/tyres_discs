@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { Button } from 'antd';
 import { CloseOutlined } from '@ant-design/icons';
+import { resolvePhotoUrl } from '../../../utils/fetchSupplier';
 import './CatalogItemModalWindow.scss';
 
 const CatalogItemModalWindow = ({ isOpen, onClose, item }) => {
@@ -28,6 +29,11 @@ const CatalogItemModalWindow = ({ isOpen, onClose, item }) => {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  const photoSrc = useMemo(
+    () => (item ? resolvePhotoUrl(item.photoUrl, item.supplier) : ''),
+    [item?.photoUrl, item?.supplier]
+  );
+
   // Закрытие по клику на оверлей
   const handleOverlayClick = (e) => {
     if (e.target === e.currentTarget) {
@@ -47,9 +53,10 @@ const CatalogItemModalWindow = ({ isOpen, onClose, item }) => {
           onClick={onClose}
         />
         <img
-          src={item.photoUrl}
+          src={photoSrc}
           alt={item.title}
           className="custom-modal-image"
+          referrerPolicy="no-referrer"
           onError={(e) => {
             e.target.src = 'https://via.placeholder.com/800x600?text=No+Image';
           }}

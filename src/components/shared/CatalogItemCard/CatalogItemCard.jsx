@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Card, Divider, Flex, Image, Space, Tooltip, Typography } from 'antd';
 import { TruckOutlined } from '@ant-design/icons';
 import runflatIcon from '../../../icons/runflat.jpg';
+import { resolvePhotoUrl } from '../../../utils/fetchSupplier';
 import './CatalogItemCard.scss';
 
 const { Meta } = Card;
@@ -40,6 +41,11 @@ const CatalogItemCard = ({
   const supplierLabel = useMemo(
     () => (item?.supplier ? `Поставщик: ${item.supplier}` : null),
     [item?.supplier]
+  );
+
+  const photoSrc = useMemo(
+    () => resolvePhotoUrl(item?.photoUrl, item?.supplier),
+    [item?.photoUrl, item?.supplier]
   );
 
   const detailRows = useMemo(() => {
@@ -114,10 +120,11 @@ const CatalogItemCard = ({
           >
             <Image
               className="item-image"
-              src={item.photoUrl}
+              src={photoSrc}
               alt={item.title}
               fallback="https://via.placeholder.com/300x200?text=No+Image"
               preview={false}
+              referrerPolicy="no-referrer"
             />
             {(item.code || item.runflat) ? (
               <Flex

@@ -1,5 +1,6 @@
 /* Универсальная карточка (шины + диски) */
 .item-card {
+  border-radius: 16px;
   :where(.ant-card-body) {
     padding: 12px;
   }

@@ -16,9 +16,11 @@
 const DEFAULT_ALLOWED_HOSTS = [
   'z34.ru',
   'b2b.4tochki.ru',
+  'api-b2b.pwrs.ru', // картинки 4tochki (img_big_my)
   'shina.su',
   'vershinatyres.ru',
   'duplo-api.shinservice.ru',
+  'duplo-s0.shinservice.ru', // картинки shinservice (photoUrl)
 ];
 
 const CORS_HEADERS = {
