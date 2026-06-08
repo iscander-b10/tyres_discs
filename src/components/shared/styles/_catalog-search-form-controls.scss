@@ -207,6 +207,8 @@ $catalog-text: #262626;
   @include catalog-green-ant-select(34px, 10px);
 
   .ant-btn {
+    @include catalog-search-form-theme-tokens();
+
     border-radius: 12px;
     font-weight: 600;
     font-size: 14px;
@@ -224,13 +226,21 @@ $catalog-text: #262626;
     }
   }
 
-  .ant-btn-primary {
-    background: $catalog-accent-green;
-    color: #ffffff;
+  .ant-btn-primary.ant-btn-color-primary.ant-btn-variant-solid {
+    background: $catalog-accent-green !important;
+    border-color: $catalog-accent-green !important;
+    color: #ffffff !important;
 
-    &:hover {
-      background: $catalog-accent-green-hover;
-      color: #ffffff;
+    &:not(:disabled):hover {
+      background: $catalog-accent-green-hover !important;
+      border-color: $catalog-accent-green-hover !important;
+      color: #ffffff !important;
+    }
+
+    &:not(:disabled):active {
+      background: $catalog-accent-green-hover !important;
+      border-color: $catalog-accent-green-hover !important;
+      color: #ffffff !important;
     }
   }
 
@@ -306,7 +316,8 @@ $catalog-text: #262626;
   border-radius: 12px;
   padding: 4px;
 
-  .ant-select-item {
+  .ant-select-item,
+  .ant-dropdown-menu-item {
     border-radius: 8px;
     margin: 2px 0;
     padding: 6px 10px;
@@ -314,7 +325,9 @@ $catalog-text: #262626;
     font-size: 12px;
     color: $catalog-text;
     transition: background 0.1s;
+  }
 
+  .ant-select-item {
     &.ant-select-item-option-selected {
       background: $catalog-accent-green-selected;
       font-weight: 600;
@@ -327,6 +340,18 @@ $catalog-text: #262626;
 
     &.ant-select-item-option-active,
     &.ant-select-item-option-active:not(.ant-select-item-option-disabled) {
+      background: $catalog-accent-green-light !important;
+    }
+  }
+
+  .ant-dropdown-menu-item {
+    &.ant-dropdown-menu-item-selected {
+      background: $catalog-accent-green-selected;
+      font-weight: 600;
+      color: $catalog-text;
+    }
+
+    &:not(.ant-dropdown-menu-item-disabled):hover {
       background: $catalog-accent-green-light !important;
     }
   }

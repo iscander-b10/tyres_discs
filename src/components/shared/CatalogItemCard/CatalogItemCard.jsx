@@ -182,7 +182,7 @@ const CatalogItemCard = ({
               <Divider className="item-detail-divider" />
               <Flex className="item-stock" justify="space-between" align="center">
                 <Text className="detail-label">В наличии:</Text>
-                <Space size={8} align="center">
+                <Space className="item-stock-space" size={8} align="center">
                   <Text className="stock-value">{item.amount} шт.</Text>
                   {isClientMode && supplierLabel && (
                     <Tooltip title={supplierLabel} placement="top">

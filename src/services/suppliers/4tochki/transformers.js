@@ -3,6 +3,24 @@ import { calculateSellingPrice, getMargin } from '../../dataTransformers';
 const parseSeason = (season) => season === 'Зимняя' ? 'w' : 's';
 const parseSpikes = (spikes) => spikes === 'Да';
 const parseRunflat = (value) => String(value ?? '').trim().toUpperCase().includes('ДА');
+const parseRestKrd = (value) => {
+  if (typeof value === 'number' && !Number.isNaN(value)) {
+    return value;
+  }
+
+  const str = String(value ?? '').trim();
+  if (!str) {
+    return 0;
+  }
+
+  if (/более/i.test(str)) {
+    const match = str.match(/\d+/);
+    return match ? Number(match[0]) : 0;
+  }
+
+  const num = Number(str);
+  return Number.isNaN(num) ? 0 : num;
+};
 const normalizeBrand = (brand) => (
   String(brand).trim() === 'Hankook Laufenn' ? 'Laufenn' : 
   String(brand).trim() === 'HiFly' ? 'Hifly' : 
@@ -42,7 +60,7 @@ const parseTyresDiameter = normalizeDiameter(tyre.diameter);
         diameter: parseTyresDiameter,
         season: parseSeason(tyre.season),
         spikes: parseSpikes(tyre.thorn),
-        amount: tyre.rest_krd,
+        amount: parseRestKrd(tyre.rest_krd),
         title: newTitle,
         sizeTitle,
         price: tyre.price_krd,
@@ -91,7 +109,7 @@ export const transformDiscs = (rawData) => {
         cb: disc.dia,
         diskType: disc.rim_type,
         color: newColor,
-        amount: disc.rest_krd,
+        amount: parseRestKrd(disc.rest_krd),
         title: newTitle,
         sizeTitle,
         price: disc.price_krd,

@@ -118,14 +118,33 @@
     margin-left: 12px;
   }
 
-  .supplier-icon {
+  .item-stock-space {
     display: inline-flex;
     align-items: center;
-    color: rgba(0, 0, 0, 0.55);
+    align-self: center;
+    height: 100%;
+
+    .ant-space-item {
+      display: inline-flex;
+      align-items: center;
+
+      > * {
+        display: inline-flex;
+        align-items: center;
+      }
+    }
+  }
+
+  .supplier-icon {
+    color: #000;
+    font-size: 18px;
     cursor: help;
   }
 
   .stock-value {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
     color: #52c41a;
     font-weight: 600;
   }

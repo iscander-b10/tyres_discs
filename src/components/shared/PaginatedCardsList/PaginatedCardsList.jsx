@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Empty, Flex, Input, Pagination, Select, Typography } from 'antd';
-import { catalogSearchSelectProps } from '../catalogSearchSelectProps';
+import { SortDescendingOutlined } from '@ant-design/icons';
+import { Alert, Dropdown, Empty, Flex, Input, Pagination } from 'antd';
 import './PaginatedCardsList.scss';
 
 const DEFAULT_ITEMS_PER_PAGE = 21;
@@ -12,6 +12,14 @@ const SORT_MODES = {
   ALPHABET_ASC: 'alphabetAsc',
   ALPHABET_DESC: 'alphabetDesc',
 };
+
+const SORT_MENU_ITEMS = [
+  { key: SORT_MODES.DEFAULT, label: 'По умолчанию' },
+  { key: SORT_MODES.PRICE_ASC, label: 'По цене (дешевле → дороже)' },
+  { key: SORT_MODES.PRICE_DESC, label: 'По цене (дороже → дешевле)' },
+  { key: SORT_MODES.ALPHABET_ASC, label: 'По алфавиту (А → Я)' },
+  { key: SORT_MODES.ALPHABET_DESC, label: 'По алфавиту (Я → А)' },
+];
 
 const getSortablePrice = (item) => {
   const raw = item?.sellingPrice ?? item?.price ?? item?.cost ?? null;
@@ -26,8 +34,6 @@ const matchesTitleSearch = (item, normalizedQuery) => {
   const title = String(item?.title ?? '').toLowerCase();
   return title.includes(normalizedQuery);
 };
-
-const { Text } = Typography;
 
 const PaginatedCardsList = ({
   items,
@@ -120,36 +126,29 @@ const PaginatedCardsList = ({
     <Flex className={containerClassName} vertical>
       {hasSourceItems && (
         <Flex className="list-toolbar" align="flex-end" wrap="wrap">
-          <Flex className="list-toolbar__group" vertical align="center">
-            <Text type="secondary" className="list-toolbar__label">
-              Поиск:
-            </Text>
-            <Input
-              className="list-toolbar__search"
-              allowClear
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="По названию"
+          <Input
+            className="list-toolbar__search"
+            allowClear
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            prefix="Поиск:"
+            placeholder="По названию"
+          />
+          <Dropdown
+            menu={{
+              items: SORT_MENU_ITEMS,
+              selectedKeys: [sortMode],
+              onClick: ({ key }) => setSortMode(key),
+            }}
+            trigger={['click']}
+            overlayClassName="catalog-search-select-dropdown"
+          >
+            <SortDescendingOutlined
+              className="list-toolbar__sort-icon"
+              role="button"
+              aria-label="Сортировка"
             />
-          </Flex>
-          <Flex className="list-toolbar__group" vertical align="center">
-            <Text type="secondary" className="list-toolbar__label">
-              Сортировка:
-            </Text>
-            <Select
-              {...catalogSearchSelectProps}
-              className="list-toolbar__sort"
-              value={sortMode}
-              onChange={setSortMode}
-              options={[
-                { value: SORT_MODES.DEFAULT, label: 'По умолчанию' },
-                { value: SORT_MODES.PRICE_ASC, label: 'По цене (дешевле → дороже)' },
-                { value: SORT_MODES.PRICE_DESC, label: 'По цене (дороже → дешевле)' },
-                { value: SORT_MODES.ALPHABET_ASC, label: 'По алфавиту (А → Я)' },
-                { value: SORT_MODES.ALPHABET_DESC, label: 'По алфавиту (Я → А)' },
-              ]}
-            />
-          </Flex>
+          </Dropdown>
         </Flex>
       )}
       {hasVisibleItems ? (
