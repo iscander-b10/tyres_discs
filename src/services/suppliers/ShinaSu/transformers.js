@@ -1,7 +1,7 @@
 import { calculateSellingPrice, getMargin } from '../../dataTransformers';
 
 const normalizeBrand = (brand) => (
-  String(brand).trim() === 'Ikon Tyres' ? 'Ikon' : 
+  String(brand).trim() === 'IKON TYRES' ? 'Ikon' : 
   String(brand).trim() === 'CONTYRE' ? 'Contyre' : 
   String(brand).trim() === 'Leao' ? 'LingLong Leao' : 
   String(brand).trim() === 'KAMA' ? 'Кама' : 
