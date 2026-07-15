@@ -1,16 +1,16 @@
 {
   "files": {
     "main.css": "/tyres_discs/static/css/main.ef3d2e04.css",
-    "main.js": "/tyres_discs/static/js/main.e4645d1f.js",
+    "main.js": "/tyres_discs/static/js/main.e9ae9058.js",
     "static/js/453.ea502963.chunk.js": "/tyres_discs/static/js/453.ea502963.chunk.js",
     "static/media/runflat.jpg": "/tyres_discs/static/media/runflat.9dbf3e8e9472eaa9cf38.jpg",
     "index.html": "/tyres_discs/index.html",
     "main.ef3d2e04.css.map": "/tyres_discs/static/css/main.ef3d2e04.css.map",
-    "main.e4645d1f.js.map": "/tyres_discs/static/js/main.e4645d1f.js.map",
+    "main.e9ae9058.js.map": "/tyres_discs/static/js/main.e9ae9058.js.map",
     "453.ea502963.chunk.js.map": "/tyres_discs/static/js/453.ea502963.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.ef3d2e04.css",
-    "static/js/main.e4645d1f.js"
+    "static/js/main.e9ae9058.js"
   ]
 }
