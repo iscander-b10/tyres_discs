@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, memo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, memo } from 'react';
 import { Form, Select, Button, Space, Radio, Row, Col, Checkbox } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import indexedDBService from '../../services/indexedDBService';
@@ -26,7 +26,9 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
   const [availableSeasons, setAvailableSeasons] = useState([]);
   const [availableBrands, setAvailableBrands] = useState([]);
   const [availableSuppliers, setAvailableSuppliers] = useState([]);
+  const [loadingOptions, setLoadingOptions] = useState(false);
   const [showSpikesFilter, setShowSpikesFilter] = useState(false);
+  const loadRequestIdRef = useRef(0);
   const brandSelectCloseOnMouseLeave = useCatalogSelectCloseOnMouseLeave();
   const selectedSeason = Form.useWatch('season', form) ?? DEFAULT_SEASON;
 
@@ -56,33 +58,46 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
     loadAvailableParameters(buildFiltersFromFormValues(form.getFieldsValue()));
   }, [catalogDataVersion]);
 
+  const clearAvailableOptions = () => {
+    setAvailableWidths([]);
+    setAvailableProfiles([]);
+    setAvailableDiameters([]);
+    setAvailableSeasons([]);
+    setAvailableBrands([]);
+    setAvailableSuppliers([]);
+  };
+
   const loadAvailableParameters = async (filters = {}) => {
     const filtersWithSeason = { season: filters.season ?? DEFAULT_SEASON, ...filters };
+    const requestId = ++loadRequestIdRef.current;
+
+    setLoadingOptions(true);
+    clearAvailableOptions();
 
     try {
-      const widths = await indexedDBService.getUniqueValues('width', filtersWithSeason);
-      const profiles = await indexedDBService.getUniqueValues('profile', filtersWithSeason);
-      const diameters = await indexedDBService.getUniqueValues('diameter', filtersWithSeason);
-      const seasons = await indexedDBService.getUniqueValues('season', filtersWithSeason);
-      const brands = await indexedDBService.getUniqueValues('brand', filtersWithSeason);
-      const suppliers = await indexedDBService.getUniqueValues('supplier', filtersWithSeason);
+      const options = await indexedDBService.getAvailableParameterOptions(filtersWithSeason);
 
-      setAvailableWidths(widths);
-      setAvailableProfiles(profiles);
-      setAvailableDiameters(diameters);
-      setAvailableSeasons(seasons);
-      setAvailableBrands(brands);
-      setAvailableSuppliers(suppliers);
+      if (requestId !== loadRequestIdRef.current) {
+        return { brands: [], suppliers: [] };
+      }
 
-      return { brands, suppliers };
+      setAvailableWidths(options.widths);
+      setAvailableProfiles(options.profiles);
+      setAvailableDiameters(options.diameters);
+      setAvailableSeasons(options.seasons);
+      setAvailableBrands(options.brands);
+      setAvailableSuppliers(options.suppliers);
+
+      return { brands: options.brands, suppliers: options.suppliers };
     } catch (error) {
-      setAvailableWidths([]);
-      setAvailableProfiles([]);
-      setAvailableDiameters([]);
-      setAvailableSeasons([]);
-      setAvailableBrands([]);
-      setAvailableSuppliers([]);
+      if (requestId === loadRequestIdRef.current) {
+        clearAvailableOptions();
+      }
       return { brands: [], suppliers: [] };
+    } finally {
+      if (requestId === loadRequestIdRef.current) {
+        setLoadingOptions(false);
+      }
     }
   };
 
@@ -130,6 +145,20 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
       };
       form.setFieldsValue(seasonDependentReset);
       valuesForFilters = { ...allValues, ...seasonDependentReset, season: changedValues.season };
+    }
+
+    if ('width' in changedValues) {
+      const widthDependentReset = {
+        profile: undefined,
+        diameter: undefined,
+      };
+      form.setFieldsValue(widthDependentReset);
+      valuesForFilters = { ...valuesForFilters, ...widthDependentReset };
+    }
+
+    if ('profile' in changedValues) {
+      form.setFieldsValue({ diameter: undefined });
+      valuesForFilters = { ...valuesForFilters, diameter: undefined };
     }
 
     await loadAvailableParameters(buildFiltersFromFormValues(valuesForFilters));
@@ -190,7 +219,7 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
         <Row gutter={16}>
           <Col xs={24} sm={8}>
             <Form.Item name="width" label="Ширина" className="form-item">
-              <Select {...catalogSearchSelectProps} allowClear placeholder="Все">
+              <Select {...catalogSearchSelectProps} allowClear placeholder="Все" loading={loadingOptions}>
                 {widthOptions.map((width) => (
                   <Option key={width} value={width}>
                     {width}
@@ -201,7 +230,7 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
           </Col>
           <Col xs={24} sm={8}>
             <Form.Item name="profile" label="Профиль" className="form-item">
-              <Select {...catalogSearchSelectProps} allowClear placeholder="Все">
+              <Select {...catalogSearchSelectProps} allowClear placeholder="Все" loading={loadingOptions}>
                 {availableProfiles.map((profile) => (
                   <Option key={profile} value={profile}>
                     {profile === 0 ? '0 (груз.)' : profile}
@@ -212,7 +241,7 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
           </Col>
           <Col xs={24} sm={8}>
             <Form.Item name="diameter" label="Диаметр" className="form-item">
-              <Select {...catalogSearchSelectProps} allowClear placeholder="Все">
+              <Select {...catalogSearchSelectProps} allowClear placeholder="Все" loading={loadingOptions}>
                 {availableDiameters.map((diameter) => (
                   <Option key={diameter} value={diameter}>
                     {diameter}
@@ -232,6 +261,7 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
             allowClear
             maxTagCount="responsive"
             optionFilterProp="children"
+            loading={loadingOptions}
           >
             {availableBrands.map((brand) => (
               <Option key={brand} value={brand}>
@@ -242,7 +272,7 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
         </Form.Item>
 
         <Form.Item name="supplier" label="Поставщик" className="form-item">
-          <Select {...catalogSearchSelectProps} placeholder="Поставщик" allowClear>
+          <Select {...catalogSearchSelectProps} placeholder="Поставщик" allowClear loading={loadingOptions}>
             {availableSuppliers.map((supplier) => (
               <Option key={supplier} value={supplier}>
                 {supplier}

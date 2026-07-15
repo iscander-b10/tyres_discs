@@ -17,6 +17,106 @@ const getSingleBrandForIndex = (brandFilter) => {
   return brandFilter || null;
 };
 
+const normalizeNumericFieldValue = (value) => {
+  const num = parseFloat(value);
+  return Number.isNaN(num) ? null : num;
+};
+
+const sortDiameterValues = (values) =>
+  [...values].sort((a, b) => {
+    const strA = a.toString();
+    const strB = b.toString();
+    const numA = parseFloat(strA) || 0;
+    const numB = parseFloat(strB) || 0;
+
+    if (numA !== numB) {
+      return numA - numB;
+    }
+
+    return strA.localeCompare(strB);
+  });
+
+const sortNumericValues = (values) => [...values].sort((a, b) => a - b);
+
+const sortDiscDiameterValues = (values) =>
+  [...values].sort((a, b) => {
+    const strA = a.toString();
+    const strB = b.toString();
+    const numA = parseFloat(strA.replace(/[^\d.]/g, '')) || 0;
+    const numB = parseFloat(strB.replace(/[^\d.]/g, '')) || 0;
+
+    if (numA !== numB) {
+      return numA - numB;
+    }
+
+    return strA.localeCompare(strB);
+  });
+
+const sortDiscNumericValues = (values) =>
+  [...values].sort((a, b) => {
+    const numA = parseFloat(a) || 0;
+    const numB = parseFloat(b) || 0;
+    return numA - numB;
+  });
+
+const matchesTireParameterFilters = (item, filters = {}) => {
+  if (filters.width && item.width != filters.width) return false;
+  if (filters.profile && item.profile != filters.profile) return false;
+  if (filters.diameter && item.diameter != filters.diameter) return false;
+  if (filters.season && item.season !== filters.season) return false;
+  return true;
+};
+
+const matchesDiscParameterFilters = (item, filters = {}) => {
+  const widthNumber = item.width === undefined || item.width === null ? null : Number(item.width);
+  const cbNumber = item.cb === undefined || item.cb === null ? null : Number(item.cb);
+  const etNumber = item.et === undefined || item.et === null ? null : Number(item.et);
+  const widthFromNumber =
+    filters.widthFrom === undefined || filters.widthFrom === null || filters.widthFrom === ''
+      ? null
+      : Number(filters.widthFrom);
+  const widthToNumber =
+    filters.widthTo === undefined || filters.widthTo === null || filters.widthTo === ''
+      ? null
+      : Number(filters.widthTo);
+  const cbFromNumber =
+    filters.cbFrom === undefined || filters.cbFrom === null || filters.cbFrom === ''
+      ? null
+      : Number(filters.cbFrom);
+  const cbToNumber =
+    filters.cbTo === undefined || filters.cbTo === null || filters.cbTo === ''
+      ? null
+      : Number(filters.cbTo);
+  const etFromNumber =
+    filters.etFrom === undefined || filters.etFrom === null || filters.etFrom === ''
+      ? null
+      : Number(filters.etFrom);
+  const etToNumber =
+    filters.etTo === undefined || filters.etTo === null || filters.etTo === ''
+      ? null
+      : Number(filters.etTo);
+
+  if (!matchesBrandFilter(item.brand, filters.brand)) return false;
+  if (filters.supplier && item.supplier !== filters.supplier) return false;
+  if (filters.diameter && item.diameter !== filters.diameter) return false;
+  if (filters.pcd && item.pcd !== filters.pcd) return false;
+  if (filters.pn && item.pn !== filters.pn) return false;
+  if (filters.diskType && item.diskType !== filters.diskType) return false;
+  if (widthFromNumber !== null && (Number.isNaN(widthNumber) || widthNumber < widthFromNumber)) return false;
+  if (widthToNumber !== null && (Number.isNaN(widthNumber) || widthNumber > widthToNumber)) return false;
+  if (cbFromNumber !== null && (Number.isNaN(cbNumber) || cbNumber < cbFromNumber)) return false;
+  if (cbToNumber !== null && (Number.isNaN(cbNumber) || cbNumber > cbToNumber)) return false;
+  if (etFromNumber !== null && (Number.isNaN(etNumber) || etNumber < etFromNumber)) return false;
+  if (etToNumber !== null && (Number.isNaN(etNumber) || etNumber > etToNumber)) return false;
+  return true;
+};
+
+const addUniqueValue = (set, value) => {
+  if (value != null) {
+    set.add(value);
+  }
+};
+
 class IndexedDBService {
   constructor() {
     this.dbName = 'TireDatabase';
@@ -205,8 +305,7 @@ class IndexedDBService {
   });
 }
 
-  async getUniqueValues(fieldName, filters = {}) {
-  try {
+  async getAvailableParameterOptions(filters = {}) {
     if (!this.db) {
       await this.openDatabase();
     }
@@ -214,68 +313,54 @@ class IndexedDBService {
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction(['tires'], 'readonly');
       const store = transaction.objectStore('tires');
-      
-      let request;
-      if (store.indexNames.contains(fieldName)) {
-        request = store.index(fieldName).getAll();
-      } else {
-        request = store.getAll();
-      }
+      const request = store.getAll();
 
       request.onsuccess = () => {
-        const allItems = request.result;
-        
-        const filteredItems = allItems.filter(item => {
-          if (filters.width && item.width != filters.width) return false;
-          if (filters.profile && item.profile != filters.profile) return false;
-          if (filters.diameter && item.diameter != filters.diameter) return false;
-          if (filters.season && item.season !== filters.season) return false;
-          return true;
+        const filteredItems = request.result.filter((item) => matchesTireParameterFilters(item, filters));
+
+        const widths = new Set();
+        const profiles = new Set();
+        const diameters = new Set();
+        const seasons = new Set();
+        const brands = new Set();
+        const suppliers = new Set();
+
+        filteredItems.forEach((item) => {
+          addUniqueValue(widths, normalizeNumericFieldValue(item.width));
+          addUniqueValue(profiles, normalizeNumericFieldValue(item.profile));
+          addUniqueValue(diameters, item.diameter);
+          addUniqueValue(seasons, item.season);
+          addUniqueValue(brands, item.brand);
+          addUniqueValue(suppliers, item.supplier);
         });
-        
-        const uniqueValues = new Set();
-        filteredItems.forEach(item => {
-          let value = item[fieldName];
-          
-          if (['width', 'profile'].includes(fieldName)) {
-            const num = parseFloat(value);
-            value = isNaN(num) ? null : num;
-          }
-          
-          if (value != null) uniqueValues.add(value);
+
+        resolve({
+          widths: sortNumericValues(widths),
+          profiles: sortNumericValues(profiles),
+          diameters: sortDiameterValues(diameters),
+          seasons: Array.from(seasons).sort(),
+          brands: Array.from(brands).sort(),
+          suppliers: Array.from(suppliers).sort(),
         });
-        
-        const sortedValues = Array.from(uniqueValues);
-        
-        if (fieldName === 'diameter') {
-          sortedValues.sort((a, b) => {
-            const strA = a.toString();
-            const strB = b.toString();
-            
-            const numA = parseFloat(strA) || 0;
-            const numB = parseFloat(strB) || 0;
-            
-            if (numA !== numB) {
-              return numA - numB;
-            }
-            
-            return strA.localeCompare(strB);
-          });
-        } else if (['width', 'profile'].includes(fieldName)) {
-          sortedValues.sort((a, b) => a - b);
-        } else {
-          sortedValues.sort();
-        }
-        
-        resolve(sortedValues);
       };
 
       request.onerror = () => reject(request.error);
     });
-  } catch (error) {
-    throw error; 
   }
-}
+
+  async getUniqueValues(fieldName, filters = {}) {
+    const options = await this.getAvailableParameterOptions(filters);
+    const fieldMap = {
+      width: 'widths',
+      profile: 'profiles',
+      diameter: 'diameters',
+      season: 'seasons',
+      brand: 'brands',
+      supplier: 'suppliers',
+    };
+
+    return options[fieldMap[fieldName]] ?? [];
+  }
 
   // Методы для работы с дисками
   async openDiscDatabase() {
@@ -501,98 +586,73 @@ class IndexedDBService {
     });
   }
 
-  async getUniqueDiscValues(fieldName, filters = {}) {
-    try {
-      if (!this.discDb) {
-        await this.openDiscDatabase();
-      }
-
-      return new Promise((resolve, reject) => {
-        const transaction = this.discDb.transaction(['discs'], 'readonly');
-        const store = transaction.objectStore('discs');
-        
-        let request;
-        if (store.indexNames.contains(fieldName)) {
-          request = store.index(fieldName).getAll();
-        } else {
-          request = store.getAll();
-        }
-
-        request.onsuccess = () => {
-          const allItems = request.result;
-          
-          const filteredItems = allItems.filter(item => {
-            const widthNumber = item.width === undefined || item.width === null ? null : Number(item.width);
-            const cbNumber = item.cb === undefined || item.cb === null ? null : Number(item.cb);
-            const etNumber = item.et === undefined || item.et === null ? null : Number(item.et);
-            const widthFromNumber = filters.widthFrom === undefined || filters.widthFrom === null || filters.widthFrom === '' ? null : Number(filters.widthFrom);
-            const widthToNumber = filters.widthTo === undefined || filters.widthTo === null || filters.widthTo === '' ? null : Number(filters.widthTo);
-            const cbFromNumber = filters.cbFrom === undefined || filters.cbFrom === null || filters.cbFrom === '' ? null : Number(filters.cbFrom);
-            const cbToNumber = filters.cbTo === undefined || filters.cbTo === null || filters.cbTo === '' ? null : Number(filters.cbTo);
-            const etFromNumber = filters.etFrom === undefined || filters.etFrom === null || filters.etFrom === '' ? null : Number(filters.etFrom);
-            const etToNumber = filters.etTo === undefined || filters.etTo === null || filters.etTo === '' ? null : Number(filters.etTo);
-
-            if (!matchesBrandFilter(item.brand, filters.brand)) return false;
-            if (filters.supplier && item.supplier !== filters.supplier) return false;
-            if (filters.diameter && item.diameter !== filters.diameter) return false;
-            if (filters.pcd && item.pcd !== filters.pcd) return false;
-            if (filters.pn && item.pn !== filters.pn) return false;
-            if (filters.diskType && item.diskType !== filters.diskType) return false;
-            if (widthFromNumber !== null && (Number.isNaN(widthNumber) || widthNumber < widthFromNumber)) return false;
-            if (widthToNumber !== null && (Number.isNaN(widthNumber) || widthNumber > widthToNumber)) return false;
-            if (cbFromNumber !== null && (Number.isNaN(cbNumber) || cbNumber < cbFromNumber)) return false;
-            if (cbToNumber !== null && (Number.isNaN(cbNumber) || cbNumber > cbToNumber)) return false;
-            if (etFromNumber !== null && (Number.isNaN(etNumber) || etNumber < etFromNumber)) return false;
-            if (etToNumber !== null && (Number.isNaN(etNumber) || etNumber > etToNumber)) return false;
-            return true;
-          });
-          
-          const uniqueValues = new Set();
-          filteredItems.forEach(item => {
-            let value = item[fieldName];
-            
-            if (['width', 'et', 'cb', 'pn'].includes(fieldName)) {
-              const num = parseFloat(value);
-              value = isNaN(num) ? null : num;
-            }
-            
-            if (value != null) uniqueValues.add(value);
-          });
-          
-          const sortedValues = Array.from(uniqueValues);
-          
-          if (fieldName === 'diameter') {
-            sortedValues.sort((a, b) => {
-              const strA = a.toString();
-              const strB = b.toString();
-              
-              const numA = parseFloat(strA.replace(/[^\d.]/g, '')) || 0;
-              const numB = parseFloat(strB.replace(/[^\d.]/g, '')) || 0;
-              
-              if (numA !== numB) {
-                return numA - numB;
-              }
-              
-              return strA.localeCompare(strB);
-            });
-          } else if (['width', 'et', 'cb', 'pn'].includes(fieldName)) {
-            sortedValues.sort((a, b) => {
-              const numA = parseFloat(a) || 0;
-              const numB = parseFloat(b) || 0;
-              return numA - numB;
-            });
-          } else {
-            sortedValues.sort();
-          }
-          
-          resolve(sortedValues);
-        };
-
-        request.onerror = () => reject(request.error);
-      });
-    } catch (error) {
-      throw error; 
+  async getAvailableDiscParameterOptions(filters = {}) {
+    if (!this.discDb) {
+      await this.openDiscDatabase();
     }
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.discDb.transaction(['discs'], 'readonly');
+      const store = transaction.objectStore('discs');
+      const request = store.getAll();
+
+      request.onsuccess = () => {
+        const filteredItems = request.result.filter((item) => matchesDiscParameterFilters(item, filters));
+
+        const brands = new Set();
+        const suppliers = new Set();
+        const diameters = new Set();
+        const widths = new Set();
+        const cbValues = new Set();
+        const etValues = new Set();
+        const pcdValues = new Set();
+        const pnValues = new Set();
+        const diskTypes = new Set();
+
+        filteredItems.forEach((item) => {
+          addUniqueValue(brands, item.brand);
+          addUniqueValue(suppliers, item.supplier);
+          addUniqueValue(diameters, item.diameter);
+          addUniqueValue(widths, normalizeNumericFieldValue(item.width));
+          addUniqueValue(cbValues, normalizeNumericFieldValue(item.cb));
+          addUniqueValue(etValues, normalizeNumericFieldValue(item.et));
+          addUniqueValue(pcdValues, item.pcd);
+          addUniqueValue(pnValues, normalizeNumericFieldValue(item.pn));
+          addUniqueValue(diskTypes, item.diskType);
+        });
+
+        resolve({
+          brands: Array.from(brands).sort(),
+          suppliers: Array.from(suppliers).sort(),
+          diameters: sortDiscDiameterValues(diameters),
+          widths: sortDiscNumericValues(widths),
+          cb: sortDiscNumericValues(cbValues),
+          et: sortDiscNumericValues(etValues),
+          pcd: Array.from(pcdValues).sort(),
+          pn: sortDiscNumericValues(pnValues),
+          diskTypes: Array.from(diskTypes).sort(),
+        });
+      };
+
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async getUniqueDiscValues(fieldName, filters = {}) {
+    const options = await this.getAvailableDiscParameterOptions(filters);
+    const fieldMap = {
+      brand: 'brands',
+      supplier: 'suppliers',
+      diameter: 'diameters',
+      width: 'widths',
+      cb: 'cb',
+      et: 'et',
+      pcd: 'pcd',
+      pn: 'pn',
+      diskType: 'diskTypes',
+    };
+
+    return options[fieldMap[fieldName]] ?? [];
   }
 
 }

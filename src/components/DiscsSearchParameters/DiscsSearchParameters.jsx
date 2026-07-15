@@ -1,4 +1,4 @@
-import React, { useState, useEffect, memo } from 'react';
+import React, { useState, useEffect, useRef, memo } from 'react';
 import { Form, Select, Button, Space, Row, Col, Radio, Checkbox, Flex } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import indexedDBService from '../../services/indexedDBService';
@@ -27,43 +27,56 @@ const DiscsSearchParameters = memo(({ onDataLoaded, isClientMode }) => {
   const [availablePcd, setAvailablePcd] = useState([]);
   const [availablePn, setAvailablePn] = useState([]);
   const [availableDiskTypes, setAvailableDiskTypes] = useState([]);
+  const [loadingOptions, setLoadingOptions] = useState(false);
   const brandSelectCloseOnMouseLeave = useCatalogSelectCloseOnMouseLeave();
+  const loadRequestIdRef = useRef(0);
 
   useEffect(() => {
     loadAvailableParameters();
   }, []);
 
+  const clearAvailableOptions = () => {
+    setAvailableBrands([]);
+    setAvailableSuppliers([]);
+    setAvailableDiameters([]);
+    setAvailableWidths([]);
+    setAvailableCb([]);
+    setAvailableEt([]);
+    setAvailablePcd([]);
+    setAvailablePn([]);
+    setAvailableDiskTypes([]);
+  };
+
   const loadAvailableParameters = async (filters = {}) => {
+    const requestId = ++loadRequestIdRef.current;
+
+    setLoadingOptions(true);
+    clearAvailableOptions();
+
     try {
-      const brands = await indexedDBService.getUniqueDiscValues('brand', filters);
-      const suppliers = await indexedDBService.getUniqueDiscValues('supplier', filters);
-      const diameters = await indexedDBService.getUniqueDiscValues('diameter', filters);
-      const widths = await indexedDBService.getUniqueDiscValues('width', filters);
-      const cb = await indexedDBService.getUniqueDiscValues('cb', filters);
-      const et = await indexedDBService.getUniqueDiscValues('et', filters);
-      const pcd = await indexedDBService.getUniqueDiscValues('pcd', filters);
-      const pn = await indexedDBService.getUniqueDiscValues('pn', filters);
-      const diskTypes = await indexedDBService.getUniqueDiscValues('diskType', filters);
-      
-      setAvailableBrands(brands);
-      setAvailableSuppliers(suppliers);
-      setAvailableDiameters(diameters);
-      setAvailableWidths(widths);
-      setAvailableCb(cb);
-      setAvailableEt(et);
-      setAvailablePcd(pcd);
-      setAvailablePn(pn);
-      setAvailableDiskTypes(diskTypes);
+      const options = await indexedDBService.getAvailableDiscParameterOptions(filters);
+
+      if (requestId !== loadRequestIdRef.current) {
+        return;
+      }
+
+      setAvailableBrands(options.brands);
+      setAvailableSuppliers(options.suppliers);
+      setAvailableDiameters(options.diameters);
+      setAvailableWidths(options.widths);
+      setAvailableCb(options.cb);
+      setAvailableEt(options.et);
+      setAvailablePcd(options.pcd);
+      setAvailablePn(options.pn);
+      setAvailableDiskTypes(options.diskTypes);
     } catch (error) {
-      setAvailableBrands([]);
-      setAvailableSuppliers([]);
-      setAvailableDiameters([]);
-      setAvailableWidths([]);
-      setAvailableCb([]);
-      setAvailableEt([]);
-      setAvailablePcd([]);
-      setAvailablePn([]);
-      setAvailableDiskTypes([]);
+      if (requestId === loadRequestIdRef.current) {
+        clearAvailableOptions();
+      }
+    } finally {
+      if (requestId === loadRequestIdRef.current) {
+        setLoadingOptions(false);
+      }
     }
   };
 
@@ -157,7 +170,7 @@ const DiscsSearchParameters = memo(({ onDataLoaded, isClientMode }) => {
         <Row gutter={16}>
           <Col xs={24} sm={8}>
             <Form.Item name="diameter" label="Диаметр" className="form-item">
-              <Select {...catalogSearchSelectProps} allowClear>
+              <Select {...catalogSearchSelectProps} allowClear loading={loadingOptions}>
                 {availableDiameters.map((diameter) => (
                   <Option key={diameter} value={diameter}>
                     {diameter}
@@ -168,7 +181,7 @@ const DiscsSearchParameters = memo(({ onDataLoaded, isClientMode }) => {
           </Col>
           <Col xs={24} sm={8}>
             <Form.Item name="pn" label="PN" className="form-item">
-              <Select {...catalogSearchSelectProps} allowClear>
+              <Select {...catalogSearchSelectProps} allowClear loading={loadingOptions}>
                 {availablePn.map((pn) => (
                   <Option key={pn} value={pn}>
                     {pn}
@@ -179,7 +192,7 @@ const DiscsSearchParameters = memo(({ onDataLoaded, isClientMode }) => {
           </Col>
           <Col xs={24} sm={8}>
             <Form.Item name="pcd" label="PCD" className="form-item">
-              <Select {...catalogSearchSelectProps} allowClear>
+              <Select {...catalogSearchSelectProps} allowClear loading={loadingOptions}>
                 {availablePcd.map((pcd) => (
                   <Option key={pcd} value={pcd}>
                     {pcd}
@@ -193,7 +206,7 @@ const DiscsSearchParameters = memo(({ onDataLoaded, isClientMode }) => {
         <Row gutter={16}>
           <Col xs={24} sm={12}>
             <Form.Item name="widthFrom" label="Ширина" className="form-item">
-              <Select {...catalogSearchSelectProps} placeholder="от" allowClear>
+              <Select {...catalogSearchSelectProps} placeholder="от" allowClear loading={loadingOptions}>
                 {availableWidths.map((width) => (
                   <Option key={width} value={width}>
                     {width}
@@ -204,7 +217,7 @@ const DiscsSearchParameters = memo(({ onDataLoaded, isClientMode }) => {
           </Col>
           <Col xs={24} sm={12}>
             <Form.Item name="widthTo" label=" " className="form-item form-item-label-hidden">
-              <Select {...catalogSearchSelectProps} placeholder="до" allowClear>
+              <Select {...catalogSearchSelectProps} placeholder="до" allowClear loading={loadingOptions}>
                 {availableWidths.map((width) => (
                   <Option key={width} value={width}>
                     {width}
@@ -218,7 +231,7 @@ const DiscsSearchParameters = memo(({ onDataLoaded, isClientMode }) => {
         <Row gutter={16}>
           <Col xs={24} sm={12}>
             <Form.Item name="cbFrom" label="CB" className="form-item">
-              <Select {...catalogSearchSelectProps} placeholder="от" allowClear>
+              <Select {...catalogSearchSelectProps} placeholder="от" allowClear loading={loadingOptions}>
                 {availableCb.map((cb) => (
                   <Option key={cb} value={cb}>
                     {cb}
@@ -229,7 +242,7 @@ const DiscsSearchParameters = memo(({ onDataLoaded, isClientMode }) => {
           </Col>
           <Col xs={24} sm={12}>
             <Form.Item name="cbTo" label=" " className="form-item form-item-label-hidden">
-              <Select {...catalogSearchSelectProps} placeholder="до" allowClear>
+              <Select {...catalogSearchSelectProps} placeholder="до" allowClear loading={loadingOptions}>
                 {availableCb.map((cb) => (
                   <Option key={cb} value={cb}>
                     {cb}
@@ -243,7 +256,7 @@ const DiscsSearchParameters = memo(({ onDataLoaded, isClientMode }) => {
         <Row gutter={16}>
           <Col xs={24} sm={12}>
             <Form.Item name="etFrom" label="ET" className="form-item">
-              <Select {...catalogSearchSelectProps} placeholder="от" allowClear>
+              <Select {...catalogSearchSelectProps} placeholder="от" allowClear loading={loadingOptions}>
                 {availableEt.map((et) => (
                   <Option key={et} value={et}>
                     {et}
@@ -254,7 +267,7 @@ const DiscsSearchParameters = memo(({ onDataLoaded, isClientMode }) => {
           </Col>
           <Col xs={24} sm={12}>
             <Form.Item name="etTo" label=" " className="form-item form-item-label-hidden">
-              <Select {...catalogSearchSelectProps} placeholder="до" allowClear>
+              <Select {...catalogSearchSelectProps} placeholder="до" allowClear loading={loadingOptions}>
                 {availableEt.map((et) => (
                   <Option key={et} value={et}>
                     {et}
@@ -274,6 +287,7 @@ const DiscsSearchParameters = memo(({ onDataLoaded, isClientMode }) => {
             allowClear
             maxTagCount="responsive"
             optionFilterProp="children"
+            loading={loadingOptions}
           >
             {availableBrands.map((brand) => (
               <Option key={brand} value={brand}>
@@ -284,7 +298,7 @@ const DiscsSearchParameters = memo(({ onDataLoaded, isClientMode }) => {
         </Form.Item>
 
         <Form.Item name="supplier" label="Поставщик" className="form-item">
-          <Select {...catalogSearchSelectProps} placeholder="Поставщик" allowClear>
+          <Select {...catalogSearchSelectProps} placeholder="Поставщик" allowClear loading={loadingOptions}>
             {availableSuppliers.map((supplier) => (
               <Option key={supplier} value={supplier}>
                 {supplier}
