@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Каталог шин и дисков — презентация</title>
+    <style>
+        :root {
+            --bg: #0f1419;
+            --bg-card: #1a222c;
+            --bg-soft: #243040;
+            --text: #e8eef4;
+            --muted: #8b9aab;
+            --accent: #e8a04b;
+            --accent-soft: rgba(232, 160, 75, 0.15);
+            --ok: #5cb88a;
+            --danger: #d46b6b;
+            --border: rgba(255, 255, 255, 0.08);
+            --shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html,
+        body {
+            height: 100%;
+            background: var(--bg);
+            color: var(--text);
+            font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+            overflow: hidden;
+        }
+
+        .deck {
+            height: 100%;
+            width: 100%;
+            position: relative;
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            padding: clamp(1.5rem, 4vw, 3.5rem) clamp(1.5rem, 5vw, 4.5rem);
+            padding-bottom: 5rem;
+            background: radial-gradient(ellipse 80% 50% at 10% 0%, rgba(232, 160, 75, 0.08), transparent 50%),
+                radial-gradient(ellipse 60% 40% at 90% 100%, rgba(92, 184, 138, 0.06), transparent 45%),
+                var(--bg);
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+
+        .slide.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .eyebrow {
+            color: var(--accent);
+            font-size: clamp(0.85rem, 1.4vw, 1rem);
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 0.75rem;
+        }
+
+        h1 {
+            font-size: clamp(1.9rem, 4.2vw, 3.2rem);
+            line-height: 1.15;
+            font-weight: 700;
+            max-width: 18ch;
+            margin-bottom: 1rem;
+        }
+
+        h2 {
+            font-size: clamp(1.6rem, 3.4vw, 2.6rem);
+            line-height: 1.2;
+            font-weight: 700;
+            margin-bottom: 1.25rem;
+            max-width: 22ch;
+        }
+
+        .lead {
+            font-size: clamp(1.05rem, 2vw, 1.35rem);
+            color: var(--muted);
+            line-height: 1.45;
+            max-width: 40rem;
+        }
+
+        .lead strong,
+        .point strong {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .points {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+            margin-top: 1.5rem;
+            max-width: 42rem;
+        }
+
+        .point {
+            font-size: clamp(1rem, 1.8vw, 1.25rem);
+            line-height: 1.4;
+            padding-left: 1.35rem;
+            position: relative;
+            color: var(--muted);
+        }
+
+        .point::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0.55em;
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 50%;
+            background: var(--accent);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.25rem;
+            margin-top: 1.5rem;
+            max-width: 56rem;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-top: 1.5rem;
+            max-width: 56rem;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 1.5rem;
+            max-width: 48rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 1.25rem 1.35rem;
+            box-shadow: var(--shadow);
+        }
+
+        .card h3 {
+            font-size: clamp(1rem, 1.6vw, 1.2rem);
+            margin-bottom: 0.55rem;
+            color: var(--text);
+        }
+
+        .card p,
+        .card li {
+            color: var(--muted);
+            font-size: clamp(0.92rem, 1.4vw, 1.05rem);
+            line-height: 1.45;
+        }
+
+        .card.bad {
+            border-color: rgba(212, 107, 107, 0.35);
+        }
+
+        .card.good {
+            border-color: rgba(92, 184, 138, 0.4);
+        }
+
+        .card .label {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin-bottom: 0.65rem;
+            padding: 0.25rem 0.55rem;
+            border-radius: 6px;
+        }
+
+        .card.bad .label {
+            background: rgba(212, 107, 107, 0.2);
+            color: var(--danger);
+        }
+
+        .card.good .label {
+            background: rgba(92, 184, 138, 0.2);
+            color: var(--ok);
+        }
+
+        .tabs-mock {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+            margin-top: 0.75rem;
+        }
+
+        .tab-pill {
+            background: var(--bg-soft);
+            color: var(--muted);
+            font-size: 0.85rem;
+            padding: 0.35rem 0.65rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .one-screen {
+            margin-top: 0.75rem;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-weight: 600;
+            text-align: center;
+            padding: 1.1rem;
+            border-radius: 10px;
+            border: 1px dashed rgba(232, 160, 75, 0.45);
+        }
+
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.85rem;
+            margin-top: 1.5rem;
+            max-width: 58rem;
+            counter-reset: step;
+        }
+
+        .step {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 1.1rem;
+            position: relative;
+        }
+
+        .step::before {
+            counter-increment: step;
+            content: counter(step);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.75rem;
+            height: 1.75rem;
+            border-radius: 50%;
+            background: var(--accent);
+            color: #1a1208;
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-bottom: 0.65rem;
+        }
+
+        .step h3 {
+            font-size: 1rem;
+            margin-bottom: 0.35rem;
+        }
+
+        .step p {
+            font-size: 0.9rem;
+            color: var(--muted);
+            line-height: 1.35;
+        }
+
+        .supplier-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+            max-width: 56rem;
+        }
+
+        .supplier {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem 0.75rem;
+            text-align: center;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .note {
+            margin-top: 1.25rem;
+            color: var(--muted);
+            font-size: clamp(0.95rem, 1.5vw, 1.1rem);
+            max-width: 42rem;
+        }
+
+        .note em {
+            color: var(--accent);
+            font-style: normal;
+            font-weight: 600;
+        }
+
+        .price-row {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 1.25rem;
+            margin-top: 1.5rem;
+            max-width: 52rem;
+        }
+
+        .price-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+        }
+
+        .price-card.primary {
+            border-color: rgba(232, 160, 75, 0.5);
+            background: linear-gradient(160deg, rgba(232, 160, 75, 0.12), var(--bg-card) 55%);
+        }
+
+        .price-card .pkg {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--accent);
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .price-card .amount {
+            font-size: clamp(1.8rem, 3.5vw, 2.4rem);
+            font-weight: 800;
+            margin-bottom: 0.75rem;
+        }
+
+        .price-card ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+        }
+
+        .price-card li {
+            color: var(--muted);
+            font-size: 0.98rem;
+            padding-left: 1.1rem;
+            position: relative;
+            line-height: 1.35;
+        }
+
+        .price-card li::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+        }
+
+        .warn {
+            margin-top: 1.25rem;
+            max-width: 52rem;
+            background: var(--accent-soft);
+            border-left: 3px solid var(--accent);
+            padding: 0.9rem 1.1rem;
+            border-radius: 0 10px 10px 0;
+            color: var(--text);
+            font-size: 1rem;
+            line-height: 1.4;
+        }
+
+        .demo-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1.5rem;
+            padding: 0.85rem 1.35rem;
+            background: var(--accent);
+            color: #1a1208;
+            text-decoration: none;
+            font-weight: 700;
+            border-radius: 10px;
+            font-size: 1.05rem;
+            width: fit-content;
+        }
+
+        .demo-link:hover {
+            filter: brightness(1.08);
+        }
+
+        .contacts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .contact {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.85rem 1.15rem;
+            color: var(--text);
+            text-decoration: none;
+            font-size: 1.05rem;
+        }
+
+        .contact span {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-bottom: 0.15rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .author-line {
+            margin-top: 2rem;
+            color: var(--muted);
+            font-size: 1.05rem;
+        }
+
+        .author-line strong {
+            color: var(--text);
+        }
+
+        .faq-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+            margin-top: 1.25rem;
+            max-width: 48rem;
+        }
+
+        .faq-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem 1.2rem;
+        }
+
+        .faq-item strong {
+            display: block;
+            margin-bottom: 0.35rem;
+            font-size: 1.05rem;
+        }
+
+        .faq-item p {
+            color: var(--muted);
+            font-size: 0.98rem;
+            line-height: 1.4;
+        }
+
+        .story-quote {
+            margin-top: 1.5rem;
+            max-width: 42rem;
+            font-size: clamp(1.15rem, 2.2vw, 1.5rem);
+            line-height: 1.4;
+            color: var(--text);
+            border-left: 3px solid var(--accent);
+            padding-left: 1.15rem;
+        }
+
+        .nav {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 0.75rem 1.25rem 1rem;
+            background: linear-gradient(transparent, rgba(15, 20, 25, 0.95) 40%);
+            backdrop-filter: blur(6px);
+        }
+
+        .nav-btn {
+            appearance: none;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text);
+            width: 2.75rem;
+            height: 2.75rem;
+            border-radius: 50%;
+            font-size: 1.25rem;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            border-color: var(--accent);
+            background: var(--bg-soft);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.35;
+            cursor: default;
+        }
+
+        .dots {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.4rem;
+            flex: 1;
+        }
+
+        .dot {
+            width: 0.55rem;
+            height: 0.55rem;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg-soft);
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .dot.active {
+            background: var(--accent);
+            transform: scale(1.25);
+        }
+
+        .progress-label {
+            position: fixed;
+            top: 1rem;
+            right: 1.25rem;
+            z-index: 20;
+            font-size: 0.85rem;
+            color: var(--muted);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .hint {
+            position: fixed;
+            top: 1rem;
+            left: 1.25rem;
+            z-index: 20;
+            font-size: 0.8rem;
+            color: var(--muted);
+            opacity: 0.7;
+        }
+
+        @media (max-width: 900px) {
+            .grid-2,
+            .grid-3,
+            .price-row,
+            .steps,
+            .supplier-grid,
+            .grid-4 {
+                grid-template-columns: 1fr;
+            }
+            .supplier-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            h1,
+            h2 {
+                max-width: none;
+            }
+            .hint {
+                display: none;
+            }
+        }
+
+        @media (max-width: 560px) {
+            .slide {
+                padding-top: 2.5rem;
+                justify-content: flex-start;
+                overflow-y: auto;
+            }
+            .supplier-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media print {
+            .nav,
+            .progress-label,
+            .hint {
+                display: none;
+            }
+            .slide {
+                position: relative;
+                display: flex !important;
+                opacity: 1 !important;
+                page-break-after: always;
+                height: 100vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="hint">← → или клик по точкам</div>
+    <div class="progress-label"><span id="current">1</span> / <span id="total">14</span></div>
+
+    <div class="deck" id="deck">
+        <!-- 1. СТАРТ -->
+        <section class="slide active" data-title="Старт">
+            <p class="eyebrow">Для владельцев шинных магазинов</p>
+            <h1>Каталог шин и дисков: всё в одном месте</h1>
+            <p class="lead">
+                Рабочий инструмент для работы с клиентами, вашими поставщиками, быстрой докомплектации в одном окне: прайсы, ваша наценка,
+                общий поиск — без рекламы поставщиков и беготни по личным кабинетам.
+            </p>
+            <p class="author-line">
+                <strong>Один разработчик</strong>, который сам работает в шинном магазине.
+            </p>
+        </section>
+
+        <!-- 2. БОЛЬ -->
+        <section class="slide" data-title="Боль">
+            <p class="eyebrow">Знакомая ситуация</p>
+            <h2>Клиент ждёт. Менеджер открывает вкладку за вкладкой.</h2>
+            <div class="grid-2">
+                <div class="card bad">
+                    <span class="label">Как часто бывает</span>
+                    <h3>Пять кабинетов — один клиент</h3>
+                    <div class="tabs-mock">
+                        <span class="tab-pill">Поставщик 1</span>
+                        <span class="tab-pill">Поставщик 2</span>
+                        <span class="tab-pill">Поставщик 3</span>
+                        <span class="tab-pill">Поставщик 4</span>
+                        <span class="tab-pill">Поставщик 5</span>
+                    </div>
+                    <p style="margin-top:0.85rem">Время уходит. Клиент смотрит в телефон. «Проверим ещё…»</p>
+                </div>
+                <div class="card">
+                    <span class="label" style="background:var(--accent-soft);color:var(--accent)">И ещё хуже</span>
+                    <h3>«У двух точно нет»</h3>
+                    <p>
+                        Менеджер уверен: этим брендом занимаются только 2–3 поставщика —
+                        и у них пусто. А у четвёртого, про которого «и не думали»,
+                        <strong style="color:var(--text)">товар оказывается есть</strong>.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. ДОВЕРИЕ -->
+        <section class="slide" data-title="Доверие">
+            <p class="eyebrow">Кто сделал</p>
+            <h2>Не агентство. Один человек из вашей же сферы.</h2>
+            <ul class="points">
+                <li class="point">Сам каждый день работаю с людьми — знаю, где реально теряется продажа.</li>
+                <li class="point">Делал инструмент <strong>под свои задачи</strong>, а не «под маркетинговую воронку».</li>
+                <li class="point">Поэтому говорю прямо: это каталог и рабочее место продавца, а не волшебная кнопка «миллион в месяц».</li>
+                <li class="point">С вами общаюсь напрямую — без менеджеров «по сопровождению».</li>
+            </ul>
+        </section>
+
+        <!-- 4. ПРОДУКТ -->
+        <section class="slide" data-title="Продукт">
+            <p class="eyebrow">Что это</p>
+            <h2>Единый каталог шин и дисков всех ваших поставщиков</h2>
+            <ul class="points">
+                <li class="point">Одна кнопка — обновить прайсы поставщиков.</li>
+                <li class="point">Поиск по размеру, бренду, сезону, наличию и т.д.</li>
+                <li class="point">Работает в браузере на компьютере.</li>
+            </ul>
+            <a class="demo-link" href="https://iscander-b10.github.io/tyres_discs" target="_blank" rel="noopener">
+                Открыть демо →
+            </a>
+        </section>
+
+        <!-- 5. КАК РАБОТАЕТ -->
+        <section class="slide" data-title="Как работает">
+            <p class="eyebrow">Как это работает</p>
+            <h2>Четыре шага. Без IT-специалиста рядом.</h2>
+            <div class="steps">
+                <div class="step">
+                    <h3>Загрузить</h3>
+                    <p>Нажали «Загрузить данные» в шапке каталога.</p>
+                </div>
+                <div class="step">
+                    <h3>Прайсы</h3>
+                    <p>Система подтягивает остатки и цены у ваших поставщиков.</p>
+                </div>
+                <div class="step">
+                    <h3>Наценка</h3>
+                    <p>Считает вашу розничную цену по правилам, которые вы задали.</p>
+                </div>
+                <div class="step">
+                    <h3>Поиск</h3>
+                    <p>Ищете и показываете клиенту — уже со своей ценой.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. ПОСТАВЩИКИ -->
+        <section class="slide" data-title="Поставщики">
+            <p class="eyebrow">Поставщики</p>
+            <h2>Несколько прайсов — один экран</h2>
+            <div class="grid-2">
+                <div class="card bad">
+                    <span class="label">До</span>
+                    <h3>Скачем по сайтам</h3>
+                    <div class="tabs-mock">
+                        <span class="tab-pill">Кабинет 1</span>
+                        <span class="tab-pill">Кабинет 2</span>
+                        <span class="tab-pill">Кабинет 3</span>
+                        <span class="tab-pill">Кабинет 4</span>
+                        <span class="tab-pill">Кабинет 5</span>
+                    </div>
+                </div>
+                <div class="card good">
+                    <span class="label">После</span>
+                    <h3>Всё в одном каталоге</h3>
+                    <div class="one-screen">Один экран · общий поиск · ваши цены</div>
+                </div>
+            </div>
+            <div class="supplier-grid">
+                <div class="supplier">Поставщик 1</div>
+                <div class="supplier">Поставщик 2</div>
+                <div class="supplier">Поставщик 3</div>
+                <div class="supplier">Поставщик 4</div>
+                <div class="supplier">Поставщик 5</div>
+            </div>
+        </section>
+
+        <!-- 7. РЕЖИМ КЛИЕНТА -->
+        <section class="slide" data-title="Режим клиента">
+            <p class="eyebrow">Режим «Клиент»</p>
+            <h2>Показываете товар — и не светите поставщика</h2>
+            <div class="grid-2">
+                <div class="card bad">
+                    <span class="label">Обычный способ</span>
+                    <h3>Сайт поставщика на мониторе</h3>
+                    <p>
+                        Клиент видит чужой логотип, чужие цены и понимает,
+                        <strong style="color:var(--text)">у кого вы закупаетесь</strong>.
+                        Вы фактически рекламируете оптовика, а не свой магазин.
+                    </p>
+                </div>
+                <div class="card good">
+                    <span class="label">С каталогом</span>
+                    <h3>Только ваша витрина</h3>
+                    <p>
+                        Клиент видит <strong style="color:var(--text)">только вашу цену</strong>.
+                        Имя поставщика скрыто. На экране — ваш ассортимент, ваш бренд магазина.
+                    </p>
+                </div>
+            </div>
+            <p class="note">Мелочь на первый взгляд — но это разница между «мы нашли» и «зайдите напрямую к ним».</p>
+        </section>
+
+        <!-- 8. РЕЖИМ МЕНЕДЖЕРА -->
+        <section class="slide" data-title="Режим менеджера">
+            <p class="eyebrow">Режим «Менеджер»</p>
+            <h2>Себе — полная картина. Клиенту — только розница.</h2>
+            <div class="grid-3">
+                <div class="card">
+                    <h3>B2B-цена</h3>
+                    <p>Закупочная, чтобы понимать закуп и сравнивать источники.</p>
+                </div>
+                <div class="card">
+                    <h3>Интернет-цена</h3>
+                    <p>Видна розничная цена оптовика — можно сразу скорректировать свою, чтобы не оказаться дороже и не потерять клиента.</p>
+                </div>
+                <div class="card">
+                    <h3>Поставщик и остаток</h3>
+                    <p>Где взять и сколько есть — решение за секунды, не при клиенте.</p>
+                </div>
+            </div>
+            <p class="note">Переключатель в шапке: показали клиенту → вернули менеджерский режим.</p>
+        </section>
+
+        <!-- 9. ВЫГОДА -->
+        <section class="slide" data-title="Выгода">
+            <p class="eyebrow">Как это помогает зарабатывать</p>
+            <h2>Не магия. Экономия времени и меньше упущенных продаж.</h2>
+            <div class="grid-4">
+                <div class="card">
+                    <h3>Быстрый ответ</h3>
+                    <p>Клиент слышит цену сразу, а не через три минуты молчания и щелчков мышью. Меньше ситуаций,
+                        когда человек уходит со словами «я зайду позже».</p>
+                </div>
+                <div class="card">
+                    <h3>Не упускаете товар</h3>
+                    <p>Менеджер проверяет двух поставщиков и говорит «нет». Каталог за секунду показывает:
+                        у четвёртого поставщика товар есть. Заказ собран.</p>
+                </div>
+                <div class="card">
+                    <h3>Контроль маржи</h3>
+                    <p>Наценка по вашим правилам, а не щелкание на калькуляторе.</p>
+                </div>
+                <div class="card">
+                    <h3>Свой бренд</h3>
+                    <p>Не отдаёте внимание и доверие клиента на сайт оптовика.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 10. ИСТОРИЯ -->
+        <section class="slide" data-title="История">
+            <p class="eyebrow">Из практики</p>
+            <h2>«У них точно нет» — а оказалось, есть</h2>
+            <p class="story-quote">
+                Менеджер уверен: этим брендом / размером занимаются только двое–трое,
+                у них пусто. Докомплектовывать нечем. Клиент почти ушёл или у вас зависло 3 колеса.
+            </p>
+            <ul class="points">
+                <li class="point">Проверили «неочевидного» поставщика — <strong>товар нашёлся</strong>.</li>
+                <li class="point">У нас так было <strong>не один раз</strong>.</li>
+                <li class="point">В одном окне ненадёжная привычка «проверяю только своих» ломается сама собой.</li>
+            </ul>
+            <p class="note">Одна такая сделка окупает поддержку каталога.</p>
+        </section>
+
+        <!-- 11. НАСТРОЙКА -->
+        <section class="slide" data-title="Настройка">
+            <p class="eyebrow">Под ваш магазин</p>
+            <h2>Один продукт — у каждого своя база и свои правила</h2>
+            <ul class="points">
+                <li class="point"><strong>Ваши поставщики</strong> — подключение, замена, добавление.</li>
+                <li class="point"><strong>Ваш дизайн и название</strong> — чтобы на экране был ваш магазин.</li>
+                <li class="point"><strong>Ваши правила наценки</strong> — по брендам и типам товара.</li>
+                <li class="point"><strong>Новые возможности</strong> по запросу: корзина, <strong>примерка дисков к фото машины клиента с помощью ИИ</strong>, доработки под процесс — можем обсудить отдельно.</li>
+            </ul>
+        </section>
+
+        <!-- 12. ОФФЕР -->
+        <section class="slide" data-title="Оффер">
+            <p class="eyebrow">Условия</p>
+            <h2>Разовая покупка + поддержка</h2>
+            <div class="price-row">
+                <div class="price-card primary">
+                    <div class="pkg">Разовая покупка</div>
+                    <div class="amount">от 50 000 ₽</div>
+                    <ul>
+                        <li>Установка и запуск под ваш магазин</li>
+                        <li>Подключение ваших поставщиков</li>
+                        <li>Базовая настройка наценки</li>
+                        <li>Ваш бренд в интерфейсе</li>
+                    </ul>
+                </div>
+                <div class="price-card">
+                    <div class="pkg">Поддержка</div>
+                    <div class="amount">от 5 000 ₽/мес</div>
+                    <ul>
+                        <li>Актуальность выгрузок и исправления</li>
+                        <li>Мелкие доработки</li>
+                        <li>Консультации по работе</li>
+                        <li>Живой контакт с разработчиком</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="warn">
+                Коротко зачем нужна поддержка: поставщики меняют форматы выгрузок.
+                Без сопровождения каталог со временем перестаёт быть надёжным.
+                Итоговая сумма зависит от числа поставщиков и объёма настройки — обсуждается индивидуально.
+            </div>
+        </section>
+
+        <!-- 13. ДАЛЬШЕ -->
+        <section class="slide" data-title="Дальше">
+            <p class="eyebrow">Следующий шаг</p>
+            <h2>Сначала посмотрим вместе — без давления</h2>
+            <ul class="points">
+                <li class="point">Обсудим ваших поставщиков и как работаете сейчас.</li>
+                <li class="point">Тестовый период демо-версии 2 недели.</li>
+            </ul>
+            <div class="contacts">
+                <div class="contact">
+                    <span>Telegram</span>
+                    @Iscander_b10
+                </div>
+                <div class="contact">
+                    <span>Телефон</span>
+                    +7 (965) 309-39-32
+                </div>
+                <div class="contact">
+                    <span>Email</span>
+                    iscanderb-10@yandex.ru
+                </div>
+            </div>
+            <a class="demo-link" href="https://iscander-b10.github.io/tyres_discs" target="_blank" rel="noopener">
+                Демо каталога →
+            </a>
+        </section>
+
+        <!-- 14. FAQ -->
+        <section class="slide" data-title="FAQ">
+            <p class="eyebrow">Частые вопросы</p>
+            <h2>Коротко и по делу</h2>
+            <div class="faq-list">
+                <div class="faq-item">
+                    <strong>У нас уже есть сайт и учётная система. Зачем ещё один каталог?</strong>
+                    <p>Это инструмент для быстрого подбора от всех ваших поставщиков, а не замена сайту. Он объединяет прайсы там, где менеджер реально общается с клиентом — на экране рабочего компьютера, а не в админке сайта.</p>
+                </div>
+                <div class="faq-item">
+                    <strong>Это интернет-магазин с оплатой?</strong>
+                    <p>Нет. Это каталог и рабочее место продавца. Полноценный магазин с заказом онлайн — отдельный этап, если понадобится.</p>
+                </div>
+                <div class="faq-item">
+                    <strong>Сколько времени на внедрение?</strong>
+                    <p>Обычно 1–2 недели после согласования списка поставщиков и правил наценки.</p>
+                </div>
+                <div class="faq-item">
+                    <strong>Почему поддержка необходима?</strong>
+                    <p>Потому что выгрузки поставщиков живут своей жизнью. Без сопровождения инструмент устаревает — и это уже был бы красивый, но бесполезный экран.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <nav class="nav" aria-label="Навигация по слайдам">
+        <button type="button" class="nav-btn" id="prev" aria-label="Предыдущий слайд">‹</button>
+        <div class="dots" id="dots"></div>
+        <button type="button" class="nav-btn" id="next" aria-label="Следующий слайд">›</button>
+    </nav>
+
+    <script>
+        (function () {
+            const slides = Array.from(document.querySelectorAll(".slide"));
+            const dotsRoot = document.getElementById("dots");
+            const prevBtn = document.getElementById("prev");
+            const nextBtn = document.getElementById("next");
+            const currentEl = document.getElementById("current");
+            const totalEl = document.getElementById("total");
+            let index = 0;
+            let touchX = null;
+
+            totalEl.textContent = String(slides.length);
+
+            slides.forEach((_, i) => {
+                const dot = document.createElement("button");
+                dot.type = "button";
+                dot.className = "dot" + (i === 0 ? " active" : "");
+                dot.setAttribute("aria-label", "Слайд " + (i + 1));
+                dot.addEventListener("click", () => go(i));
+                dotsRoot.appendChild(dot);
+            });
+
+            const dots = Array.from(dotsRoot.querySelectorAll(".dot"));
+
+            function go(i) {
+                if (i < 0 || i >= slides.length) return;
+                slides[index].classList.remove("active");
+                dots[index].classList.remove("active");
+                index = i;
+                slides[index].classList.add("active");
+                dots[index].classList.add("active");
+                currentEl.textContent = String(index + 1);
+                prevBtn.disabled = index === 0;
+                nextBtn.disabled = index === slides.length - 1;
+                slides[index].scrollTop = 0;
+            }
+
+            prevBtn.addEventListener("click", () => go(index - 1));
+            nextBtn.addEventListener("click", () => go(index + 1));
+
+            document.addEventListener("keydown", (e) => {
+                if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") {
+                    e.preventDefault();
+                    go(index + 1);
+                } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+                    e.preventDefault();
+                    go(index - 1);
+                } else if (e.key === "Home") {
+                    e.preventDefault();
+                    go(0);
+                } else if (e.key === "End") {
+                    e.preventDefault();
+                    go(slides.length - 1);
+                }
+            });
+
+            document.addEventListener("touchstart", (e) => {
+                touchX = e.changedTouches[0].screenX;
+            }, { passive: true });
+
+            document.addEventListener("touchend", (e) => {
+                if (touchX == null) return;
+                const dx = e.changedTouches[0].screenX - touchX;
+                touchX = null;
+                if (Math.abs(dx) < 50) return;
+                if (dx < 0) go(index + 1);
+                else go(index - 1);
+            }, { passive: true });
+
+            go(0);
+        })();
+    </script>
+</body>
+</html>
