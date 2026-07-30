@@ -43,8 +43,8 @@ export const transformTyres = (rawData) => {
         let d = String(diameter).replace(/Z/gi, ''); // убираем Z (в любом регистре)
         d = d.trim();
         // Если строка начинается с тире/дефиса/длинного тире – заменяем на 'R'
-        if (/^[\-—–]/.test(d)) {
-          d = 'R' + d.replace(/^[\-—–]+/, '');
+        if (/^[-—–]/.test(d)) {
+          d = 'R' + d.replace(/^[-—–]+/, '');
         }
       return d;
 };

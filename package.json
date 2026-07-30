@@ -3,23 +3,14 @@
   "version": "0.1.0",
   "homepage": "https://iscander-b10.github.io/tyres_discs",
   "private": true,
-  "proxy": "http://api-b2b.4tochki.ru",
   "dependencies": {
-    "@testing-library/dom": "^10.4.1",
-    "@testing-library/jest-dom": "^6.8.0",
-    "@testing-library/react": "^16.3.0",
-    "@testing-library/user-event": "^13.5.0",
     "antd": "^5.27.4",
-    "dexie": "^4.2.1",
     "fast-xml-parser": "^5.3.0",
     "http-proxy-middleware": "^3.0.5",
-    "papaparse": "^5.5.3",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-scripts": "5.0.1",
-    "sass": "^1.93.2",
-    "soap": "^1.4.2",
-    "web-vitals": "^2.1.4",
+    "sass": "1.78.0",
     "xlsx": "^0.18.5"
   },
   "scripts": {
@@ -32,8 +23,7 @@
   },
   "eslintConfig": {
     "extends": [
-      "react-app",
-      "react-app/jest"
+      "react-app"
     ]
   },
   "browserslist": {

@@ -23,7 +23,6 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
   const [availableWidths, setAvailableWidths] = useState([]);
   const [availableProfiles, setAvailableProfiles] = useState([]);
   const [availableDiameters, setAvailableDiameters] = useState([]);
-  const [availableSeasons, setAvailableSeasons] = useState([]);
   const [availableBrands, setAvailableBrands] = useState([]);
   const [availableSuppliers, setAvailableSuppliers] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
@@ -56,13 +55,14 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
 
   useEffect(() => {
     loadAvailableParameters(buildFiltersFromFormValues(form.getFieldsValue()));
+    // Перезагрузка опций только при обновлении каталога, не при каждой смене form
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [catalogDataVersion]);
 
   const clearAvailableOptions = () => {
     setAvailableWidths([]);
     setAvailableProfiles([]);
     setAvailableDiameters([]);
-    setAvailableSeasons([]);
     setAvailableBrands([]);
     setAvailableSuppliers([]);
   };
@@ -84,7 +84,6 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
       setAvailableWidths(options.widths);
       setAvailableProfiles(options.profiles);
       setAvailableDiameters(options.diameters);
-      setAvailableSeasons(options.seasons);
       setAvailableBrands(options.brands);
       setAvailableSuppliers(options.suppliers);
 

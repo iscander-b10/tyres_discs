@@ -19,7 +19,7 @@ function App() {
               className="catalog-tabs"
               activeKey={activeKey}
               onChange={setActiveKey}
-              destroyInactiveTabPane={false}
+              destroyOnHidden={false}
               tabBarExtraContent={{
                 right: (
                   <SideBar
@@ -43,7 +43,12 @@ function App() {
                 {
                   key: 'disks',
                   label: 'Диски',
-                  children: <DiscsSearchParameters isClientMode={clientMode} />,
+                  children: (
+                    <DiscsSearchParameters
+                      isClientMode={clientMode}
+                      catalogDataVersion={catalogDataVersion}
+                    />
+                  ),
                 },
               ]}
             />

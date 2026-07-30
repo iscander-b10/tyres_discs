@@ -13,7 +13,7 @@ import './DiscsSearchParameters.scss';
 
 const { Option } = Select;
 
-const DiscsSearchParameters = memo(({ onDataLoaded, isClientMode }) => {
+const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) => {
   const [form] = Form.useForm();
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [errorSearch, setErrorSearch] = useState(null);
@@ -26,14 +26,15 @@ const DiscsSearchParameters = memo(({ onDataLoaded, isClientMode }) => {
   const [availableEt, setAvailableEt] = useState([]);
   const [availablePcd, setAvailablePcd] = useState([]);
   const [availablePn, setAvailablePn] = useState([]);
-  const [availableDiskTypes, setAvailableDiskTypes] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
   const brandSelectCloseOnMouseLeave = useCatalogSelectCloseOnMouseLeave();
   const loadRequestIdRef = useRef(0);
 
   useEffect(() => {
-    loadAvailableParameters();
-  }, []);
+    loadAvailableParameters(form.getFieldsValue());
+    // Перезагрузка опций только при обновлении каталога, не при каждой смене form
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [catalogDataVersion]);
 
   const clearAvailableOptions = () => {
     setAvailableBrands([]);
@@ -44,7 +45,6 @@ const DiscsSearchParameters = memo(({ onDataLoaded, isClientMode }) => {
     setAvailableEt([]);
     setAvailablePcd([]);
     setAvailablePn([]);
-    setAvailableDiskTypes([]);
   };
 
   const loadAvailableParameters = async (filters = {}) => {
@@ -68,7 +68,6 @@ const DiscsSearchParameters = memo(({ onDataLoaded, isClientMode }) => {
       setAvailableEt(options.et);
       setAvailablePcd(options.pcd);
       setAvailablePn(options.pn);
-      setAvailableDiskTypes(options.diskTypes);
     } catch (error) {
       if (requestId === loadRequestIdRef.current) {
         clearAvailableOptions();

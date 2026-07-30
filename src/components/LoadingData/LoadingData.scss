@@ -1,3 +1,9 @@
+.loading-data {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
 .load-data-button {
   width: 24px;
   height: 24px;
@@ -22,12 +28,37 @@
     transform: scale(0.9);
   }
 
+  &.ant-btn-dangerous {
+    color: #ff4d4f !important;
+
+    &:hover {
+      background: rgba(255, 77, 79, 0.1) !important;
+      color: #ff4d4f !important;
+    }
+  }
+
   .anticon {
     font-size: 11px;
   }
 
   &.ant-btn-loading {
     border: none !important;
+  }
+}
+
+.load-data-error {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 1100;
+  min-width: 280px;
+  max-width: min(420px, 90vw);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+  .ant-alert-description {
+    max-height: 160px;
+    overflow-y: auto;
+    word-break: break-word;
   }
 }
 

@@ -22,10 +22,6 @@ const SUPPLIER_LOAD_ORDER = [
   vershina.key,
 ];
 
-export const getSupplier = (key) => suppliers[key];
-
-export const getSuppliers = () => Object.values(suppliers);
-
 function supplierError(supplier, part, err) {
   const detail = err?.message || String(err);
   return new Error(`${supplier.label}${part ? ` (${part})` : ''}: ${detail}`, { cause: err });

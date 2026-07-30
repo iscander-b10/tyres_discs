@@ -31,7 +31,7 @@ const CatalogItemModalWindow = ({ isOpen, onClose, item }) => {
 
   const photoSrc = useMemo(
     () => (item ? resolvePhotoUrl(item.photoUrl, item.supplier) : ''),
-    [item?.photoUrl, item?.supplier]
+    [item]
   );
 
   // Закрытие по клику на оверлей

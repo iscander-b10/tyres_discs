@@ -6,11 +6,9 @@ import './SideBar.scss';
 function SideBar({ clientMode, setClientMode, onCatalogDataLoaded }) {
   return (
     <Flex className="header-controls" align="center" gap={8}>
-      <Tooltip title="Загрузить данные" placement="bottom">
-        <Flex className="control-button" align="center" justify="center">
-          <LoadingData onDataLoaded={onCatalogDataLoaded} />
-        </Flex>
-      </Tooltip>
+      <Flex className="control-button" align="center" justify="center">
+        <LoadingData onDataLoaded={onCatalogDataLoaded} />
+      </Flex>
 
       <Tooltip title={clientMode ? 'Режим клиента' : 'Режим менеджера'} placement="bottom">
         <Switch

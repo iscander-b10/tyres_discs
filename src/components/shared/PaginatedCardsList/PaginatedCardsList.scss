@@ -8,12 +8,12 @@
 
 /* Поиск и сортировка над списком */
 .list-toolbar {
-  @include catalog.catalog-list-toolbar-controls();
-
   align-items: flex-end;
   gap: 16px 24px;
   margin-bottom: 12px;
   width: 100%;
+
+  @include catalog.catalog-list-toolbar-controls();
 }
 
 .list-toolbar__search {

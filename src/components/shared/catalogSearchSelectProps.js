@@ -1,7 +1,11 @@
 import { useCallback, useState } from 'react';
 
 export const catalogSearchSelectProps = {
-  popupClassName: 'catalog-search-select-dropdown',
+  classNames: {
+    popup: {
+      root: 'catalog-search-select-dropdown',
+    },
+  },
 };
 
 /** Закрывает выпадающий список при уходе курсора с панели опций (удобно для mode="multiple"). */
@@ -12,11 +16,11 @@ export function useCatalogSelectCloseOnMouseLeave() {
     setOpen(nextOpen);
   }, []);
 
-  const dropdownRender = useCallback((menu) => (
+  const popupRender = useCallback((menu) => (
     <div onMouseLeave={() => setOpen(false)}>
       {menu}
     </div>
   ), []);
 
-  return { open, onOpenChange, dropdownRender };
+  return { open, onOpenChange, popupRender };
 }

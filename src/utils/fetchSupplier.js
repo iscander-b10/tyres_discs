@@ -102,16 +102,6 @@ function isRetryableResponse(response) {
   return response.status >= 500 || response.status === 429;
 }
 
-async function readProxyError(response) {
-  try {
-    const data = await response.clone().json();
-    if (data?.error) return data.error;
-  } catch {
-    /* not JSON */
-  }
-  return `HTTP ${response.status}`;
-}
-
 function isRetryableError(error) {
   if (!error) return false;
   const message = error.message || '';

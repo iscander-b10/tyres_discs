@@ -1,12 +1,12 @@
 import React from 'react';
-import { Button } from 'antd';
+import { Alert, Button, Tooltip } from 'antd';
 import { CloudDownloadOutlined } from '@ant-design/icons';
 import indexedDBService from '../../services/indexedDBService';
 import { loadAllSuppliersData } from '../../services/suppliers/supplierOrchestrator';
 import { usesCorsProxy } from '../../utils/fetchSupplier';
 import './LoadingData.scss';
 
-const LoadingData = ({ onDataLoaded, form }) => {
+const LoadingData = ({ onDataLoaded }) => {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
 
@@ -94,10 +94,6 @@ const LoadingData = ({ onDataLoaded, form }) => {
       } else if (onDataLoaded && !hadSaveErrors) {
         onDataLoaded();
       }
-
-      if (form) {
-        form.resetFields();
-      }
     } catch (err) {
       console.error('Ошибка при загрузке данных:', err);
       setError(getErrorMessage(err));
@@ -107,14 +103,30 @@ const LoadingData = ({ onDataLoaded, form }) => {
   };
 
   return (
-    <Button
-      className="load-data-button"
-      icon={<CloudDownloadOutlined />}
-      size="large"
-      loading={loading}
-      onClick={handleLoadShinService}
-      shape="circle"
-    />
+    <div className="loading-data">
+      <Tooltip title="Загрузить данные" placement="bottom">
+        <Button
+          className="load-data-button"
+          icon={<CloudDownloadOutlined />}
+          size="large"
+          loading={loading}
+          danger={Boolean(error)}
+          onClick={handleLoadShinService}
+          shape="circle"
+        />
+      </Tooltip>
+      {error && (
+        <Alert
+          className="load-data-error"
+          type="error"
+          message="Ошибка загрузки"
+          description={error}
+          showIcon
+          closable
+          onClose={() => setError(null)}
+        />
+      )}
+    </div>
   );
 };
 

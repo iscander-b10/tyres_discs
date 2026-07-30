@@ -60,9 +60,9 @@ const sortDiscNumericValues = (values) =>
   });
 
 const matchesTireParameterFilters = (item, filters = {}) => {
-  if (filters.width && item.width != filters.width) return false;
-  if (filters.profile && item.profile != filters.profile) return false;
-  if (filters.diameter && item.diameter != filters.diameter) return false;
+  if (filters.width && Number(item.width) !== Number(filters.width)) return false;
+  if (filters.profile && Number(item.profile) !== Number(filters.profile)) return false;
+  if (filters.diameter && Number(item.diameter) !== Number(filters.diameter)) return false;
   if (filters.season && item.season !== filters.season) return false;
   return true;
 };
@@ -183,7 +183,6 @@ class IndexedDBService {
       const transaction = this.db.transaction(['tires'], 'readwrite');
       const store = transaction.objectStore('tires');
       let addErrors = [];
-      let addsCompleted = 0;
       
       transaction.onerror = () =>
         reject(transaction.error || new Error('Ошибка транзакции IndexedDB при сохранении шин'));
@@ -214,9 +213,6 @@ class IndexedDBService {
           tires.forEach(tire => {
             // put вместо add: не падаем на дублях id, а перезаписываем
             const addRequest = store.put(tire);
-            addRequest.onsuccess = () => {
-              addsCompleted++;
-            };
             addRequest.onerror = (event) => {
               // иначе любая ошибка request по умолчанию абортит всю транзакцию
               event?.preventDefault?.();
@@ -225,7 +221,6 @@ class IndexedDBService {
                 tire: tire.title || tire.id,
                 error: addRequest.error
               });
-              addsCompleted++;
             };
           });
         }
@@ -281,8 +276,8 @@ class IndexedDBService {
         const minAmountNumber = filters.minAmount === undefined || filters.minAmount === null ? null : Number(filters.minAmount);
         
         const matches = (
-          (!filters.profile || tire.profile == filters.profile) &&
-          (!filters.diameter || tire.diameter == filters.diameter) &&
+          (!filters.profile || Number(tire.profile) === Number(filters.profile)) &&
+          (!filters.diameter || Number(tire.diameter) === Number(filters.diameter)) &&
           (!filters.season || tire.season === filters.season) &&
           matchesBrandFilter(tire.brand, filters.brand) &&
           (!filters.supplier || tire.supplier === filters.supplier) &&
@@ -346,20 +341,6 @@ class IndexedDBService {
 
       request.onerror = () => reject(request.error);
     });
-  }
-
-  async getUniqueValues(fieldName, filters = {}) {
-    const options = await this.getAvailableParameterOptions(filters);
-    const fieldMap = {
-      width: 'widths',
-      profile: 'profiles',
-      diameter: 'diameters',
-      season: 'seasons',
-      brand: 'brands',
-      supplier: 'suppliers',
-    };
-
-    return options[fieldMap[fieldName]] ?? [];
   }
 
   // Методы для работы с дисками
@@ -453,7 +434,6 @@ class IndexedDBService {
       const transaction = this.discDb.transaction(['discs'], 'readwrite');
       const store = transaction.objectStore('discs');
       let addErrors = [];
-      let addsCompleted = 0;
       
       transaction.onerror = () =>
         reject(transaction.error || new Error('Ошибка транзакции IndexedDB при сохранении дисков'));
@@ -484,9 +464,6 @@ class IndexedDBService {
           discs.forEach(disc => {
             // put вместо add: не падаем на дублях id, а перезаписываем
             const addRequest = store.put(disc);
-            addRequest.onsuccess = () => {
-              addsCompleted++;
-            };
             addRequest.onerror = (event) => {
               event?.preventDefault?.();
               event?.stopPropagation?.();
@@ -494,7 +471,6 @@ class IndexedDBService {
                 disc: disc.title || disc.id,
                 error: addRequest.error
               });
-              addsCompleted++;
             };
           });
         }
@@ -636,23 +612,6 @@ class IndexedDBService {
 
       request.onerror = () => reject(request.error);
     });
-  }
-
-  async getUniqueDiscValues(fieldName, filters = {}) {
-    const options = await this.getAvailableDiscParameterOptions(filters);
-    const fieldMap = {
-      brand: 'brands',
-      supplier: 'suppliers',
-      diameter: 'diameters',
-      width: 'widths',
-      cb: 'cb',
-      et: 'et',
-      pcd: 'pcd',
-      pn: 'pn',
-      diskType: 'diskTypes',
-    };
-
-    return options[fieldMap[fieldName]] ?? [];
   }
 
 }
