@@ -59,13 +59,56 @@ const sortDiscNumericValues = (values) =>
     return numA - numB;
   });
 
-const matchesTireParameterFilters = (item, filters = {}) => {
-  if (filters.width && Number(item.width) !== Number(filters.width)) return false;
-  if (filters.profile && Number(item.profile) !== Number(filters.profile)) return false;
-  if (filters.diameter && Number(item.diameter) !== Number(filters.diameter)) return false;
-  if (filters.season && item.season !== filters.season) return false;
+const matchesNumericFilter = (itemValue, filterValue) =>
+  Number(itemValue) === Number(filterValue);
+
+/** Диаметр хранится как "R16"/"R16C" — Number() даёт NaN и ломает сравнение. */
+const matchesDiameterFilter = (itemValue, filterValue) =>
+  String(itemValue) === String(filterValue);
+
+/**
+ * Полная проверка фильтров поиска шин (и каскадных опций параметров).
+ * Экспорт для юнит-тестов.
+ */
+export const tireRecordMatchesFilters = (item, filters = {}, options = {}) => {
+  const { parameterOptionsOnly = false } = options;
+
+  if (isActiveFilterValue(filters.width) && !matchesNumericFilter(item.width, filters.width)) {
+    return false;
+  }
+  if (isActiveFilterValue(filters.profile) && !matchesNumericFilter(item.profile, filters.profile)) {
+    return false;
+  }
+  if (isActiveFilterValue(filters.diameter) && !matchesDiameterFilter(item.diameter, filters.diameter)) {
+    return false;
+  }
+  if (isActiveFilterValue(filters.season) && item.season !== filters.season) {
+    return false;
+  }
+
+  if (parameterOptionsOnly) {
+    return true;
+  }
+
+  if (!matchesBrandFilter(item.brand, filters.brand)) return false;
+  if (isActiveFilterValue(filters.supplier) && item.supplier !== filters.supplier) return false;
+  if (filters.spikes !== undefined && item.spikes !== filters.spikes) return false;
+  if (filters.runflat === true && item.runflat !== true) return false;
+
+  const minAmountNumber =
+    filters.minAmount === undefined || filters.minAmount === null
+      ? null
+      : Number(filters.minAmount);
+  if (minAmountNumber !== null) {
+    const itemAmountNumber = Number(item.amount);
+    if (Number.isNaN(itemAmountNumber) || itemAmountNumber < minAmountNumber) return false;
+  }
+
   return true;
 };
+
+const matchesTireParameterFilters = (item, filters = {}) =>
+  tireRecordMatchesFilters(item, filters, { parameterOptionsOnly: true });
 
 const matchesDiscParameterFilters = (item, filters = {}) => {
   const widthNumber = item.width === undefined || item.width === null ? null : Number(item.width);
@@ -243,27 +286,25 @@ class IndexedDBService {
     let request;
     const filterCount = Object.keys(filters).filter((key) => isActiveFilterValue(filters[key])).length;
     const singleBrand = getSingleBrandForIndex(filters.brand);
+    const hasWidthFilter = isActiveFilterValue(filters.width);
+    const hasProfileFilter = isActiveFilterValue(filters.profile);
 
     if (filterCount === 0) {
       request = store.openCursor();
+    } else if (hasWidthFilter || hasProfileFilter) {
+      // width/profile в БД могут быть number или string; IDBKeyRange.only типизирован строго
+      request = store.openCursor();
+    } else if (isActiveFilterValue(filters.diameter)) {
+      request = store.index('diameter').openCursor(IDBKeyRange.only(filters.diameter));
+    } else if (singleBrand) {
+      request = store.index('brand').openCursor(IDBKeyRange.only(singleBrand));
+    } else if (isActiveFilterValue(filters.supplier)) {
+      request = store.index('supplier').openCursor(IDBKeyRange.only(filters.supplier));
+    } else if (isActiveFilterValue(filters.season)) {
+      request = store.index('season').openCursor(IDBKeyRange.only(filters.season));
     } else {
-      if (filters.width) {
-        request = store.index('width').openCursor(IDBKeyRange.only(filters.width));
-      } else if (filters.diameter) {
-        request = store.index('diameter').openCursor(IDBKeyRange.only(filters.diameter));
-      } else if (filters.profile) {
-        request = store.index('profile').openCursor(IDBKeyRange.only(filters.profile));
-      } else if (singleBrand) {
-        request = store.index('brand').openCursor(IDBKeyRange.only(singleBrand));
-      } else if (filters.supplier) {
-        request = store.index('supplier').openCursor(IDBKeyRange.only(filters.supplier));
-      } else if (filters.season) {
-        request = store.index('season').openCursor(IDBKeyRange.only(filters.season));
-      } else {
-        // Если используется только фильтр spikes или другие фильтры без индекса,
-        // открываем курсор по всем записям, фильтрация будет в matches
-        request = store.openCursor();
-      }
+      // spikes / runflat / minAmount без подходящего индекса — полный скан
+      request = store.openCursor();
     }
     
     const results = [];
@@ -272,21 +313,7 @@ class IndexedDBService {
       const cursor = request.result;
       if (cursor) {
         const tire = cursor.value;
-        const tireAmountNumber = Number(tire.amount);
-        const minAmountNumber = filters.minAmount === undefined || filters.minAmount === null ? null : Number(filters.minAmount);
-        
-        const matches = (
-          (!filters.profile || Number(tire.profile) === Number(filters.profile)) &&
-          (!filters.diameter || Number(tire.diameter) === Number(filters.diameter)) &&
-          (!filters.season || tire.season === filters.season) &&
-          matchesBrandFilter(tire.brand, filters.brand) &&
-          (!filters.supplier || tire.supplier === filters.supplier) &&
-          (filters.spikes === undefined || tire.spikes === filters.spikes) &&
-          (filters.runflat !== true || tire.runflat === true) &&
-          (minAmountNumber === null || (!Number.isNaN(tireAmountNumber) && tireAmountNumber >= minAmountNumber))
-        );
-        
-        if (matches) {
+        if (tireRecordMatchesFilters(tire, filters)) {
           results.push(tire);
         }
         

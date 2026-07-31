@@ -46,9 +46,16 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
 
   const buildFiltersFromFormValues = (allValues = {}) => {
     const filters = { season: allValues.season ?? DEFAULT_SEASON };
-    if (allValues.width) filters.width = allValues.width;
-    if (allValues.profile) filters.profile = allValues.profile;
-    if (allValues.diameter) filters.diameter = allValues.diameter;
+    if (allValues.width !== undefined && allValues.width !== null && allValues.width !== '') {
+      filters.width = allValues.width;
+    }
+    // profile может быть 0 (грузовые) — нельзя проверять через truthy
+    if (allValues.profile !== undefined && allValues.profile !== null && allValues.profile !== '') {
+      filters.profile = allValues.profile;
+    }
+    if (allValues.diameter !== undefined && allValues.diameter !== null && allValues.diameter !== '') {
+      filters.diameter = allValues.diameter;
+    }
     if (allValues.spikes !== undefined && allValues.spikes !== null) filters.spikes = allValues.spikes;
     return filters;
   };
