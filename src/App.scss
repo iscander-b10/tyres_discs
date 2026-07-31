@@ -57,6 +57,24 @@
   flex-shrink: 0;
 }
 
+.site-header__theme {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 8px;
+  padding: 6px 10px;
+  border-radius: $radius-md;
+  cursor: pointer;
+  user-select: none;
+}
+
+.site-header__theme-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: $color-text-muted;
+  white-space: nowrap;
+}
+
 .site-header__icon-wrap {
   display: inline-flex;
 }
@@ -219,6 +237,15 @@
   .site-header__actions {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .site-header__theme {
+    margin-right: 0;
+    padding-inline: 6px;
+  }
+
+  .site-header__theme-label {
+    font-size: 11px;
   }
 
   .site-header__phone {

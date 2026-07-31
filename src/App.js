@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Flex, Layout, Tooltip } from 'antd';
+import { Flex, Layout, Switch, Tooltip } from 'antd';
 import {
   PhoneOutlined,
   ShoppingCartOutlined,
@@ -18,10 +18,11 @@ const NAV_ITEMS = [
   { key: 'service', label: 'Шиномонтаж', disabled: true },
 ];
 
-function App() {
+function App({ appearance = 'light', onAppearanceChange }) {
   const [clientMode, setClientMode] = useState(true);
   const [activeKey, setActiveKey] = useState('tires');
   const [catalogDataVersion, setCatalogDataVersion] = useState(0);
+  const isDark = appearance === 'dark';
 
   return (
     <Layout className="app-layout">
@@ -34,6 +35,16 @@ function App() {
             </a>
 
             <div className="site-header__actions">
+              <label className="site-header__theme">
+                <span className="site-header__theme-label">Тёмная тема</span>
+                <Switch
+                  size="small"
+                  checked={isDark}
+                  onChange={(checked) => onAppearanceChange?.(checked ? 'dark' : 'light')}
+                  aria-label="Переключить тёмную тему"
+                />
+              </label>
+
               <a className="site-header__phone" href="tel:+78002508850">
                 <PhoneOutlined aria-hidden />
                 <span>8 800 250 88 50</span>

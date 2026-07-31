@@ -1,3 +1,5 @@
+@use '../../styles/tokens' as *;
+
 .loading-data {
   position: relative;
   display: inline-flex;
@@ -10,7 +12,7 @@
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
-  color: #595d60 !important;
+  color: $color-text-muted !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -19,8 +21,8 @@
   padding: 0 !important;
 
   &:hover {
-    background: rgba(89, 93, 96, 0.1) !important;
-    color: #273036 !important;
+    background: $color-cta-muted !important;
+    color: $color-text !important;
     transform: scale(1.08);
   }
 
@@ -29,11 +31,11 @@
   }
 
   &.ant-btn-dangerous {
-    color: #e43141 !important;
+    color: $color-accent !important;
 
     &:hover {
-      background: rgba(228, 49, 65, 0.1) !important;
-      color: #e43141 !important;
+      background: $color-accent-muted !important;
+      color: $color-accent !important;
     }
   }
 
@@ -53,7 +55,7 @@
   z-index: 1100;
   min-width: 280px;
   max-width: min(420px, 90vw);
-  box-shadow: 0 4px 12px rgba(39, 48, 54, 0.15);
+  box-shadow: $shadow-elevated;
 
   .ant-alert-description {
     max-height: 160px;

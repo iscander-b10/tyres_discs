@@ -2,10 +2,10 @@
 
 $catalog-accent: $color-cta;
 $catalog-accent-hover: $color-cta-hover;
-$catalog-accent-light: rgba(89, 93, 96, 0.1);
-$catalog-accent-light-hover: rgba(89, 93, 96, 0.16);
-$catalog-accent-selected: rgba(89, 93, 96, 0.12);
-$catalog-accent-outline: rgba(89, 93, 96, 0.18);
+$catalog-accent-light: $color-cta-muted;
+$catalog-accent-light-hover: $color-cta-muted-hover;
+$catalog-accent-selected: $color-cta-selected;
+$catalog-accent-outline: $color-cta-outline;
 $catalog-text: $color-text;
 
 @mixin catalog-search-form-theme-tokens() {
@@ -111,7 +111,7 @@ $catalog-text: $color-text;
         font-size: 12px;
         line-height: 1;
         background: $catalog-accent-light;
-        border-color: rgba(89, 93, 96, 0.25);
+        border-color: $color-cta-border;
         color: $catalog-text;
 
         .ant-select-selection-item-content {
@@ -236,18 +236,18 @@ $catalog-text: $color-text;
   .ant-btn-primary.ant-btn-color-primary.ant-btn-variant-solid {
     background: $catalog-accent !important;
     border-color: $catalog-accent !important;
-    color: #ffffff !important;
+    color: $color-cta-on !important;
 
     &:not(:disabled):hover {
       background: $catalog-accent-hover !important;
       border-color: $catalog-accent-hover !important;
-      color: #ffffff !important;
+      color: $color-cta-on !important;
     }
 
     &:not(:disabled):active {
       background: $catalog-accent-hover !important;
       border-color: $catalog-accent-hover !important;
-      color: #ffffff !important;
+      color: $color-cta-on !important;
     }
   }
 
@@ -258,7 +258,7 @@ $catalog-text: $color-text;
 
     &:hover {
       background: $catalog-accent-light;
-      border-color: rgba(89, 93, 96, 0.35);
+      border-color: $color-cta-border;
       color: $catalog-text;
     }
   }
@@ -294,7 +294,11 @@ $catalog-text: $color-text;
 
   .ant-checkbox-wrapper-checked:not(.ant-checkbox-wrapper-disabled):hover .ant-checkbox-inner,
   .ant-checkbox-checked:not(.ant-checkbox-disabled):hover .ant-checkbox-inner::after {
-    border-color: #ffffff !important;
+    border-color: $color-cta-on !important;
+  }
+
+  .ant-checkbox-checked .ant-checkbox-inner::after {
+    border-color: $color-cta-on !important;
   }
 
   .form-actions {

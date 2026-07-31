@@ -88,7 +88,7 @@
         &:not(.radio-summer):not(.radio-winter) {
           &.ant-radio-wrapper-checked {
             background: $color-surface;
-            box-shadow: 0 1px 2px rgba(39, 48, 54, 0.08);
+            box-shadow: $shadow-card;
 
             .ant-radio + span {
               color: $color-text;
@@ -97,7 +97,7 @@
           }
 
           &:hover:not(.ant-radio-wrapper-checked) {
-            background: darken($color-bg, 2%);
+            background: $color-bg-sunken;
           }
         }
 
