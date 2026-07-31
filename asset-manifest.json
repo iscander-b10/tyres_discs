@@ -1,14 +1,14 @@
 {
   "files": {
-    "main.css": "/tyres_discs/static/css/main.2be20e01.css",
-    "main.js": "/tyres_discs/static/js/main.2692652f.js",
+    "main.css": "/tyres_discs/static/css/main.75a8a770.css",
+    "main.js": "/tyres_discs/static/js/main.265c7cb0.js",
     "static/media/runflat.jpg": "/tyres_discs/static/media/runflat.9dbf3e8e9472eaa9cf38.jpg",
     "index.html": "/tyres_discs/index.html",
-    "main.2be20e01.css.map": "/tyres_discs/static/css/main.2be20e01.css.map",
-    "main.2692652f.js.map": "/tyres_discs/static/js/main.2692652f.js.map"
+    "main.75a8a770.css.map": "/tyres_discs/static/css/main.75a8a770.css.map",
+    "main.265c7cb0.js.map": "/tyres_discs/static/js/main.265c7cb0.js.map"
   },
   "entrypoints": [
-    "static/css/main.2be20e01.css",
-    "static/js/main.2692652f.js"
+    "static/css/main.75a8a770.css",
+    "static/js/main.265c7cb0.js"
   ]
 }
