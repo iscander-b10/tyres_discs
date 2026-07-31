@@ -1,9 +1,22 @@
 import React, { useState } from 'react';
-import { Flex, Layout, Tabs } from 'antd';
+import { Flex, Layout, Tooltip } from 'antd';
+import {
+  PhoneOutlined,
+  ShoppingCartOutlined,
+  UserOutlined,
+} from '@ant-design/icons';
 import TiresSearchParameters from './components/TiresSearchParameters/TiresSearchParameters';
 import DiscsSearchParameters from './components/DiscsSearchParameters/DiscsSearchParameters';
 import SideBar from './components/SideBar/SideBar';
 import './App.scss';
+
+const NAV_ITEMS = [
+  { key: 'tires', label: 'Шины' },
+  { key: 'disks', label: 'Диски' },
+  { key: 'akb', label: 'АКБ', disabled: true },
+  { key: 'fitting', label: 'Примерка дисков', disabled: true },
+  { key: 'service', label: 'Шиномонтаж', disabled: true },
+];
 
 function App() {
   const [clientMode, setClientMode] = useState(true);
@@ -12,49 +25,110 @@ function App() {
 
   return (
     <Layout className="app-layout">
+      <header className="site-header">
+        <div className="site-header__inner">
+          <div className="site-header__top">
+            <a className="site-brand" href="/" onClick={(e) => e.preventDefault()}>
+              <span className="site-brand__mark">IVANOR</span>
+              <span className="site-brand__tag">шины и диски</span>
+            </a>
+
+            <div className="site-header__actions">
+              <a className="site-header__phone" href="tel:+78002508850">
+                <PhoneOutlined aria-hidden />
+                <span>8 800 250 88 50</span>
+              </a>
+
+              <Tooltip title="Скоро">
+                <span className="site-header__icon-wrap">
+                  <button
+                    type="button"
+                    className="site-header__icon-btn"
+                    disabled
+                    aria-label="Личный кабинет (скоро)"
+                  >
+                    <UserOutlined aria-hidden />
+                    <span className="site-header__icon-label">Войти</span>
+                  </button>
+                </span>
+              </Tooltip>
+
+              <Tooltip title="Скоро">
+                <span className="site-header__icon-wrap">
+                  <button
+                    type="button"
+                    className="site-header__icon-btn"
+                    disabled
+                    aria-label="Корзина (скоро)"
+                  >
+                    <ShoppingCartOutlined aria-hidden />
+                    <span className="site-header__icon-label">Корзина</span>
+                  </button>
+                </span>
+              </Tooltip>
+            </div>
+          </div>
+
+          <nav className="site-header__nav" aria-label="Категории каталога">
+            {NAV_ITEMS.map((item) => {
+              const isActive = !item.disabled && item.key === activeKey;
+              const button = (
+                <button
+                  type="button"
+                  className={[
+                    'site-nav-item',
+                    isActive ? 'is-active' : '',
+                    item.disabled ? 'is-disabled' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  disabled={item.disabled}
+                  aria-current={isActive ? 'page' : undefined}
+                  onClick={() => {
+                    if (!item.disabled) setActiveKey(item.key);
+                  }}
+                >
+                  {item.label}
+                </button>
+              );
+
+              if (item.disabled) {
+                return (
+                  <Tooltip key={item.key} title="Скоро">
+                    <span className="site-nav-item-wrap">{button}</span>
+                  </Tooltip>
+                );
+              }
+
+              return <React.Fragment key={item.key}>{button}</React.Fragment>;
+            })}
+          </nav>
+        </div>
+      </header>
+
       <Layout className="app-content-layout">
         <Layout.Content className="app-content">
           <Flex className="app-content-wrapper" vertical>
-            <Tabs
-              className="catalog-tabs"
-              activeKey={activeKey}
-              onChange={setActiveKey}
-              destroyOnHidden={false}
-              tabBarExtraContent={{
-                right: (
-                  <SideBar
-                    clientMode={clientMode}
-                    setClientMode={setClientMode}
-                    onCatalogDataLoaded={() => setCatalogDataVersion((v) => v + 1)}
-                  />
-                ),
-              }}
-              items={[
-                {
-                  key: 'tires',
-                  label: 'Шины',
-                  children: (
-                    <TiresSearchParameters
-                      isClientMode={clientMode}
-                      catalogDataVersion={catalogDataVersion}
-                    />
-                  ),
-                },
-                {
-                  key: 'disks',
-                  label: 'Диски',
-                  children: (
-                    <DiscsSearchParameters
-                      isClientMode={clientMode}
-                      catalogDataVersion={catalogDataVersion}
-                    />
-                  ),
-                },
-              ]}
-            />
+            {activeKey === 'tires' ? (
+              <TiresSearchParameters
+                isClientMode={clientMode}
+                catalogDataVersion={catalogDataVersion}
+              />
+            ) : (
+              <DiscsSearchParameters
+                isClientMode={clientMode}
+                catalogDataVersion={catalogDataVersion}
+              />
+            )}
           </Flex>
         </Layout.Content>
       </Layout>
+
+      <SideBar
+        clientMode={clientMode}
+        setClientMode={setClientMode}
+        onCatalogDataLoaded={() => setCatalogDataVersion((v) => v + 1)}
+      />
     </Layout>
   );
 }

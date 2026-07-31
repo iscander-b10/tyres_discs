@@ -1,6 +1,10 @@
 @use '../shared/styles/catalog-search-form-controls' as catalog;
+@use '../../styles/tokens' as *;
 
 .discs-search-parameters {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -9,12 +13,12 @@
     width: 300px;
     position: sticky;
     top: 40px;
-    background: #ffffff;
+    background: $color-surface;
     z-index: 10;
     padding: 16px;
-    border: 1px solid #f0f0f0;
-    border-radius: 16px;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+    border: 1px solid $color-border;
+    border-radius: $radius-lg;
+    box-shadow: $shadow-card;
     flex-shrink: 0;
     max-width: 100%;
 
@@ -32,7 +36,7 @@
 
     .ant-form-item-label > label {
       font-size: 12px;
-      color: #9aa0a6;
+      color: $color-text-subtle;
     }
 
     .form-item-label-hidden {
@@ -55,18 +59,19 @@
 
         .ant-tabs-tab-btn {
           transition: color 0.2s ease, font-weight 0.2s ease;
-          font-size: 20px;
-          color: #696969;
+          font-size: 16px;
+          font-weight: 600;
+          color: $color-text-muted;
         }
       }
 
       &-ink-bar {
-        background: #000000;
+        background: $color-accent;
       }
 
       &-tab.ant-tabs-tab-active .ant-tabs-tab-btn,
       &-tab:hover .ant-tabs-tab-btn {
-        color: black;
+        color: $color-text;
       }
     }
 
@@ -74,9 +79,9 @@
       display: flex;
       gap: 6px;
       padding: 4px;
-      background: #f5f5f5;
-      border: 1px solid #e6e6e6;
-      border-radius: 12px;
+      background: $color-bg;
+      border: 1px solid $color-border;
+      border-radius: $radius-md;
       height: 40px;
       align-items: center;
 
@@ -88,7 +93,7 @@
         margin: 0;
         transition: all 0.2s ease;
         cursor: pointer;
-        border-radius: 10px;
+        border-radius: $radius-sm;
         height: 30px;
 
         .ant-radio {
@@ -99,33 +104,33 @@
           font-weight: 600;
           padding: 0;
           font-size: 13px;
-          letter-spacing: 0.3px;
-          color: #595959;
+          letter-spacing: 0.2px;
+          color: $color-text-muted;
           transition: color 0.2s;
         }
 
         &:not(.radio-summer):not(.radio-winter) {
           &.ant-radio-wrapper-checked {
-            background: #ffffff;
-            box-shadow: 0 1px 2px rgba(216, 16, 16, 0.06);
+            background: $color-surface;
+            box-shadow: 0 1px 2px rgba(39, 48, 54, 0.08);
 
             .ant-radio + span {
-              color: #262626;
+              color: $color-text;
               font-weight: 700;
             }
           }
 
           &:hover:not(.ant-radio-wrapper-checked) {
-            background: #f0f0f0;
+            background: darken($color-bg, 2%);
           }
         }
 
         &.radio-summer {
           &.ant-radio-wrapper-checked {
-            background: rgba(255, 215, 0, 0.8);
+            background: rgba(255, 196, 0, 0.85);
           }
           &:hover:not(.ant-radio-wrapper-checked) {
-            background: rgba(255, 215, 0, 0.4);
+            background: rgba(255, 196, 0, 0.35);
           }
         }
 
@@ -134,7 +139,7 @@
             background: rgb(81, 138, 254);
           }
           &:hover:not(.ant-radio-wrapper-checked) {
-            background: rgba(81, 138, 254, 0.4);
+            background: rgba(81, 138, 254, 0.35);
           }
         }
 
@@ -163,5 +168,14 @@
 
   > :not(.search-form) {
     min-width: 0;
+  }
+
+  @media (max-width: 900px) {
+    flex-direction: column;
+
+    .search-form {
+      width: 100%;
+      position: static;
+    }
   }
 }

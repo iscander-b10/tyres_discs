@@ -5,19 +5,25 @@ import './SideBar.scss';
 
 function SideBar({ clientMode, setClientMode, onCatalogDataLoaded }) {
   return (
-    <Flex className="header-controls" align="center" gap={8}>
-      <Flex className="control-button" align="center" justify="center">
-        <LoadingData onDataLoaded={onCatalogDataLoaded} />
-      </Flex>
+    <aside className="floating-sidebar" aria-label="Служебные инструменты">
+      <Flex className="header-controls" align="center" gap={8}>
+        <Flex className="control-button" align="center" justify="center">
+          <LoadingData onDataLoaded={onCatalogDataLoaded} />
+        </Flex>
 
-      <Tooltip title={clientMode ? 'Режим клиента' : 'Режим менеджера'} placement="bottom">
-        <Switch
-          className="client-mode-switch"
-          checked={clientMode}
-          onChange={setClientMode}
-        />
-      </Tooltip>
-    </Flex>
+        <Tooltip
+          title={clientMode ? 'Режим клиента' : 'Режим менеджера'}
+          placement="top"
+        >
+          <Switch
+            className="client-mode-switch"
+            checked={clientMode}
+            onChange={setClientMode}
+            aria-label={clientMode ? 'Режим клиента' : 'Режим менеджера'}
+          />
+        </Tooltip>
+      </Flex>
+    </aside>
   );
 }
 

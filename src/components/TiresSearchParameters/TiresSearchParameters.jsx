@@ -291,7 +291,7 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
         <Form.Item className="form-actions">
           <Space>
             <Button type="primary" icon={<SearchOutlined />} loading={loadingSearch} htmlType="submit">
-              Найти
+              Подобрать
             </Button>
             <Button onClick={handleResetFilters}>Сбросить</Button>
           </Space>

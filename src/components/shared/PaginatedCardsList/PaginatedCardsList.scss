@@ -1,12 +1,11 @@
 @use '../styles/catalog-search-form-controls' as catalog;
+@use '../../../styles/tokens' as *;
 
-/* Общий контейнер списка (шины + диски) */
 .items-list-container {
   flex: 1;
   min-width: 0;
 }
 
-/* Поиск и сортировка над списком */
 .list-toolbar {
   align-items: flex-end;
   gap: 16px 24px;
@@ -19,13 +18,14 @@
 .list-toolbar__search {
   height: 40px !important;
   min-height: 40px;
-  min-width: 330px;
+  min-width: min(330px, 100%);
   width: 330px;
+  max-width: 100%;
   padding-inline: 12px !important;
-  border-radius: 16px !important;
-  background-color: #ffffff !important;
-  border: 1px solid #e8e8e8 !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-radius: $radius-md !important;
+  background-color: $color-surface !important;
+  border: 1px solid $color-border !important;
+  box-shadow: $shadow-card;
   transition: background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s;
 
   .ant-input {
@@ -33,83 +33,88 @@
   }
 
   .ant-input-prefix {
-    color: rgba(0, 0, 0, 0.45);
+    color: $color-text-subtle;
     font-size: 13px;
     margin-inline-end: 4px;
   }
 
   &:hover:not(.ant-input-affix-wrapper-disabled) {
     background-color: #fafafa !important;
-    border-color: #e8e8e8 !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: $color-border !important;
+    box-shadow: 0 4px 12px rgba(39, 48, 54, 0.08);
   }
 
   &.ant-input-affix-wrapper-focused,
   &.ant-input-outlined:not(.ant-input-disabled).ant-input-affix-wrapper-focused {
-    background-color: #ffffff !important;
-    border-color: #e8e8e8 !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    background-color: $color-surface !important;
+    border-color: $color-cta !important;
+    box-shadow: 0 0 0 3px rgba(89, 93, 96, 0.14) !important;
   }
 }
 
 .list-toolbar__sort-icon {
   margin-left: auto;
   font-size: 18px;
-  color: #262626;
+  color: $color-text;
   cursor: pointer;
   padding: 7px;
   line-height: 1;
-  transition: color 0.2s;
+  border-radius: $radius-sm;
+  transition: color 0.2s, background-color 0.2s;
 
   &:hover {
-    color: #00c853;
+    color: $color-accent;
+    background: rgba(228, 49, 65, 0.06);
   }
 }
 
-/* Общая сетка карточек (auto-fill — карточки не растягиваются при 1–2 товарах) */
 .items-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 10px;
+  gap: 12px;
   width: 100%;
 }
 
-/* Пустое состояние */
 .empty-state {
   grid-column: 1 / -1;
   text-align: center;
   padding: 60px 20px;
 }
 
-/* Пагинация */
 .pagination-container {
-  margin-top: 30px;
+  margin-top: 28px;
   display: flex;
   justify-content: center;
   align-items: center;
   padding-top: 20px;
-  border-top: 1px solid #333333;
+  border-top: 1px solid $color-border;
   position: relative;
   z-index: 1;
 }
 
-/* Ошибка */
 .error-alert.ant-alert-error {
-  background: rgba(255, 71, 87, 0.1);
-  border: 1px solid rgba(255, 71, 87, 0.3);
-  border-radius: 12px;
+  background: rgba(228, 49, 65, 0.06);
+  border: 1px solid rgba(228, 49, 65, 0.25);
+  border-radius: $radius-lg;
   margin-top: 20px;
 }
 
 .error-alert.ant-alert-error .ant-alert-message {
-  color: #ff6b81;
+  color: $color-accent;
   font-weight: 700;
 }
 
 .error-alert.ant-alert-error .ant-alert-description {
-  color: #e2e8f0;
+  color: $color-text-muted;
 }
 
 .error-alert.ant-alert-error .ant-alert-icon {
-  color: #ff4757;
+  color: $color-accent;
+}
+
+@media (max-width: 768px) {
+  .list-toolbar__search {
+    width: 100%;
+    min-width: 0;
+  }
 }

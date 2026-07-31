@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Card, Divider, Flex, Image, Space, Tooltip, Typography } from 'antd';
-import { TruckOutlined } from '@ant-design/icons';
+import { Button, Card, Divider, Flex, Image, Space, Tooltip, Typography, message } from 'antd';
+import { ShoppingCartOutlined, TruckOutlined } from '@ant-design/icons';
 import runflatIcon from '../../../icons/runflat.jpg';
 import { resolvePhotoUrl } from '../../../utils/fetchSupplier';
 import './CatalogItemCard.scss';
@@ -96,6 +96,11 @@ const CatalogItemCard = ({
   const handleImageClick = () => setIsModalOpen(true);
   const handleCloseModal = () => setIsModalOpen(false);
 
+  const handleAddToCart = (e) => {
+    e.stopPropagation();
+    message.info('Корзина скоро будет доступна');
+  };
+
   if (!item) return null;
 
   const modalProps = {
@@ -116,7 +121,15 @@ const CatalogItemCard = ({
             align="center"
             justify="center"
             onClick={handleImageClick}
-            style={{ position: 'relative' }}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleImageClick();
+              }
+            }}
+            aria-label={`Открыть ${item.title}`}
           >
             <Image
               className="item-image"
@@ -135,7 +148,7 @@ const CatalogItemCard = ({
               >
                 {item.code ? (
                   <Text className="item-code-text" ellipsis>
-                    Код товара: {item.code}
+                    Код: {item.code}
                   </Text>
                 ) : null}
                 {item.runflat ? (
@@ -193,6 +206,15 @@ const CatalogItemCard = ({
                   )}
                 </Space>
               </Flex>
+              <Button
+                className="item-cart-btn"
+                type="primary"
+                icon={<ShoppingCartOutlined />}
+                onClick={handleAddToCart}
+                block
+              >
+                В корзину
+              </Button>
             </Flex>
           }
         />

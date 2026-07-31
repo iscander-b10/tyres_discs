@@ -318,7 +318,7 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
               loading={loadingSearch}
               htmlType="submit"
             >
-              Найти
+              Подобрать
             </Button>
             <Button onClick={handleResetFilters}>Сбросить</Button>
           </Space>
