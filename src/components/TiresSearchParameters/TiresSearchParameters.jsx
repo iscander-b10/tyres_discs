@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef, memo } from 'react';
 import { Form, Select, Button, Space, Radio, Row, Col, Checkbox } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
+import { ReactComponent as SunIcon } from '../../icons/Sun.svg';
+import { ReactComponent as SnowIcon } from '../../icons/Snow.svg';
 import indexedDBService from '../../services/indexedDBService';
 import CatalogItemModalWindow from '../shared/CatalogItemModalWindow/CatalogItemModalWindow';
 import CatalogItemCard from '../shared/CatalogItemCard/CatalogItemCard';
@@ -211,8 +213,18 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
       >
         <Form.Item name="season" label="Сезон" className="form-item-season">
           <Radio.Group>
-            <Radio value="s" className="radio-summer">Летние</Radio>
-            <Radio value="w" className="radio-winter">Зимние</Radio>
+            <Radio value="s" className="radio-summer">
+              <span className="season-radio-label">
+                <SunIcon className="season-radio-icon" aria-hidden />
+                Летние
+              </span>
+            </Radio>
+            <Radio value="w" className="radio-winter">
+              <span className="season-radio-label">
+                <SnowIcon className="season-radio-icon" aria-hidden />
+                Зимние
+              </span>
+            </Radio>
           </Radio.Group>
         </Form.Item>
 

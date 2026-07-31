@@ -24,8 +24,8 @@
   --color-cta-selected: rgba(89, 93, 96, 0.12);
   --color-cta-outline: rgba(89, 93, 96, 0.18);
   --color-cta-border: rgba(89, 93, 96, 0.25);
-  --color-checkbox: #4caf50;
-  --color-checkbox-hover: #43a047;
+  --color-checkbox: #03cd2f;
+  --color-checkbox-hover: #02b829;
   --color-stock: #2f9e44;
   --color-danger: #e43141;
   --color-overlay: rgba(39, 48, 54, 0.55);
@@ -71,8 +71,8 @@
   --color-cta-selected: rgba(207, 211, 214, 0.16);
   --color-cta-outline: rgba(207, 211, 214, 0.28);
   --color-cta-border: rgba(207, 211, 214, 0.32);
-  --color-checkbox: #4caf50;
-  --color-checkbox-hover: #66bb6a;
+  --color-checkbox: #03cd2f;
+  --color-checkbox-hover: #04e036;
   --color-stock: #3db954;
   --color-danger: #e54552;
   --color-overlay: rgba(8, 10, 12, 0.72);

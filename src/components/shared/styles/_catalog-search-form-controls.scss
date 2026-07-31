@@ -140,28 +140,61 @@ $catalog-text: $color-text;
       color: $catalog-text !important;
     }
 
+    // Match single-select height (empty / one row). Grow only when tags wrap.
     &.ant-select-multiple .ant-select-selector {
       min-height: $selector-height;
       height: auto;
-      padding: 2px 4px;
+      padding-block: 0;
+      padding-inline: 4px 24px;
+      align-items: center;
+
+      &::after {
+        margin-block: 0;
+        line-height: $selector-height - 2px;
+      }
 
       .ant-select-selection-overflow {
+        display: flex;
+        flex-wrap: wrap;
         align-items: center;
+        align-content: center;
+        min-height: $selector-height - 2px;
       }
 
       .ant-select-selection-overflow-item {
         align-self: center;
       }
 
+      .ant-select-selection-placeholder {
+        inset-inline-start: 11px;
+        line-height: $selector-height - 2px;
+      }
+
+      .ant-select-selection-search {
+        margin-inline-start: 0;
+        margin-block: 0;
+        height: $selector-height - 2px;
+        line-height: $selector-height - 2px;
+
+        .ant-select-selection-search-input {
+          height: $selector-height - 2px !important;
+          min-height: $selector-height - 2px;
+        }
+
+        .ant-select-selection-search-mirror {
+          height: $selector-height - 2px;
+          line-height: $selector-height - 2px;
+        }
+      }
+
       .ant-select-selection-item {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        height: 22px;
-        margin-top: 0;
-        margin-bottom: 0;
-        padding-top: 0;
-        padding-bottom: 0;
+        height: 24px;
+        margin-block: 3px;
+        margin-inline-end: 4px;
+        padding-block: 0;
         border-radius: $radius-sm;
         font-size: 12px;
         line-height: 1;
@@ -294,6 +327,8 @@ $catalog-text: $color-text;
 
   .ant-checkbox-checked .ant-checkbox-inner::after {
     border-color: $color-on-accent !important;
+    width: 5px;
+    height: 8px;
   }
 
   // Unchecked hover/focus: keep neutral border, no accent ring
@@ -323,6 +358,16 @@ $catalog-text: $color-text;
   .ant-checkbox-checked .ant-checkbox-input:focus + .ant-checkbox-inner::after,
   .ant-checkbox-checked .ant-checkbox-input:focus-visible + .ant-checkbox-inner::after {
     border-color: $color-on-accent !important;
+  }
+
+  // Checkbox rows: drop Ant control-height padding so they sit tighter
+  .ant-form-item:has(.ant-checkbox-wrapper) {
+    margin-top: 15px;
+    margin-bottom: 4px;
+
+    .ant-form-item-control-input {
+      min-height: 0;
+    }
   }
 }
 
@@ -354,12 +399,40 @@ $catalog-text: $color-text;
       }
 
       .ant-radio + span {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        line-height: 1;
         font-weight: 600;
         padding: 0;
         font-size: 13px;
         letter-spacing: 0.2px;
         color: $color-text-muted;
         transition: color 0.2s ease;
+      }
+
+      .season-radio-label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        line-height: 1;
+      }
+
+      .season-radio-icon {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        display: block;
+      }
+
+      &.radio-summer .season-radio-icon {
+        color: #FFA500;
+      }
+
+      &.radio-winter .season-radio-icon {
+        color: #00BFFF;
       }
 
       &.ant-radio-wrapper-checked {
