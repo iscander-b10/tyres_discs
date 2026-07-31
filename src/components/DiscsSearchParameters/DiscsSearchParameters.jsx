@@ -13,6 +13,15 @@ import './DiscsSearchParameters.scss';
 
 const { Option } = Select;
 
+const isActiveFilterValue = (value) =>
+  value !== undefined && value !== null && value !== '';
+
+const optionIncludesNumeric = (options, value) =>
+  Array.isArray(options) && options.some((option) => Number(option) === Number(value));
+
+const optionIncludesString = (options, value) =>
+  Array.isArray(options) && options.some((option) => String(option) === String(value));
+
 const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) => {
   const [form] = Form.useForm();
   const [loadingSearch, setLoadingSearch] = useState(false);
@@ -30,34 +39,38 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
   const brandSelectCloseOnMouseLeave = useCatalogSelectCloseOnMouseLeave();
   const loadRequestIdRef = useRef(0);
 
+  const buildFiltersFromFormValues = (allValues = {}) => {
+    const filters = {};
+    if (isActiveFilterValue(allValues.supplier)) filters.supplier = allValues.supplier;
+    if (isActiveFilterValue(allValues.diameter)) filters.diameter = allValues.diameter;
+    if (isActiveFilterValue(allValues.pcd)) filters.pcd = allValues.pcd;
+    if (isActiveFilterValue(allValues.pn)) filters.pn = allValues.pn;
+    if (isActiveFilterValue(allValues.diskType)) filters.diskType = allValues.diskType;
+    if (isActiveFilterValue(allValues.widthFrom)) filters.widthFrom = allValues.widthFrom;
+    if (isActiveFilterValue(allValues.widthTo)) filters.widthTo = allValues.widthTo;
+    if (isActiveFilterValue(allValues.cbFrom)) filters.cbFrom = allValues.cbFrom;
+    if (isActiveFilterValue(allValues.cbTo)) filters.cbTo = allValues.cbTo;
+    if (isActiveFilterValue(allValues.etFrom)) filters.etFrom = allValues.etFrom;
+    if (isActiveFilterValue(allValues.etTo)) filters.etTo = allValues.etTo;
+    return filters;
+  };
+
   useEffect(() => {
-    loadAvailableParameters(form.getFieldsValue());
+    loadAvailableParameters(buildFiltersFromFormValues(form.getFieldsValue()));
     // Перезагрузка опций только при обновлении каталога, не при каждой смене form
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [catalogDataVersion]);
-
-  const clearAvailableOptions = () => {
-    setAvailableBrands([]);
-    setAvailableSuppliers([]);
-    setAvailableDiameters([]);
-    setAvailableWidths([]);
-    setAvailableCb([]);
-    setAvailableEt([]);
-    setAvailablePcd([]);
-    setAvailablePn([]);
-  };
 
   const loadAvailableParameters = async (filters = {}) => {
     const requestId = ++loadRequestIdRef.current;
 
     setLoadingOptions(true);
-    clearAvailableOptions();
 
     try {
       const options = await indexedDBService.getAvailableDiscParameterOptions(filters);
 
       if (requestId !== loadRequestIdRef.current) {
-        return;
+        return null;
       }
 
       setAvailableBrands(options.brands);
@@ -68,15 +81,59 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
       setAvailableEt(options.et);
       setAvailablePcd(options.pcd);
       setAvailablePn(options.pn);
+
+      return options;
     } catch (error) {
-      if (requestId === loadRequestIdRef.current) {
-        clearAvailableOptions();
-      }
+      // Оставляем предыдущие опции, чтобы UI не моргал пустыми списками
+      return null;
     } finally {
       if (requestId === loadRequestIdRef.current) {
         setLoadingOptions(false);
       }
     }
+  };
+
+  const softInvalidateIncompatibleValues = async (values) => {
+    let currentValues = { ...values };
+    let options = await loadAvailableParameters(buildFiltersFromFormValues(currentValues));
+    if (!options) return null;
+
+    const incompatibleReset = {};
+    if (isActiveFilterValue(currentValues.diameter) && !optionIncludesString(options.diameters, currentValues.diameter)) {
+      incompatibleReset.diameter = undefined;
+    }
+    if (isActiveFilterValue(currentValues.pn) && !optionIncludesNumeric(options.pn, currentValues.pn)) {
+      incompatibleReset.pn = undefined;
+    }
+    if (isActiveFilterValue(currentValues.pcd) && !optionIncludesNumeric(options.pcd, currentValues.pcd)) {
+      incompatibleReset.pcd = undefined;
+    }
+    if (isActiveFilterValue(currentValues.widthFrom) && !optionIncludesNumeric(options.widths, currentValues.widthFrom)) {
+      incompatibleReset.widthFrom = undefined;
+    }
+    if (isActiveFilterValue(currentValues.widthTo) && !optionIncludesNumeric(options.widths, currentValues.widthTo)) {
+      incompatibleReset.widthTo = undefined;
+    }
+    if (isActiveFilterValue(currentValues.cbFrom) && !optionIncludesNumeric(options.cb, currentValues.cbFrom)) {
+      incompatibleReset.cbFrom = undefined;
+    }
+    if (isActiveFilterValue(currentValues.cbTo) && !optionIncludesNumeric(options.cb, currentValues.cbTo)) {
+      incompatibleReset.cbTo = undefined;
+    }
+    if (isActiveFilterValue(currentValues.etFrom) && !optionIncludesNumeric(options.et, currentValues.etFrom)) {
+      incompatibleReset.etFrom = undefined;
+    }
+    if (isActiveFilterValue(currentValues.etTo) && !optionIncludesNumeric(options.et, currentValues.etTo)) {
+      incompatibleReset.etTo = undefined;
+    }
+
+    if (Object.keys(incompatibleReset).length === 0) {
+      return options;
+    }
+
+    form.setFieldsValue(incompatibleReset);
+    currentValues = { ...currentValues, ...incompatibleReset };
+    return loadAvailableParameters(buildFiltersFromFormValues(currentValues));
   };
 
   const handleSearch = async (values) => {
@@ -109,20 +166,7 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
       return;
     }
 
-    const currentFilters = {};
-    if (allValues.supplier) currentFilters.supplier = allValues.supplier;
-    if (allValues.diameter) currentFilters.diameter = allValues.diameter;
-    if (allValues.pcd) currentFilters.pcd = allValues.pcd;
-    if (allValues.pn) currentFilters.pn = allValues.pn;
-    if (allValues.diskType) currentFilters.diskType = allValues.diskType;
-    if (allValues.widthFrom !== undefined && allValues.widthFrom !== null && allValues.widthFrom !== '') currentFilters.widthFrom = allValues.widthFrom;
-    if (allValues.widthTo !== undefined && allValues.widthTo !== null && allValues.widthTo !== '') currentFilters.widthTo = allValues.widthTo;
-    if (allValues.cbFrom !== undefined && allValues.cbFrom !== null && allValues.cbFrom !== '') currentFilters.cbFrom = allValues.cbFrom;
-    if (allValues.cbTo !== undefined && allValues.cbTo !== null && allValues.cbTo !== '') currentFilters.cbTo = allValues.cbTo;
-    if (allValues.etFrom !== undefined && allValues.etFrom !== null && allValues.etFrom !== '') currentFilters.etFrom = allValues.etFrom;
-    if (allValues.etTo !== undefined && allValues.etTo !== null && allValues.etTo !== '') currentFilters.etTo = allValues.etTo;
-    
-    await loadAvailableParameters(currentFilters);
+    await softInvalidateIncompatibleValues(allValues);
 
     if (changedValues.onlyAmountFrom4 !== undefined && searchResults !== null && !loadingSearch) {
       form.submit();

@@ -59,55 +59,48 @@ const sortDiscNumericValues = (values) =>
     return numA - numB;
   });
 
+const matchesTireDiameter = (itemDiameter, filterDiameter) => {
+  if (!isActiveFilterValue(filterDiameter)) return true;
+  return String(itemDiameter) === String(filterDiameter);
+};
+
+const matchesTireNumericField = (itemValue, filterValue) => {
+  if (!isActiveFilterValue(filterValue)) return true;
+  return Number(itemValue) === Number(filterValue);
+};
+
 const matchesTireParameterFilters = (item, filters = {}) => {
-  if (filters.width && Number(item.width) !== Number(filters.width)) return false;
-  if (filters.profile && Number(item.profile) !== Number(filters.profile)) return false;
-  if (filters.diameter && Number(item.diameter) !== Number(filters.diameter)) return false;
+  if (!matchesTireNumericField(item.width, filters.width)) return false;
+  if (!matchesTireNumericField(item.profile, filters.profile)) return false;
+  if (!matchesTireDiameter(item.diameter, filters.diameter)) return false;
   if (filters.season && item.season !== filters.season) return false;
   return true;
 };
 
-const matchesDiscParameterFilters = (item, filters = {}) => {
-  const widthNumber = item.width === undefined || item.width === null ? null : Number(item.width);
-  const cbNumber = item.cb === undefined || item.cb === null ? null : Number(item.cb);
-  const etNumber = item.et === undefined || item.et === null ? null : Number(item.et);
-  const widthFromNumber =
-    filters.widthFrom === undefined || filters.widthFrom === null || filters.widthFrom === ''
-      ? null
-      : Number(filters.widthFrom);
-  const widthToNumber =
-    filters.widthTo === undefined || filters.widthTo === null || filters.widthTo === ''
-      ? null
-      : Number(filters.widthTo);
-  const cbFromNumber =
-    filters.cbFrom === undefined || filters.cbFrom === null || filters.cbFrom === ''
-      ? null
-      : Number(filters.cbFrom);
-  const cbToNumber =
-    filters.cbTo === undefined || filters.cbTo === null || filters.cbTo === ''
-      ? null
-      : Number(filters.cbTo);
-  const etFromNumber =
-    filters.etFrom === undefined || filters.etFrom === null || filters.etFrom === ''
-      ? null
-      : Number(filters.etFrom);
-  const etToNumber =
-    filters.etTo === undefined || filters.etTo === null || filters.etTo === ''
-      ? null
-      : Number(filters.etTo);
+const matchesDiscStringField = (itemValue, filterValue) => {
+  if (!isActiveFilterValue(filterValue)) return true;
+  return String(itemValue) === String(filterValue);
+};
 
+const matchesDiscRange = (itemValue, from, to) => {
+  if (!isActiveFilterValue(from) && !isActiveFilterValue(to)) return true;
+  const num = itemValue === undefined || itemValue === null ? NaN : Number(itemValue);
+  if (Number.isNaN(num)) return false;
+  if (isActiveFilterValue(from) && num < Number(from)) return false;
+  if (isActiveFilterValue(to) && num > Number(to)) return false;
+  return true;
+};
+
+const matchesDiscParameterFilters = (item, filters = {}) => {
   if (!matchesBrandFilter(item.brand, filters.brand)) return false;
-  if (filters.supplier && item.supplier !== filters.supplier) return false;
-  if (filters.diameter && item.diameter !== filters.diameter) return false;
-  if (filters.pcd && item.pcd !== filters.pcd) return false;
-  if (filters.pn && item.pn !== filters.pn) return false;
-  if (filters.diskType && item.diskType !== filters.diskType) return false;
-  if (widthFromNumber !== null && (Number.isNaN(widthNumber) || widthNumber < widthFromNumber)) return false;
-  if (widthToNumber !== null && (Number.isNaN(widthNumber) || widthNumber > widthToNumber)) return false;
-  if (cbFromNumber !== null && (Number.isNaN(cbNumber) || cbNumber < cbFromNumber)) return false;
-  if (cbToNumber !== null && (Number.isNaN(cbNumber) || cbNumber > cbToNumber)) return false;
-  if (etFromNumber !== null && (Number.isNaN(etNumber) || etNumber < etFromNumber)) return false;
-  if (etToNumber !== null && (Number.isNaN(etNumber) || etNumber > etToNumber)) return false;
+  if (!matchesDiscStringField(item.supplier, filters.supplier)) return false;
+  if (!matchesTireDiameter(item.diameter, filters.diameter)) return false;
+  if (!matchesTireNumericField(item.pcd, filters.pcd)) return false;
+  if (!matchesTireNumericField(item.pn, filters.pn)) return false;
+  if (!matchesDiscStringField(item.diskType, filters.diskType)) return false;
+  if (!matchesDiscRange(item.width, filters.widthFrom, filters.widthTo)) return false;
+  if (!matchesDiscRange(item.cb, filters.cbFrom, filters.cbTo)) return false;
+  if (!matchesDiscRange(item.et, filters.etFrom, filters.etTo)) return false;
   return true;
 };
 
@@ -246,24 +239,19 @@ class IndexedDBService {
 
     if (filterCount === 0) {
       request = store.openCursor();
+    } else if (isActiveFilterValue(filters.diameter)) {
+      // diameter хранится строкой ("R15"); индекс надёжен по типу
+      request = store.index('diameter').openCursor(IDBKeyRange.only(filters.diameter));
+    } else if (isActiveFilterValue(filters.season)) {
+      // width/profile в store могут быть number|string — не используем IDBKeyRange.only по ним
+      request = store.index('season').openCursor(IDBKeyRange.only(filters.season));
+    } else if (singleBrand) {
+      request = store.index('brand').openCursor(IDBKeyRange.only(singleBrand));
+    } else if (isActiveFilterValue(filters.supplier)) {
+      request = store.index('supplier').openCursor(IDBKeyRange.only(filters.supplier));
     } else {
-      if (filters.width) {
-        request = store.index('width').openCursor(IDBKeyRange.only(filters.width));
-      } else if (filters.diameter) {
-        request = store.index('diameter').openCursor(IDBKeyRange.only(filters.diameter));
-      } else if (filters.profile) {
-        request = store.index('profile').openCursor(IDBKeyRange.only(filters.profile));
-      } else if (singleBrand) {
-        request = store.index('brand').openCursor(IDBKeyRange.only(singleBrand));
-      } else if (filters.supplier) {
-        request = store.index('supplier').openCursor(IDBKeyRange.only(filters.supplier));
-      } else if (filters.season) {
-        request = store.index('season').openCursor(IDBKeyRange.only(filters.season));
-      } else {
-        // Если используется только фильтр spikes или другие фильтры без индекса,
-        // открываем курсор по всем записям, фильтрация будет в matches
-        request = store.openCursor();
-      }
+      // spikes / width / profile / minAmount / runflat — полный скан + matches
+      request = store.openCursor();
     }
     
     const results = [];
@@ -276,9 +264,7 @@ class IndexedDBService {
         const minAmountNumber = filters.minAmount === undefined || filters.minAmount === null ? null : Number(filters.minAmount);
         
         const matches = (
-          (!filters.profile || Number(tire.profile) === Number(filters.profile)) &&
-          (!filters.diameter || Number(tire.diameter) === Number(filters.diameter)) &&
-          (!filters.season || tire.season === filters.season) &&
+          matchesTireParameterFilters(tire, filters) &&
           matchesBrandFilter(tire.brand, filters.brand) &&
           (!filters.supplier || tire.supplier === filters.supplier) &&
           (filters.spikes === undefined || tire.spikes === filters.spikes) &&
@@ -311,8 +297,6 @@ class IndexedDBService {
       const request = store.getAll();
 
       request.onsuccess = () => {
-        const filteredItems = request.result.filter((item) => matchesTireParameterFilters(item, filters));
-
         const widths = new Set();
         const profiles = new Set();
         const diameters = new Set();
@@ -320,13 +304,30 @@ class IndexedDBService {
         const brands = new Set();
         const suppliers = new Set();
 
-        filteredItems.forEach((item) => {
-          addUniqueValue(widths, normalizeNumericFieldValue(item.width));
-          addUniqueValue(profiles, normalizeNumericFieldValue(item.profile));
-          addUniqueValue(diameters, item.diameter);
-          addUniqueValue(seasons, item.season);
-          addUniqueValue(brands, item.brand);
-          addUniqueValue(suppliers, item.supplier);
+        request.result.forEach((item) => {
+          if (filters.season && item.season !== filters.season) return;
+
+          const matchWidth = matchesTireNumericField(item.width, filters.width);
+          const matchProfile = matchesTireNumericField(item.profile, filters.profile);
+          const matchDiameter = matchesTireDiameter(item.diameter, filters.diameter);
+
+          // Опции поля X — без фильтра по X
+          if (matchProfile && matchDiameter) {
+            addUniqueValue(widths, normalizeNumericFieldValue(item.width));
+          }
+          if (matchWidth && matchDiameter) {
+            addUniqueValue(profiles, normalizeNumericFieldValue(item.profile));
+          }
+          if (matchWidth && matchProfile) {
+            addUniqueValue(diameters, item.diameter);
+          }
+
+          // brands/suppliers — по полному совпадению выбранных размеров
+          if (matchWidth && matchProfile && matchDiameter) {
+            addUniqueValue(seasons, item.season);
+            addUniqueValue(brands, item.brand);
+            addUniqueValue(suppliers, item.supplier);
+          }
         });
 
         resolve({
@@ -496,22 +497,18 @@ class IndexedDBService {
 
       if (filterCount === 0) {
         request = store.openCursor();
+      } else if (isActiveFilterValue(filters.diameter)) {
+        // diameter хранится строкой ("R15")
+        request = store.index('diameter').openCursor(IDBKeyRange.only(filters.diameter));
+      } else if (isActiveFilterValue(filters.diskType)) {
+        request = store.index('diskType').openCursor(IDBKeyRange.only(filters.diskType));
+      } else if (singleBrand) {
+        request = store.index('brand').openCursor(IDBKeyRange.only(singleBrand));
+      } else if (isActiveFilterValue(filters.supplier)) {
+        request = store.index('supplier').openCursor(IDBKeyRange.only(filters.supplier));
       } else {
-        if (singleBrand) {
-          request = store.index('brand').openCursor(IDBKeyRange.only(singleBrand));
-        } else if (filters.supplier) {
-          request = store.index('supplier').openCursor(IDBKeyRange.only(filters.supplier));
-        } else if (filters.diameter) {
-          request = store.index('diameter').openCursor(IDBKeyRange.only(filters.diameter));
-        } else if (filters.pcd) {
-          request = store.index('pcd').openCursor(IDBKeyRange.only(filters.pcd));
-        } else if (filters.pn) {
-          request = store.index('pn').openCursor(IDBKeyRange.only(filters.pn));
-        } else if (filters.diskType) {
-          request = store.index('diskType').openCursor(IDBKeyRange.only(filters.diskType));
-        } else {
-          request = store.openCursor();
-        }
+        // pn/pcd/width/cb/et могут быть number|string — не используем IDBKeyRange.only
+        request = store.openCursor();
       }
       
       const results = [];
@@ -522,30 +519,10 @@ class IndexedDBService {
           const disc = cursor.value;
           const discAmountNumber = Number(disc.amount);
           const minAmountNumber = filters.minAmount === undefined || filters.minAmount === null ? null : Number(filters.minAmount);
-          const widthNumber = disc.width === undefined || disc.width === null ? null : Number(disc.width);
-          const cbNumber = disc.cb === undefined || disc.cb === null ? null : Number(disc.cb);
-          const etNumber = disc.et === undefined || disc.et === null ? null : Number(disc.et);
-          const widthFromNumber = filters.widthFrom === undefined || filters.widthFrom === null || filters.widthFrom === '' ? null : Number(filters.widthFrom);
-          const widthToNumber = filters.widthTo === undefined || filters.widthTo === null || filters.widthTo === '' ? null : Number(filters.widthTo);
-          const cbFromNumber = filters.cbFrom === undefined || filters.cbFrom === null || filters.cbFrom === '' ? null : Number(filters.cbFrom);
-          const cbToNumber = filters.cbTo === undefined || filters.cbTo === null || filters.cbTo === '' ? null : Number(filters.cbTo);
-          const etFromNumber = filters.etFrom === undefined || filters.etFrom === null || filters.etFrom === '' ? null : Number(filters.etFrom);
-          const etToNumber = filters.etTo === undefined || filters.etTo === null || filters.etTo === '' ? null : Number(filters.etTo);
           
           const matches = (
-            matchesBrandFilter(disc.brand, filters.brand) &&
-            (!filters.supplier || disc.supplier === filters.supplier) &&
-            (!filters.diameter || disc.diameter === filters.diameter) &&
-            (!filters.pcd || disc.pcd === filters.pcd) &&
-            (!filters.pn || disc.pn === filters.pn) &&
-            (!filters.diskType || disc.diskType === filters.diskType) &&
-            (minAmountNumber === null || (!Number.isNaN(discAmountNumber) && discAmountNumber >= minAmountNumber)) &&
-            (widthFromNumber === null || (!Number.isNaN(widthNumber) && widthNumber >= widthFromNumber)) &&
-            (widthToNumber === null || (!Number.isNaN(widthNumber) && widthNumber <= widthToNumber)) &&
-            (cbFromNumber === null || (!Number.isNaN(cbNumber) && cbNumber >= cbFromNumber)) &&
-            (cbToNumber === null || (!Number.isNaN(cbNumber) && cbNumber <= cbToNumber)) &&
-            (etFromNumber === null || (!Number.isNaN(etNumber) && etNumber >= etFromNumber)) &&
-            (etToNumber === null || (!Number.isNaN(etNumber) && etNumber <= etToNumber))
+            matchesDiscParameterFilters(disc, filters) &&
+            (minAmountNumber === null || (!Number.isNaN(discAmountNumber) && discAmountNumber >= minAmountNumber))
           );
           
           if (matches) {
@@ -573,8 +550,6 @@ class IndexedDBService {
       const request = store.getAll();
 
       request.onsuccess = () => {
-        const filteredItems = request.result.filter((item) => matchesDiscParameterFilters(item, filters));
-
         const brands = new Set();
         const suppliers = new Set();
         const diameters = new Set();
@@ -585,16 +560,42 @@ class IndexedDBService {
         const pnValues = new Set();
         const diskTypes = new Set();
 
-        filteredItems.forEach((item) => {
-          addUniqueValue(brands, item.brand);
-          addUniqueValue(suppliers, item.supplier);
-          addUniqueValue(diameters, item.diameter);
-          addUniqueValue(widths, normalizeNumericFieldValue(item.width));
-          addUniqueValue(cbValues, normalizeNumericFieldValue(item.cb));
-          addUniqueValue(etValues, normalizeNumericFieldValue(item.et));
-          addUniqueValue(pcdValues, item.pcd);
-          addUniqueValue(pnValues, normalizeNumericFieldValue(item.pn));
-          addUniqueValue(diskTypes, item.diskType);
+        request.result.forEach((item) => {
+          const matchSupplier = matchesDiscStringField(item.supplier, filters.supplier);
+          const matchDiameter = matchesTireDiameter(item.diameter, filters.diameter);
+          const matchPcd = matchesTireNumericField(item.pcd, filters.pcd);
+          const matchPn = matchesTireNumericField(item.pn, filters.pn);
+          const matchDiskType = matchesDiscStringField(item.diskType, filters.diskType);
+          const matchWidth = matchesDiscRange(item.width, filters.widthFrom, filters.widthTo);
+          const matchCb = matchesDiscRange(item.cb, filters.cbFrom, filters.cbTo);
+          const matchEt = matchesDiscRange(item.et, filters.etFrom, filters.etTo);
+
+          // Опции поля X — без фильтра по X (диапазоны width/cb/et считаются парой)
+          if (matchSupplier && matchPcd && matchPn && matchDiskType && matchWidth && matchCb && matchEt) {
+            addUniqueValue(diameters, item.diameter);
+          }
+          if (matchSupplier && matchDiameter && matchPcd && matchDiskType && matchWidth && matchCb && matchEt) {
+            addUniqueValue(pnValues, normalizeNumericFieldValue(item.pn));
+          }
+          if (matchSupplier && matchDiameter && matchPn && matchDiskType && matchWidth && matchCb && matchEt) {
+            addUniqueValue(pcdValues, normalizeNumericFieldValue(item.pcd));
+          }
+          if (matchSupplier && matchDiameter && matchPcd && matchPn && matchDiskType && matchCb && matchEt) {
+            addUniqueValue(widths, normalizeNumericFieldValue(item.width));
+          }
+          if (matchSupplier && matchDiameter && matchPcd && matchPn && matchDiskType && matchWidth && matchEt) {
+            addUniqueValue(cbValues, normalizeNumericFieldValue(item.cb));
+          }
+          if (matchSupplier && matchDiameter && matchPcd && matchPn && matchDiskType && matchWidth && matchCb) {
+            addUniqueValue(etValues, normalizeNumericFieldValue(item.et));
+          }
+
+          // brands/suppliers — по полному совпадению выбранных фильтров
+          if (matchSupplier && matchDiameter && matchPcd && matchPn && matchDiskType && matchWidth && matchCb && matchEt) {
+            addUniqueValue(brands, item.brand);
+            addUniqueValue(suppliers, item.supplier);
+            addUniqueValue(diskTypes, item.diskType);
+          }
         });
 
         resolve({
@@ -604,7 +605,7 @@ class IndexedDBService {
           widths: sortDiscNumericValues(widths),
           cb: sortDiscNumericValues(cbValues),
           et: sortDiscNumericValues(etValues),
-          pcd: Array.from(pcdValues).sort(),
+          pcd: sortDiscNumericValues(pcdValues),
           pn: sortDiscNumericValues(pnValues),
           diskTypes: Array.from(diskTypes).sort(),
         });

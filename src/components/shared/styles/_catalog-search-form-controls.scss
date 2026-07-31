@@ -16,7 +16,7 @@ $catalog-text: $color-text;
   --ant-color-primary-bg-hover: #{$catalog-accent-light-hover};
   --ant-color-primary-border: #{$catalog-accent};
   --ant-color-primary-border-hover: #{$catalog-accent-hover};
-  --ant-control-outline: #{$catalog-accent-outline};
+  --ant-control-outline: transparent;
 }
 
 @mixin catalog-green-wave-targets() {
@@ -25,7 +25,7 @@ $catalog-text: $color-text;
   .ant-select,
   .ant-input,
   .ant-input-affix-wrapper {
-    --ant-wave-color: #{$catalog-accent};
+    --ant-wave-color: transparent;
   }
 }
 
@@ -39,7 +39,10 @@ $catalog-text: $color-text;
       border-radius: $border-radius;
       height: $selector-height;
       border: 1px solid $color-border !important;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      background: $color-surface !important;
+      box-shadow: none !important;
+      outline: none !important;
+      transition: background-color 0.2s ease;
 
       .ant-select-selection-item,
       .ant-select-selection-placeholder {
@@ -62,21 +65,73 @@ $catalog-text: $color-text;
     &.ant-select-outlined:not(.ant-select-disabled):hover .ant-select-selector,
     &.ant-select-outlined:not(.ant-select-disabled).ant-select-focused .ant-select-selector,
     &.ant-select-outlined:not(.ant-select-disabled).ant-select-open .ant-select-selector {
-      border-color: $catalog-accent !important;
+      border-color: $color-border !important;
+      background: $color-bg-sunken !important;
+      box-shadow: none !important;
+      outline: none !important;
     }
 
-    &.ant-select-outlined:not(.ant-select-disabled).ant-select-focused .ant-select-selector,
-    &.ant-select-outlined:not(.ant-select-disabled).ant-select-open .ant-select-selector {
-      box-shadow: 0 0 0 3px $catalog-accent-outline !important;
-    }
-
+    // One centering method for arrow + clear:
+    // top:50% + translate3d(0,-50%,0). Do NOT mix with Ant's marginTop:-6px.
+    // translate3d keeps Safari GPU compositing (Ant used translateZ(0) alone).
     .ant-select-arrow,
     .ant-select-clear {
       color: $catalog-text !important;
+      top: 50% !important;
+      inset-block-start: 50% !important;
+      inset-block-end: auto !important;
+      inset-inline-end: 11px;
+      margin-top: 0 !important;
+      margin-block-start: 0 !important;
+      transform: translate3d(0, -50%, 0) !important;
+      display: inline-flex !important;
+      align-items: center;
+      justify-content: center;
+      line-height: 1 !important;
+    }
+
+    .ant-select-arrow {
+      height: auto !important;
+      pointer-events: none;
+
+      .anticon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        vertical-align: 0;
+      }
+    }
+
+    // Clear: keep Ant's 12×12 chip. Do NOT use height:100% — hover paints
+    // background + border-radius:50%, so a full-height chip becomes a white oval.
+    .ant-select-clear {
+      width: 12px !important;
+      height: 12px !important;
+      border-radius: 50%;
+      background: $color-surface !important;
+
+      .anticon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 0;
+        vertical-align: 0;
+      }
+
+      svg {
+        display: block;
+      }
     }
 
     .ant-select-clear:hover {
       color: $catalog-accent !important;
+    }
+
+    &.ant-select-outlined:not(.ant-select-disabled):hover .ant-select-clear,
+    &.ant-select-outlined:not(.ant-select-disabled).ant-select-focused .ant-select-clear,
+    &.ant-select-outlined:not(.ant-select-disabled).ant-select-open .ant-select-clear {
+      background: $color-bg-sunken !important;
     }
 
     &.ant-select-outlined:not(.ant-select-disabled):hover .ant-select-arrow,
@@ -151,7 +206,9 @@ $catalog-text: $color-text;
     &.ant-select-status-success.ant-select-outlined:not(.ant-select-disabled):hover .ant-select-selector,
     &.ant-select-status-success.ant-select-outlined:not(.ant-select-disabled).ant-select-focused .ant-select-selector,
     &.ant-select-status-success.ant-select-outlined:not(.ant-select-disabled).ant-select-open .ant-select-selector {
-      border-color: $catalog-accent !important;
+      border-color: $color-border !important;
+      background: $color-bg-sunken !important;
+      box-shadow: none !important;
     }
   }
 }
@@ -168,7 +225,9 @@ $catalog-text: $color-text;
     padding-inline: 11px;
     border-radius: $border-radius;
     border: 1px solid $color-border !important;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    background: $color-surface !important;
+    box-shadow: none !important;
+    transition: background-color 0.2s ease;
 
     .ant-input {
       height: 100%;
@@ -177,6 +236,7 @@ $catalog-text: $color-text;
       line-height: $height - 2px;
       color: $catalog-text;
       font-size: 13px;
+      background: transparent;
     }
 
     .ant-input::placeholder {
@@ -196,11 +256,143 @@ $catalog-text: $color-text;
 
   .ant-input-affix-wrapper.ant-input-outlined:not(.ant-input-disabled):hover,
   .ant-input-affix-wrapper.ant-input-outlined:not(.ant-input-disabled).ant-input-affix-wrapper-focused {
-    border-color: $catalog-accent !important;
+    border-color: $color-border !important;
+    background: $color-bg-sunken !important;
+    box-shadow: none !important;
+  }
+}
+
+@mixin catalog-search-form-checkbox() {
+  .ant-checkbox-wrapper {
+    @include catalog-search-form-theme-tokens();
+
+    font-size: 14px;
+    color: $catalog-text;
   }
 
-  .ant-input-affix-wrapper.ant-input-outlined:not(.ant-input-disabled).ant-input-affix-wrapper-focused {
-    box-shadow: 0 0 0 3px $catalog-accent-outline !important;
+  .ant-checkbox {
+    @include catalog-search-form-theme-tokens();
+
+    --ant-color-primary: #{$color-checkbox};
+    --ant-color-primary-hover: #{$color-checkbox-hover};
+    --ant-wave-color: transparent;
+  }
+
+  .ant-checkbox .ant-checkbox-inner {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 1px solid $color-border !important;
+    background-color: $color-surface !important;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .ant-checkbox-checked .ant-checkbox-inner {
+    background-color: $color-checkbox !important;
+    border-color: $color-checkbox !important;
+  }
+
+  .ant-checkbox-checked .ant-checkbox-inner::after {
+    border-color: $color-on-accent !important;
+  }
+
+  // Unchecked hover/focus: keep neutral border, no accent ring
+  .ant-checkbox-wrapper:not(.ant-checkbox-wrapper-disabled):hover
+    .ant-checkbox:not(.ant-checkbox-checked):not(.ant-checkbox-disabled)
+    .ant-checkbox-inner,
+  .ant-checkbox:not(.ant-checkbox-checked):not(.ant-checkbox-disabled):hover .ant-checkbox-inner,
+  .ant-checkbox:not(.ant-checkbox-checked) .ant-checkbox-input:focus + .ant-checkbox-inner,
+  .ant-checkbox:not(.ant-checkbox-checked) .ant-checkbox-input:focus-visible + .ant-checkbox-inner {
+    border-color: $color-border-strong !important;
+    background-color: $color-surface !important;
+  }
+
+  // Checked hover/focus: keep Material green (slightly darker), white check
+  .ant-checkbox-wrapper:not(.ant-checkbox-wrapper-disabled):hover
+    .ant-checkbox-checked:not(.ant-checkbox-disabled)
+    .ant-checkbox-inner,
+  .ant-checkbox-checked:not(.ant-checkbox-disabled):hover .ant-checkbox-inner,
+  .ant-checkbox-checked .ant-checkbox-input:focus + .ant-checkbox-inner,
+  .ant-checkbox-checked .ant-checkbox-input:focus-visible + .ant-checkbox-inner {
+    background-color: $color-checkbox-hover !important;
+    border-color: $color-checkbox-hover !important;
+  }
+
+  .ant-checkbox-wrapper-checked:not(.ant-checkbox-wrapper-disabled):hover .ant-checkbox-inner::after,
+  .ant-checkbox-checked:not(.ant-checkbox-disabled):hover .ant-checkbox-inner::after,
+  .ant-checkbox-checked .ant-checkbox-input:focus + .ant-checkbox-inner::after,
+  .ant-checkbox-checked .ant-checkbox-input:focus-visible + .ant-checkbox-inner::after {
+    border-color: $color-on-accent !important;
+  }
+}
+
+@mixin catalog-segmented-radio-group() {
+  .ant-radio-group {
+    display: flex;
+    gap: 6px;
+    padding: 4px;
+    background: $color-surface;
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    height: 40px;
+    align-items: center;
+
+    .ant-radio-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      margin: 0;
+      transition: background-color 0.2s ease, color 0.2s ease;
+      cursor: pointer;
+      border-radius: $radius-sm;
+      height: 30px;
+      background: transparent;
+
+      .ant-radio {
+        display: none;
+      }
+
+      .ant-radio + span {
+        font-weight: 600;
+        padding: 0;
+        font-size: 13px;
+        letter-spacing: 0.2px;
+        color: $color-text-muted;
+        transition: color 0.2s ease;
+      }
+
+      &.ant-radio-wrapper-checked {
+        background: $color-bg-sunken;
+        box-shadow: none;
+
+        .ant-radio + span {
+          color: $color-text;
+          font-weight: 700;
+        }
+      }
+
+      &:hover:not(.ant-radio-wrapper-checked) {
+        background: $color-border-soft;
+      }
+
+      // Season segments: same neutral system as other radios (no yellow/blue)
+      &.radio-summer,
+      &.radio-winter {
+        &.ant-radio-wrapper-checked {
+          background: $color-bg-sunken;
+
+          .ant-radio + span {
+            color: $color-text;
+            font-weight: 700;
+          }
+        }
+
+        &:hover:not(.ant-radio-wrapper-checked) {
+          background: $color-border-soft;
+        }
+      }
+    }
   }
 }
 
@@ -208,6 +400,8 @@ $catalog-text: $color-text;
   @include catalog-search-form-theme-tokens();
   @include catalog-green-wave-targets();
   @include catalog-green-ant-select(34px, 8px);
+  @include catalog-search-form-checkbox();
+  @include catalog-segmented-radio-group();
 
   .ant-btn {
     @include catalog-search-form-theme-tokens();
@@ -261,44 +455,6 @@ $catalog-text: $color-text;
       border-color: $color-cta-border;
       color: $catalog-text;
     }
-  }
-
-  .ant-checkbox-wrapper {
-    @include catalog-search-form-theme-tokens();
-
-    font-size: 14px;
-    color: $catalog-text;
-  }
-
-  .ant-checkbox {
-    @include catalog-search-form-theme-tokens();
-  }
-
-  .ant-checkbox-checked .ant-checkbox-inner {
-    background-color: $catalog-accent !important;
-    border-color: $catalog-accent !important;
-  }
-
-  .ant-checkbox-wrapper:not(.ant-checkbox-wrapper-disabled):hover .ant-checkbox-inner,
-  .ant-checkbox:not(.ant-checkbox-disabled):hover .ant-checkbox-inner,
-  .ant-checkbox-input:focus + .ant-checkbox-inner,
-  .ant-checkbox-input:focus-visible + .ant-checkbox-inner {
-    border-color: $catalog-accent !important;
-  }
-
-  .ant-checkbox-wrapper:not(.ant-checkbox-wrapper-disabled):hover .ant-checkbox-checked:not(.ant-checkbox-disabled) .ant-checkbox-inner,
-  .ant-checkbox-checked:not(.ant-checkbox-disabled):hover .ant-checkbox-inner {
-    background-color: $catalog-accent-hover !important;
-    border-color: $catalog-accent-hover !important;
-  }
-
-  .ant-checkbox-wrapper-checked:not(.ant-checkbox-wrapper-disabled):hover .ant-checkbox-inner,
-  .ant-checkbox-checked:not(.ant-checkbox-disabled):hover .ant-checkbox-inner::after {
-    border-color: $color-cta-on !important;
-  }
-
-  .ant-checkbox-checked .ant-checkbox-inner::after {
-    border-color: $color-cta-on !important;
   }
 
   .form-actions {

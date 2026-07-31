@@ -15,6 +15,15 @@ const { Option } = Select;
 
 const DEFAULT_SEASON = 's';
 
+const isActiveFilterValue = (value) =>
+  value !== undefined && value !== null && value !== '';
+
+const optionIncludesNumeric = (options, value) =>
+  Array.isArray(options) && options.some((option) => Number(option) === Number(value));
+
+const optionIncludesDiameter = (options, value) =>
+  Array.isArray(options) && options.some((option) => String(option) === String(value));
+
 const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) => {
   const [form] = Form.useForm();
   const [loadingSearch, setLoadingSearch] = useState(false);
@@ -46,9 +55,9 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
 
   const buildFiltersFromFormValues = (allValues = {}) => {
     const filters = { season: allValues.season ?? DEFAULT_SEASON };
-    if (allValues.width) filters.width = allValues.width;
-    if (allValues.profile) filters.profile = allValues.profile;
-    if (allValues.diameter) filters.diameter = allValues.diameter;
+    if (isActiveFilterValue(allValues.width)) filters.width = allValues.width;
+    if (isActiveFilterValue(allValues.profile)) filters.profile = allValues.profile;
+    if (isActiveFilterValue(allValues.diameter)) filters.diameter = allValues.diameter;
     if (allValues.spikes !== undefined && allValues.spikes !== null) filters.spikes = allValues.spikes;
     return filters;
   };
@@ -59,26 +68,17 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [catalogDataVersion]);
 
-  const clearAvailableOptions = () => {
-    setAvailableWidths([]);
-    setAvailableProfiles([]);
-    setAvailableDiameters([]);
-    setAvailableBrands([]);
-    setAvailableSuppliers([]);
-  };
-
   const loadAvailableParameters = async (filters = {}) => {
     const filtersWithSeason = { season: filters.season ?? DEFAULT_SEASON, ...filters };
     const requestId = ++loadRequestIdRef.current;
 
     setLoadingOptions(true);
-    clearAvailableOptions();
 
     try {
       const options = await indexedDBService.getAvailableParameterOptions(filtersWithSeason);
 
       if (requestId !== loadRequestIdRef.current) {
-        return { brands: [], suppliers: [] };
+        return null;
       }
 
       setAvailableWidths(options.widths);
@@ -87,17 +87,40 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
       setAvailableBrands(options.brands);
       setAvailableSuppliers(options.suppliers);
 
-      return { brands: options.brands, suppliers: options.suppliers };
+      return options;
     } catch (error) {
-      if (requestId === loadRequestIdRef.current) {
-        clearAvailableOptions();
-      }
-      return { brands: [], suppliers: [] };
+      // Оставляем предыдущие опции, чтобы UI не моргал пустыми списками
+      return null;
     } finally {
       if (requestId === loadRequestIdRef.current) {
         setLoadingOptions(false);
       }
     }
+  };
+
+  const softInvalidateIncompatibleSizeValues = async (values) => {
+    let currentValues = { ...values };
+    let options = await loadAvailableParameters(buildFiltersFromFormValues(currentValues));
+    if (!options) return null;
+
+    const incompatibleReset = {};
+    if (isActiveFilterValue(currentValues.width) && !optionIncludesNumeric(options.widths, currentValues.width)) {
+      incompatibleReset.width = undefined;
+    }
+    if (isActiveFilterValue(currentValues.profile) && !optionIncludesNumeric(options.profiles, currentValues.profile)) {
+      incompatibleReset.profile = undefined;
+    }
+    if (isActiveFilterValue(currentValues.diameter) && !optionIncludesDiameter(options.diameters, currentValues.diameter)) {
+      incompatibleReset.diameter = undefined;
+    }
+
+    if (Object.keys(incompatibleReset).length === 0) {
+      return options;
+    }
+
+    form.setFieldsValue(incompatibleReset);
+    currentValues = { ...currentValues, ...incompatibleReset };
+    return loadAvailableParameters(buildFiltersFromFormValues(currentValues));
   };
 
   const handleSearch = async (values) => {
@@ -144,23 +167,11 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
       };
       form.setFieldsValue(seasonDependentReset);
       valuesForFilters = { ...allValues, ...seasonDependentReset, season: changedValues.season };
+      await loadAvailableParameters(buildFiltersFromFormValues(valuesForFilters));
+    } else {
+      // Двусторонний каскад: не сбрасываем остальные size-поля; мягкая инвалидация после опций
+      await softInvalidateIncompatibleSizeValues(valuesForFilters);
     }
-
-    if ('width' in changedValues) {
-      const widthDependentReset = {
-        profile: undefined,
-        diameter: undefined,
-      };
-      form.setFieldsValue(widthDependentReset);
-      valuesForFilters = { ...valuesForFilters, ...widthDependentReset };
-    }
-
-    if ('profile' in changedValues) {
-      form.setFieldsValue({ diameter: undefined });
-      valuesForFilters = { ...valuesForFilters, diameter: undefined };
-    }
-
-    await loadAvailableParameters(buildFiltersFromFormValues(valuesForFilters));
 
     if (
       (changedValues.onlyAmountFrom4 !== undefined || changedValues.onlyRunflat !== undefined) &&
