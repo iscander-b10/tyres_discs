@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, memo } from 'react';
-import { Form, Select, Button, Space, Row, Col, Radio, Checkbox, Flex } from 'antd';
+import { Form, Select, Button, Row, Col, Radio, Checkbox, Flex } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import indexedDBService from '../../services/indexedDBService';
 import CatalogItemModalWindow from '../shared/CatalogItemModalWindow/CatalogItemModalWindow';
@@ -203,6 +203,12 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
         }}
         className="search-form"
       >
+        <Form.Item className="form-reset-filters">
+          <Button htmlType="button" block onClick={handleResetFilters}>
+            Сбросить все фильтры
+          </Button>
+        </Form.Item>
+
         <Form.Item name="diskType" label="Тип диска" className="form-item-label-none">
           <Radio.Group>
             <Radio value="Литой">Литой</Radio>
@@ -355,17 +361,15 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
         </Form.Item>
 
         <Form.Item className="form-actions">
-          <Space>
-            <Button
-              type="primary"
-              icon={<SearchOutlined />}
-              loading={loadingSearch}
-              htmlType="submit"
-            >
-              Подобрать
-            </Button>
-            <Button onClick={handleResetFilters}>Сбросить</Button>
-          </Space>
+          <Button
+            type="primary"
+            icon={<SearchOutlined />}
+            loading={loadingSearch}
+            htmlType="submit"
+            block
+          >
+            Подобрать
+          </Button>
         </Form.Item>
       </Form>
 

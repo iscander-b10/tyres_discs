@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, memo } from 'react';
-import { Form, Select, Button, Space, Radio, Row, Col, Checkbox } from 'antd';
+import { Form, Select, Button, Radio, Row, Col, Checkbox } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import { ReactComponent as SunIcon } from '../../icons/Sun.svg';
 import { ReactComponent as SnowIcon } from '../../icons/Snow.svg';
@@ -211,6 +211,12 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
         }}
         className="search-form"
       >
+        <Form.Item className="form-reset-filters">
+          <Button htmlType="button" block onClick={handleResetFilters}>
+            Сбросить все фильтры
+          </Button>
+        </Form.Item>
+
         <Form.Item name="season" label="Сезон" className="form-item-season">
           <Radio.Group>
             <Radio value="s" className="radio-summer">
@@ -312,12 +318,9 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
         </Form.Item>
 
         <Form.Item className="form-actions">
-          <Space>
-            <Button type="primary" icon={<SearchOutlined />} loading={loadingSearch} htmlType="submit">
-              Подобрать
-            </Button>
-            <Button onClick={handleResetFilters}>Сбросить</Button>
-          </Space>
+          <Button type="primary" icon={<SearchOutlined />} loading={loadingSearch} htmlType="submit" block>
+            Подобрать
+          </Button>
         </Form.Item>
       </Form>
 

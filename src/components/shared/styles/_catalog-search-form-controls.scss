@@ -587,10 +587,8 @@ $catalog-text: $color-text;
   }
 
   // Multi-select (Бренд): Ant keeps control-input at theme 40px while
-  // selector is 32px — drop the strut; nudge the whole field (label+select) up.
+  // selector is 32px — drop the strut.
   .form-item-brand {
-    margin-top: -5px;
-
     .ant-form-item-label {
       padding-bottom: 2px;
       padding-inline-start: 5px;
@@ -702,15 +700,82 @@ $catalog-text: $color-text;
     }
   }
 
+  // Neutral full-width reset — first control in the filter body (shinservice-like).
+  .form-reset-filters {
+    margin-bottom: $space-3;
+
+    .ant-form-item-control-input {
+      min-height: 0;
+    }
+
+    .ant-btn {
+      width: 100%;
+      height: 42px;
+      border-radius: $radius-md;
+      background: $color-bg-sunken;
+      border-color: transparent;
+      color: $catalog-text;
+      font-weight: 600;
+      box-shadow: none;
+
+      &:not(:disabled):hover {
+        background: $color-border;
+        border-color: transparent;
+        color: $catalog-text;
+      }
+
+      &:not(:disabled):active {
+        background: $color-border-strong;
+        border-color: transparent;
+        color: $catalog-text;
+        transform: scale(0.96);
+      }
+
+      &:focus-visible {
+        outline: 2px solid $catalog-accent;
+        outline-offset: 2px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        &:not(:disabled):active {
+          transform: none;
+        }
+      }
+    }
+  }
+
   .form-actions {
-    margin-top: 12px;
+    margin-top: $space-3;
     margin-bottom: 0;
 
-    .ant-space {
+    .ant-form-item-control-input {
+      min-height: 0;
+    }
+
+    .ant-btn {
       width: 100%;
-      display: flex;
-      justify-content: center;
-      gap: 10px;
+
+      &:focus-visible {
+        outline-color: $color-accent;
+      }
+    }
+
+    .ant-btn-primary.ant-btn-color-primary.ant-btn-variant-solid {
+      background: $color-accent !important;
+      border-color: $color-accent !important;
+      color: $color-on-accent !important;
+
+      &:not(:disabled):hover {
+        background: $color-accent-hover !important;
+        border-color: $color-accent-hover !important;
+        color: $color-on-accent !important;
+      }
+
+      &:not(:disabled):active {
+        background: $color-accent-hover !important;
+        border-color: $color-accent-hover !important;
+        color: $color-on-accent !important;
+      }
     }
   }
 }
