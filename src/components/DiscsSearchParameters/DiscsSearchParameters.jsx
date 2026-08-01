@@ -213,7 +213,7 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
         <Row gutter={16}>
           <Col xs={24} sm={8}>
             <Form.Item name="diameter" label="Диаметр" className="form-item">
-              <Select {...catalogSearchSelectProps} allowClear loading={loadingOptions}>
+              <Select {...catalogSearchSelectProps} allowClear placeholder="Все" loading={loadingOptions}>
                 {availableDiameters.map((diameter) => (
                   <Option key={diameter} value={diameter}>
                     {diameter}
@@ -224,7 +224,7 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
           </Col>
           <Col xs={24} sm={8}>
             <Form.Item name="pn" label="PN" className="form-item">
-              <Select {...catalogSearchSelectProps} allowClear loading={loadingOptions}>
+              <Select {...catalogSearchSelectProps} allowClear placeholder="Все" loading={loadingOptions}>
                 {availablePn.map((pn) => (
                   <Option key={pn} value={pn}>
                     {pn}
@@ -235,7 +235,7 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
           </Col>
           <Col xs={24} sm={8}>
             <Form.Item name="pcd" label="PCD" className="form-item">
-              <Select {...catalogSearchSelectProps} allowClear loading={loadingOptions}>
+              <Select {...catalogSearchSelectProps} allowClear placeholder="Все" loading={loadingOptions}>
                 {availablePcd.map((pcd) => (
                   <Option key={pcd} value={pcd}>
                     {pcd}

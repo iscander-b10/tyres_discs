@@ -16,6 +16,8 @@ $catalog-text: $color-text;
   --ant-color-primary-bg-hover: #{$catalog-accent-light-hover};
   --ant-color-primary-border: #{$catalog-accent};
   --ant-color-primary-border-hover: #{$catalog-accent-hover};
+  --ant-color-text: #{$catalog-text};
+  --ant-color-text-placeholder: #{$catalog-text};
   --ant-control-outline: transparent;
 }
 
@@ -29,9 +31,18 @@ $catalog-text: $color-text;
   }
 }
 
-@mixin catalog-green-ant-select($selector-height: 34px, $border-radius: 8px) {
+@mixin catalog-green-ant-select($selector-height: 32px, $border-radius: 8px) {
+  $selector-inner-height: $selector-height - 2px;
+  // Ant multiple strut: item + 2×INTERNAL_FIXED_ITEM_MARGIN (+ borders) → 38px at controlHeight 40.
+  // Keep empty multi-select flush with single-select height.
+  $multiple-item-height: 24px;
+  $multiple-item-margin: ($selector-inner-height - $multiple-item-height) * 0.5;
+
   .ant-select {
     @include catalog-search-form-theme-tokens();
+
+    // Align Ant size math with our control height (theme default is 40).
+    --ant-control-height: #{$selector-height};
 
     width: 100%;
 
@@ -46,19 +57,18 @@ $catalog-text: $color-text;
 
       .ant-select-selection-item,
       .ant-select-selection-placeholder {
-        color: $catalog-text;
+        color: $catalog-text !important;
         font-weight: 600;
         font-size: 13px;
-        line-height: $selector-height - 2px;
+        line-height: $selector-inner-height;
       }
 
       .ant-select-selection-placeholder {
         font-weight: 500;
-        color: $color-text-subtle;
       }
 
       .ant-select-selection-search-input {
-        color: $catalog-text;
+        color: $catalog-text !important;
       }
     }
 
@@ -72,13 +82,13 @@ $catalog-text: $color-text;
     }
 
     // One centering method for arrow + clear:
-    // top:50% + translate3d(0,-50%,0). Do NOT mix with Ant's marginTop:-6px.
+    // top:42% + translate3d(0,-50%,0). Do NOT mix with Ant's marginTop:-6px.
     // translate3d keeps Safari GPU compositing (Ant used translateZ(0) alone).
     .ant-select-arrow,
     .ant-select-clear {
       color: $catalog-text !important;
-      top: 50% !important;
-      inset-block-start: 50% !important;
+      top: 42% !important;
+      inset-block-start: 42% !important;
       inset-block-end: auto !important;
       inset-inline-end: 11px;
       margin-top: 0 !important;
@@ -88,6 +98,7 @@ $catalog-text: $color-text;
       align-items: center;
       justify-content: center;
       line-height: 1 !important;
+      font-size: 14px;
     }
 
     .ant-select-arrow {
@@ -98,16 +109,23 @@ $catalog-text: $color-text;
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        font-size: inherit;
         line-height: 1;
         vertical-align: 0;
       }
+
+      svg {
+        display: block;
+        width: 1em;
+        height: 1em;
+      }
     }
 
-    // Clear: keep Ant's 12×12 chip. Do NOT use height:100% — hover paints
+    // Clear: chip matches icon size. Do NOT use height:100% — hover paints
     // background + border-radius:50%, so a full-height chip becomes a white oval.
     .ant-select-clear {
-      width: 12px !important;
-      height: 12px !important;
+      width: 14px !important;
+      height: 14px !important;
       border-radius: 50%;
       background: $color-surface !important;
 
@@ -115,12 +133,15 @@ $catalog-text: $color-text;
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        font-size: inherit;
         line-height: 0;
         vertical-align: 0;
       }
 
       svg {
         display: block;
+        width: 1em;
+        height: 1em;
       }
     }
 
@@ -141,16 +162,38 @@ $catalog-text: $color-text;
     }
 
     // Match single-select height (empty / one row). Grow only when tags wrap.
-    &.ant-select-multiple .ant-select-selector {
-      min-height: $selector-height;
+    &.ant-select-multiple {
       height: auto;
-      padding-block: 0;
-      padding-inline: 4px 24px;
-      align-items: center;
+      min-height: $selector-height;
 
-      &::after {
-        margin-block: 0;
-        line-height: $selector-height - 2px;
+      // Same arrow/clear vertical anchor as single-select (Ant multi defaults differ).
+      .ant-select-arrow,
+      .ant-select-clear {
+        top: 50% !important;
+        inset-block-start: 50% !important;
+      }
+
+      .ant-select-selector {
+        min-height: $selector-height;
+        height: auto;
+        padding-block: 0 !important;
+        padding-inline: 4px 24px;
+        align-items: center;
+
+        // Neutralize Ant strut (line-height + INTERNAL_FIXED_ITEM_MARGIN → 38px).
+        &::after {
+          margin-block: 0 !important;
+          line-height: $selector-inner-height !important;
+        }
+      }
+
+      .ant-select-selection-wrap {
+        align-self: center;
+
+        &::after {
+          margin-block: 0 !important;
+          line-height: $selector-inner-height !important;
+        }
       }
 
       .ant-select-selection-overflow {
@@ -158,32 +201,39 @@ $catalog-text: $color-text;
         flex-wrap: wrap;
         align-items: center;
         align-content: center;
-        min-height: $selector-height - 2px;
+        min-height: $selector-inner-height;
       }
 
       .ant-select-selection-overflow-item {
         align-self: center;
       }
 
+      .ant-select-selection-overflow-item-suffix {
+        min-height: $multiple-item-height !important;
+        margin-block: $multiple-item-margin !important;
+      }
+
       .ant-select-selection-placeholder {
         inset-inline-start: 11px;
-        line-height: $selector-height - 2px;
+        line-height: $selector-inner-height;
+        transform: translateY(-50%);
       }
 
       .ant-select-selection-search {
-        margin-inline-start: 0;
+        margin-inline-start: 0 !important;
         margin-block: 0;
-        height: $selector-height - 2px;
-        line-height: $selector-height - 2px;
+        height: $multiple-item-height;
+        line-height: $multiple-item-height;
 
         .ant-select-selection-search-input {
-          height: $selector-height - 2px !important;
-          min-height: $selector-height - 2px;
+          height: $multiple-item-height !important;
+          min-height: $multiple-item-height;
+          line-height: $multiple-item-height !important;
         }
 
         .ant-select-selection-search-mirror {
-          height: $selector-height - 2px;
-          line-height: $selector-height - 2px;
+          height: $multiple-item-height;
+          line-height: $multiple-item-height;
         }
       }
 
@@ -191,8 +241,8 @@ $catalog-text: $color-text;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        height: 24px;
-        margin-block: 3px;
+        height: $multiple-item-height;
+        margin-block: $multiple-item-margin;
         margin-inline-end: 4px;
         padding-block: 0;
         border-radius: $radius-sm;
@@ -300,6 +350,7 @@ $catalog-text: $color-text;
     @include catalog-search-form-theme-tokens();
 
     font-size: 14px;
+    font-weight: 500;
     color: $catalog-text;
   }
 
@@ -472,7 +523,7 @@ $catalog-text: $color-text;
 @mixin catalog-search-form-controls() {
   @include catalog-search-form-theme-tokens();
   @include catalog-green-wave-targets();
-  @include catalog-green-ant-select(34px, 8px);
+  @include catalog-green-ant-select(32px, 8px);
   @include catalog-search-form-checkbox();
   @include catalog-segmented-radio-group();
 
@@ -574,7 +625,7 @@ $catalog-text: $color-text;
       color: $catalog-text;
 
       .ant-select-item-option-state {
-        color: $catalog-accent;
+        color: $color-checkbox;
       }
     }
 

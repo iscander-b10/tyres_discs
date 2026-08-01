@@ -31,7 +31,6 @@ function App({ appearance = 'light', onAppearanceChange }) {
           <div className="site-header__top">
             <a className="site-brand" href="/" onClick={(e) => e.preventDefault()}>
               <span className="site-brand__mark">IVANOR</span>
-              <span className="site-brand__tag">шины и диски</span>
             </a>
 
             <div className="site-header__actions">
