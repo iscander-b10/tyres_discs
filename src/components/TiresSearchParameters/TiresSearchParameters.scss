@@ -1,63 +1,11 @@
 @use '../shared/styles/catalog-search-form-controls' as catalog;
-@use '../../styles/tokens' as *;
 
 .tires-search-parameters {
-  display: flex;
-  gap: 24px;
-  align-items: flex-start;
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
+  @include catalog.catalog-search-parameters-layout();
 
   .search-form {
-    width: 300px;
-    position: sticky;
-    top: 40px;
-    background: $color-surface;
-    z-index: 10;
-    padding: 16px;
-    border: 1px solid $color-border;
-    border-radius: $radius-lg;
-    box-shadow: $shadow-card;
-    flex-shrink: 0;
-    max-width: 100%;
-
+    @include catalog.catalog-search-form-shell();
     @include catalog.catalog-search-form-controls();
-
-    .ant-form-item {
-      margin-bottom: 8px;
-      flex-shrink: 0;
-    }
-
-    .ant-form-item-label {
-      padding-bottom: 4px;
-      padding-left: 4px;
-    }
-
-    .ant-form-item-label > label {
-      font-size: 12px;
-      color: $color-text-subtle;
-    }
-
-    .form-item-season {
-      .ant-form-item-label {
-        display: none;
-      }
-    }
-
-    .form-item-spikes {
-      .ant-form-item-label {
-        display: none;
-      }
-    }
-  }
-
-  @media (max-width: 900px) {
-    flex-direction: column;
-
-    .search-form {
-      width: 100%;
-      position: static;
-    }
+    @include catalog.catalog-search-form-item-utils();
   }
 }

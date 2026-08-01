@@ -213,8 +213,13 @@ $catalog-text: $color-text;
         margin-block: $multiple-item-margin !important;
       }
 
+      // Match single-select text inset (11px from border).
+      // Selector already has padding-inline-start: 4px, so placeholder
+      // inset inside the wrap = 11 − 4 = 7 (same as Ant's formula).
       .ant-select-selection-placeholder {
-        inset-inline-start: 11px;
+        top: 50%;
+        inset-inline-start: 7px;
+        inset-inline-end: 11px;
         line-height: $selector-inner-height;
         transform: translateY(-50%);
       }
@@ -413,7 +418,7 @@ $catalog-text: $color-text;
 
   // Checkbox rows: drop Ant control-height padding so they sit tighter
   .ant-form-item:has(.ant-checkbox-wrapper) {
-    margin-top: 15px;
+    margin-top: 8px;
     margin-bottom: 4px;
 
     .ant-form-item-control-input {
@@ -496,8 +501,13 @@ $catalog-text: $color-text;
         }
       }
 
-      &:hover:not(.ant-radio-wrapper-checked) {
+      &:hover:not(.ant-radio-wrapper-checked),
+      &:focus-within:not(.ant-radio-wrapper-checked) {
         background: $color-border-soft;
+      }
+
+      &:focus-within {
+        box-shadow: inset 0 0 0 2px $catalog-accent-outline;
       }
 
       // Season segments: same neutral system as other radios (no yellow/blue)
@@ -512,10 +522,106 @@ $catalog-text: $color-text;
           }
         }
 
-        &:hover:not(.ant-radio-wrapper-checked) {
+        &:hover:not(.ant-radio-wrapper-checked),
+        &:focus-within:not(.ant-radio-wrapper-checked) {
           background: $color-border-soft;
         }
       }
+    }
+  }
+}
+
+// Outer flex + mobile collapse for catalog search sidebars.
+@mixin catalog-search-parameters-layout() {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  > :not(.search-form) {
+    min-width: 0;
+  }
+
+  @media (max-width: 900px) {
+    flex-direction: column;
+
+    .search-form {
+      width: 100%;
+      position: static;
+    }
+  }
+}
+
+// Sticky sidebar card shell (applied to `.search-form`).
+@mixin catalog-search-form-shell() {
+  width: 300px;
+  position: sticky;
+  top: 40px;
+  background: $color-surface;
+  z-index: 10;
+  padding: 16px;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+  flex-shrink: 0;
+  max-width: 100%;
+}
+
+// Form-item spacing, labels, brand strut, hidden-label patterns, row density.
+@mixin catalog-search-form-item-utils() {
+  .ant-form-item {
+    margin-bottom: 8px;
+    flex-shrink: 0;
+  }
+
+  .ant-form-item-label {
+    padding-bottom: 2px;
+    padding-inline-start: 5px;
+  }
+
+  .ant-form-item-label > label {
+    font-size: 12px;
+    color: $color-text-subtle;
+  }
+
+  // Multi-select (Бренд): Ant keeps control-input at theme 40px while
+  // selector is 32px — drop the strut; nudge the whole field (label+select) up.
+  .form-item-brand {
+    margin-top: -5px;
+
+    .ant-form-item-label {
+      padding-bottom: 2px;
+      padding-inline-start: 5px;
+    }
+
+    .ant-form-item-control-input {
+      min-height: 0;
+    }
+  }
+
+  // Fully hide label (season / spikes / similar segmented controls).
+  .form-item-label-none,
+  .form-item-season,
+  .form-item-spikes {
+    .ant-form-item-label {
+      display: none;
+    }
+  }
+
+  // Keep label strut so from/to selects stay vertically aligned.
+  .form-item-label-hidden {
+    .ant-form-item-label {
+      visibility: hidden;
+    }
+  }
+
+  .ant-row {
+    margin-bottom: 0;
+
+    .ant-col .ant-form-item {
+      margin-bottom: 0;
     }
   }
 }
@@ -540,14 +646,29 @@ $catalog-text: $color-text;
     height: 40px;
     border: 1px solid transparent;
     box-shadow: none;
-    transition: background-color 0.2s, border-color 0.2s, color 0.2s, transform 0.15s;
+    transition-property: background-color, border-color, color, transform, box-shadow;
+    transition-duration: 0.2s, 0.2s, 0.2s, 0.15s, 0.15s;
+    transition-timing-function: ease;
 
     &:focus {
       outline: none;
     }
 
+    &:focus-visible {
+      outline: 2px solid $catalog-accent;
+      outline-offset: 2px;
+    }
+
     &:not(:disabled):active {
       transform: translateY(1px);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+
+      &:not(:disabled):active {
+        transform: none;
+      }
     }
   }
 

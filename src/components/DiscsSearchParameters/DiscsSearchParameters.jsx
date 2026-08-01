@@ -180,7 +180,7 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
   };
 
   return (
-    <Flex className="discs-search-parameters" align="start" gap={30}>
+    <Flex className="discs-search-parameters" align="start" gap={24}>
       <Form
         form={form}
         layout="vertical"
@@ -203,7 +203,7 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
         }}
         className="search-form"
       >
-        <Form.Item name="diskType" className="form-item-disk-type">
+        <Form.Item name="diskType" label="Тип диска" className="form-item-label-none">
           <Radio.Group>
             <Radio value="Литой">Литой</Radio>
             <Radio value="Штампованный">Штампованный</Radio>
