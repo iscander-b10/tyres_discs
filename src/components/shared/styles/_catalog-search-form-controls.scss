@@ -354,9 +354,12 @@ $catalog-text: $color-text;
   .ant-checkbox-wrapper {
     @include catalog-search-form-theme-tokens();
 
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 500;
     color: $catalog-text;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
   }
 
   .ant-checkbox {
@@ -416,10 +419,8 @@ $catalog-text: $color-text;
     border-color: $color-on-accent !important;
   }
 
-  // Checkbox rows: drop Ant control-height padding so they sit tighter
   .ant-form-item:has(.ant-checkbox-wrapper) {
-    margin-top: 8px;
-    margin-bottom: 4px;
+    margin: 0;
 
     .ant-form-item-control-input {
       min-height: 0;
@@ -430,13 +431,14 @@ $catalog-text: $color-text;
 @mixin catalog-segmented-radio-group() {
   .ant-radio-group {
     display: flex;
-    gap: 6px;
-    padding: 4px;
+    gap: 4px;
+    padding: 3px;
     background: $color-surface;
     border: 1px solid $color-border;
     border-radius: $radius-md;
-    height: 40px;
+    height: 32px;
     align-items: center;
+    flex-shrink: 0;
 
     .ant-radio-wrapper {
       display: flex;
@@ -447,8 +449,10 @@ $catalog-text: $color-text;
       transition: background-color 0.2s ease, color 0.2s ease;
       cursor: pointer;
       border-radius: $radius-sm;
-      height: 30px;
+      height: 26px;
+      padding-inline: 8px;
       background: transparent;
+      white-space: nowrap;
 
       .ant-radio {
         display: none;
@@ -462,8 +466,8 @@ $catalog-text: $color-text;
         line-height: 1;
         font-weight: 600;
         padding: 0;
-        font-size: 13px;
-        letter-spacing: 0.2px;
+        font-size: 12px;
+        letter-spacing: 0.15px;
         color: $color-text-muted;
         transition: color 0.2s ease;
       }
@@ -472,13 +476,13 @@ $catalog-text: $color-text;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 5px;
+        gap: 4px;
         line-height: 1;
       }
 
       .season-radio-icon {
-        width: 18px;
-        height: 18px;
+        width: 14px;
+        height: 14px;
         flex-shrink: 0;
         display: block;
       }
@@ -510,7 +514,6 @@ $catalog-text: $color-text;
         box-shadow: inset 0 0 0 2px $catalog-accent-outline;
       }
 
-      // Season segments: same neutral system as other radios (no yellow/blue)
       &.radio-summer,
       &.radio-winter {
         &.ant-radio-wrapper-checked {
@@ -531,95 +534,313 @@ $catalog-text: $color-text;
   }
 }
 
-// Outer flex + mobile collapse for catalog search sidebars.
+// Column stack: sticky filter strip above full-width catalog.
 @mixin catalog-search-parameters-layout() {
   display: flex;
-  gap: 24px;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: $space-4;
+  align-items: stretch;
   width: 100%;
   max-width: 100%;
   min-width: 0;
 
   > :not(.search-form) {
     min-width: 0;
+    width: 100%;
+  }
+}
+
+// Sticky filter strip — top matches content gap above the form (header is not sticky).
+@mixin catalog-search-form-shell() {
+  position: sticky;
+  top: var(--catalog-filter-sticky-top, 12px);
+  z-index: $z-filter-bar;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 10px 14px;
+  background: $color-surface-muted;
+  border: 1px solid $color-cta-border;
+  border-radius: $radius-lg;
+  box-shadow: 0 4px 12px rgba(39, 48, 54, 0.06);
+  flex-shrink: 0;
+
+  [data-theme='dark'] & {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
+  }
+}
+
+// Toolbar groups, compact form-items, size/range clusters.
+@mixin catalog-search-form-item-utils() {
+  .search-form__toolbar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
   }
 
-  @media (max-width: 900px) {
-    flex-direction: column;
+  .search-form__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+  }
 
-    .search-form {
-      width: 100%;
-      position: static;
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    min-width: 0;
+    height: 32px;
+  }
+
+  .filter-group--season {
+    flex: 0 0 auto;
+  }
+
+  .filter-group--spikes {
+    flex: 0 0 auto;
+    // Fits longest option label «Без шипов».
+    width: 7.75rem;
+    min-width: 7.75rem;
+  }
+
+  .filter-group--size {
+    gap: 4px;
+  }
+
+  .filter-group--mount {
+    gap: 6px;
+  }
+
+  .filter-group--brand {
+    flex: 1 1 9rem;
+    width: auto;
+    min-width: 8.75rem;
+    max-width: 14rem;
+  }
+
+  .filter-group--supplier {
+    flex: 0 1 auto;
+    width: 8.5rem;
+    min-width: 8.5rem;
+  }
+
+  .filter-group--checks {
+    gap: 10px;
+    flex: 0 0 auto;
+    height: 32px;
+  }
+
+  .filter-group--actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    height: 36px;
+  }
+
+  .size-sep {
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: $color-text-subtle;
+    line-height: 1;
+    user-select: none;
+  }
+
+  .size-sep--r {
+    letter-spacing: 0.02em;
+  }
+
+  // Equal width for ширина / профиль / диаметр — fits longest placeholder «Диаметр».
+  .ant-select.filter-select--size {
+    width: 6.75rem;
+  }
+
+  .ant-select.filter-select--mount {
+    width: 5.5rem;
+  }
+
+  .ant-select.filter-select--brand,
+  .form-item-brand .ant-select {
+    width: 100%;
+  }
+
+  .ant-select.filter-select--supplier,
+  .form-item-supplier .ant-select {
+    width: 100%;
+  }
+
+  .ant-select.filter-select--spikes,
+  .form-item-spikes .ant-select {
+    width: 100%;
+  }
+
+  // Unified from–to cluster: label | от | до
+  .filter-range {
+    display: inline-flex;
+    align-items: stretch;
+    height: 32px;
+    background: $color-surface;
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .filter-range__label {
+    display: inline-flex;
+    align-items: center;
+    padding-inline: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: $color-text;
+    white-space: nowrap;
+    border-inline-end: 1px solid $color-border;
+    background: $color-surface;
+    line-height: 1;
+  }
+
+  .filter-range__item {
+    display: flex;
+    align-items: stretch;
+    margin: 0;
+    border-inline-end: 1px solid $color-border;
+
+    &:last-child {
+      border-inline-end: 0;
+    }
+
+    .ant-form-item-control,
+    .ant-form-item-control-input,
+    .ant-form-item-control-input-content {
+      display: flex;
+      align-items: stretch;
+      min-height: 0;
+      height: 100%;
+    }
+
+    .ant-select {
+      // Fits typical ЦО/вылет/ширина values (e.g. 110.1) without ellipsis.
+      width: 5.75rem;
+      height: 100%;
+    }
+
+    .ant-select .ant-select-selector {
+      height: 100% !important;
+      min-height: 30px !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      padding-inline: 6px 20px !important;
+    }
+
+    .ant-select.ant-select-outlined:not(.ant-select-disabled):hover .ant-select-selector,
+    .ant-select.ant-select-outlined:not(.ant-select-disabled).ant-select-focused .ant-select-selector,
+    .ant-select.ant-select-outlined:not(.ant-select-disabled).ant-select-open .ant-select-selector {
+      border: 0 !important;
+      background: $color-bg-sunken !important;
+      box-shadow: none !important;
+    }
+
+    .ant-select .ant-select-arrow {
+      color: $color-accent !important;
+      inset-inline-end: 6px;
+    }
+
+    .ant-select .ant-select-clear {
+      inset-inline-end: 6px;
     }
   }
-}
 
-// Sticky sidebar card shell (applied to `.search-form`).
-@mixin catalog-search-form-shell() {
-  width: 300px;
-  position: sticky;
-  top: 40px;
-  background: $color-surface;
-  z-index: 10;
-  padding: 16px;
-  border: 1px solid $color-border;
-  border-radius: $radius-lg;
-  box-shadow: $shadow-card;
-  flex-shrink: 0;
-  max-width: 100%;
-}
-
-// Form-item spacing, labels, brand strut, hidden-label patterns, row density.
-@mixin catalog-search-form-item-utils() {
   .ant-form-item {
-    margin-bottom: 8px;
+    margin-bottom: 0;
+    margin-inline-end: 0;
     flex-shrink: 0;
   }
 
   .ant-form-item-label {
-    padding-bottom: 2px;
-    padding-inline-start: 5px;
+    display: none;
   }
 
-  .ant-form-item-label > label {
-    font-size: 12px;
-    color: $color-text-subtle;
+  .ant-form-item-control-input {
+    min-height: 0;
   }
 
-  // Multi-select (Бренд): Ant keeps control-input at theme 40px while
-  // selector is 32px — drop the strut.
-  .form-item-brand {
-    .ant-form-item-label {
-      padding-bottom: 2px;
-      padding-inline-start: 5px;
+  .form-item-brand,
+  .form-item-supplier {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .form-item-check {
+    margin: 0;
+    height: 32px;
+    display: flex;
+    align-items: center;
+
+    .ant-checkbox-wrapper {
+      white-space: nowrap;
+      font-size: 12px;
+      line-height: 1.2;
+      min-height: 32px;
     }
-
-    .ant-form-item-control-input {
-      min-height: 0;
-    }
   }
 
-  // Fully hide label (season / spikes / similar segmented controls).
-  .form-item-label-none,
-  .form-item-season,
+  .form-item-season .ant-radio-group {
+    min-width: 0;
+  }
+
   .form-item-spikes {
-    .ant-form-item-label {
-      display: none;
-    }
+    width: 100%;
+    min-width: 0;
   }
 
-  // Keep label strut so from/to selects stay vertically aligned.
-  .form-item-label-hidden {
-    .ant-form-item-label {
-      visibility: hidden;
+  @media (max-width: 900px) {
+    .search-form__row {
+      flex-wrap: nowrap;
+      justify-content: flex-start;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding-block-end: 2px;
+      scrollbar-width: thin;
+      -webkit-overflow-scrolling: touch;
     }
-  }
 
-  .ant-row {
-    margin-bottom: 0;
+    .filter-group--spikes {
+      width: 7.75rem;
+      min-width: 7.75rem;
+    }
 
-    .ant-col .ant-form-item {
-      margin-bottom: 0;
+    .filter-group--brand {
+      flex: 0 0 auto;
+      width: 9rem;
+      min-width: 9rem;
+      max-width: 9rem;
+    }
+
+    .filter-group--supplier {
+      width: 8.5rem;
+      min-width: 8.5rem;
+    }
+
+    .filter-group--actions {
+      position: sticky;
+      inset-inline-end: 0;
+      padding-inline: 6px;
+      background: linear-gradient(
+        to right,
+        transparent,
+        $color-surface-muted 28%
+      );
     }
   }
 }
@@ -631,34 +852,41 @@ $catalog-text: $color-text;
   @include catalog-search-form-checkbox();
   @include catalog-segmented-radio-group();
 
-  .ant-btn {
+  .filter-action-btn.ant-btn {
     @include catalog-search-form-theme-tokens();
 
-    border-radius: $radius-md;
-    font-weight: 600;
-    font-size: 14px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0 16px;
-    height: 40px;
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 50%;
     border: 1px solid transparent;
     box-shadow: none;
+    font-size: 16px;
+    line-height: 1;
     transition-property: background-color, border-color, color, transform, box-shadow;
     transition-duration: 0.2s, 0.2s, 0.2s, 0.15s, 0.15s;
     transition-timing-function: ease;
+
+    .anticon {
+      font-size: 16px;
+      line-height: 1;
+    }
 
     &:focus {
       outline: none;
     }
 
     &:focus-visible {
-      outline: 2px solid $catalog-accent;
+      outline: 2px solid $color-accent;
       outline-offset: 2px;
     }
 
     &:not(:disabled):active {
-      transform: translateY(1px);
+      transform: scale(0.96);
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -670,112 +898,51 @@ $catalog-text: $color-text;
     }
   }
 
-  .ant-btn-primary.ant-btn-color-primary.ant-btn-variant-solid {
-    background: $catalog-accent !important;
-    border-color: $catalog-accent !important;
-    color: $color-cta-on !important;
+  .filter-action-btn--search.ant-btn {
+    background: $color-checkbox !important;
+    border-color: $color-checkbox !important;
+    color: $color-on-accent !important;
 
     &:not(:disabled):hover {
-      background: $catalog-accent-hover !important;
-      border-color: $catalog-accent-hover !important;
-      color: $color-cta-on !important;
+      background: $color-checkbox-hover !important;
+      border-color: $color-checkbox-hover !important;
+      color: $color-on-accent !important;
     }
 
     &:not(:disabled):active {
-      background: $catalog-accent-hover !important;
-      border-color: $catalog-accent-hover !important;
-      color: $color-cta-on !important;
+      background: $color-checkbox-hover !important;
+      border-color: $color-checkbox-hover !important;
+      color: $color-on-accent !important;
+    }
+
+    &:focus-visible {
+      outline-color: $color-checkbox;
+    }
+
+    &.ant-btn-loading {
+      opacity: 0.85;
     }
   }
 
-  .ant-btn-default {
-    background: $color-border-soft;
-    border-color: $color-border;
-    color: $catalog-text;
+  .filter-action-btn--reset.ant-btn {
+    background: $color-accent-muted !important;
+    border-color: $color-accent-border !important;
+    color: $color-accent !important;
 
-    &:hover {
-      background: $catalog-accent-light;
-      border-color: $color-cta-border;
-      color: $catalog-text;
-    }
-  }
-
-  // Neutral full-width reset — first control in the filter body (shinservice-like).
-  .form-reset-filters {
-    margin-bottom: $space-3;
-
-    .ant-form-item-control-input {
-      min-height: 0;
-    }
-
-    .ant-btn {
-      width: 100%;
-      height: 42px;
-      border-radius: $radius-md;
-      background: $color-bg-sunken;
-      border-color: transparent;
-      color: $catalog-text;
-      font-weight: 600;
-      box-shadow: none;
-
-      &:not(:disabled):hover {
-        background: $color-border;
-        border-color: transparent;
-        color: $catalog-text;
-      }
-
-      &:not(:disabled):active {
-        background: $color-border-strong;
-        border-color: transparent;
-        color: $catalog-text;
-        transform: scale(0.96);
-      }
-
-      &:focus-visible {
-        outline: 2px solid $catalog-accent;
-        outline-offset: 2px;
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        &:not(:disabled):active {
-          transform: none;
-        }
-      }
-    }
-  }
-
-  .form-actions {
-    margin-top: $space-3;
-    margin-bottom: 0;
-
-    .ant-form-item-control-input {
-      min-height: 0;
-    }
-
-    .ant-btn {
-      width: 100%;
-
-      &:focus-visible {
-        outline-color: $color-accent;
-      }
-    }
-
-    .ant-btn-primary.ant-btn-color-primary.ant-btn-variant-solid {
+    &:not(:disabled):hover {
       background: $color-accent !important;
       border-color: $color-accent !important;
       color: $color-on-accent !important;
+    }
 
-      &:not(:disabled):hover {
-        background: $color-accent-hover !important;
-        border-color: $color-accent-hover !important;
-        color: $color-on-accent !important;
-      }
+    &:not(:disabled):active {
+      background: $color-accent-hover !important;
+      border-color: $color-accent-hover !important;
+      color: $color-on-accent !important;
+    }
 
-      &:not(:disabled):active {
-        background: $color-accent-hover !important;
-        border-color: $color-accent-hover !important;
-        color: $color-on-accent !important;
-      }
+    &:focus-visible {
+      outline-color: $color-accent;
     }
   }
 }

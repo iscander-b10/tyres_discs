@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, memo } from 'react';
-import { Form, Select, Button, Row, Col, Radio, Checkbox, Flex } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
+import { Form, Select, Button, Radio, Checkbox, Tooltip } from 'antd';
+import { SearchOutlined, ClearOutlined } from '@ant-design/icons';
 import indexedDBService from '../../services/indexedDBService';
 import CatalogItemModalWindow from '../shared/CatalogItemModalWindow/CatalogItemModalWindow';
 import CatalogItemCard from '../shared/CatalogItemCard/CatalogItemCard';
@@ -180,10 +180,10 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
   };
 
   return (
-    <Flex className="discs-search-parameters" align="start" gap={24}>
+    <div className="discs-search-parameters">
       <Form
         form={form}
-        layout="vertical"
+        layout="horizontal"
         onFinish={handleSearch}
         onValuesChange={handleFormChange}
         initialValues={{
@@ -202,175 +202,243 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
           onlyAmountFrom4: false,
         }}
         className="search-form"
+        aria-label="Параметры поиска дисков"
       >
-        <Form.Item className="form-reset-filters">
-          <Button htmlType="button" block onClick={handleResetFilters}>
-            Сбросить все фильтры
-          </Button>
-        </Form.Item>
+        <div className="search-form__toolbar">
+          <div className="search-form__row">
+            <div className="filter-group filter-group--season">
+              <Form.Item name="diskType" className="form-item-season">
+                <Radio.Group aria-label="Тип диска">
+                  <Radio value="Литой">Литой</Radio>
+                  <Radio value="Штампованный">Штампованный</Radio>
+                </Radio.Group>
+              </Form.Item>
+            </div>
 
-        <Form.Item name="diskType" label="Тип диска" className="form-item-label-none">
-          <Radio.Group>
-            <Radio value="Литой">Литой</Radio>
-            <Radio value="Штампованный">Штампованный</Radio>
-          </Radio.Group>
-        </Form.Item>
+            <div className="filter-group filter-group--mount" role="group" aria-label="Крепление">
+              <Form.Item name="diameter" className="form-item">
+                <Select
+                  {...catalogSearchSelectProps}
+                  allowClear
+                  placeholder="Диаметр"
+                  aria-label="Диаметр"
+                  loading={loadingOptions}
+                  className="filter-select--size"
+                >
+                  {availableDiameters.map((diameter) => (
+                    <Option key={diameter} value={diameter}>
+                      {diameter}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Form.Item name="pcd" className="form-item">
+                <Select
+                  {...catalogSearchSelectProps}
+                  allowClear
+                  placeholder="PCD"
+                  aria-label="PCD"
+                  loading={loadingOptions}
+                  className="filter-select--mount"
+                >
+                  {availablePcd.map((pcd) => (
+                    <Option key={pcd} value={pcd}>
+                      {pcd}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Form.Item name="pn" className="form-item">
+                <Select
+                  {...catalogSearchSelectProps}
+                  allowClear
+                  placeholder="PN"
+                  aria-label="Количество отверстий"
+                  loading={loadingOptions}
+                  className="filter-select--mount"
+                >
+                  {availablePn.map((pn) => (
+                    <Option key={pn} value={pn}>
+                      {pn}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </div>
 
-        <Row gutter={16}>
-          <Col xs={24} sm={8}>
-            <Form.Item name="diameter" label="Диаметр" className="form-item">
-              <Select {...catalogSearchSelectProps} allowClear placeholder="Все" loading={loadingOptions}>
-                {availableDiameters.map((diameter) => (
-                  <Option key={diameter} value={diameter}>
-                    {diameter}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-          <Col xs={24} sm={8}>
-            <Form.Item name="pn" label="PN" className="form-item">
-              <Select {...catalogSearchSelectProps} allowClear placeholder="Все" loading={loadingOptions}>
-                {availablePn.map((pn) => (
-                  <Option key={pn} value={pn}>
-                    {pn}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-          <Col xs={24} sm={8}>
-            <Form.Item name="pcd" label="PCD" className="form-item">
-              <Select {...catalogSearchSelectProps} allowClear placeholder="Все" loading={loadingOptions}>
-                {availablePcd.map((pcd) => (
-                  <Option key={pcd} value={pcd}>
-                    {pcd}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-        </Row>
+            <div className="filter-range" role="group" aria-label="Ширина">
+              <span className="filter-range__label">Ширина</span>
+              <Form.Item name="widthFrom" className="form-item filter-range__item">
+                <Select
+                  {...catalogSearchSelectProps}
+                  placeholder="от"
+                  aria-label="Ширина от"
+                  allowClear
+                  loading={loadingOptions}
+                >
+                  {availableWidths.map((width) => (
+                    <Option key={width} value={width}>
+                      {width}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Form.Item name="widthTo" className="form-item filter-range__item">
+                <Select
+                  {...catalogSearchSelectProps}
+                  placeholder="до"
+                  aria-label="Ширина до"
+                  allowClear
+                  loading={loadingOptions}
+                >
+                  {availableWidths.map((width) => (
+                    <Option key={width} value={width}>
+                      {width}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </div>
 
-        <Row gutter={16}>
-          <Col xs={24} sm={12}>
-            <Form.Item name="widthFrom" label="Ширина" className="form-item">
-              <Select {...catalogSearchSelectProps} placeholder="от" allowClear loading={loadingOptions}>
-                {availableWidths.map((width) => (
-                  <Option key={width} value={width}>
-                    {width}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-          <Col xs={24} sm={12}>
-            <Form.Item name="widthTo" label=" " className="form-item form-item-label-hidden">
-              <Select {...catalogSearchSelectProps} placeholder="до" allowClear loading={loadingOptions}>
-                {availableWidths.map((width) => (
-                  <Option key={width} value={width}>
-                    {width}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-        </Row>
+            <div className="filter-range" role="group" aria-label="Вылет">
+              <span className="filter-range__label">Вылет</span>
+              <Form.Item name="etFrom" className="form-item filter-range__item">
+                <Select
+                  {...catalogSearchSelectProps}
+                  placeholder="от"
+                  aria-label="Вылет от"
+                  allowClear
+                  loading={loadingOptions}
+                >
+                  {availableEt.map((et) => (
+                    <Option key={et} value={et}>
+                      {et}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Form.Item name="etTo" className="form-item filter-range__item">
+                <Select
+                  {...catalogSearchSelectProps}
+                  placeholder="до"
+                  aria-label="Вылет до"
+                  allowClear
+                  loading={loadingOptions}
+                >
+                  {availableEt.map((et) => (
+                    <Option key={et} value={et}>
+                      {et}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </div>
 
-        <Row gutter={16}>
-          <Col xs={24} sm={12}>
-            <Form.Item name="cbFrom" label="CB" className="form-item">
-              <Select {...catalogSearchSelectProps} placeholder="от" allowClear loading={loadingOptions}>
-                {availableCb.map((cb) => (
-                  <Option key={cb} value={cb}>
-                    {cb}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-          <Col xs={24} sm={12}>
-            <Form.Item name="cbTo" label=" " className="form-item form-item-label-hidden">
-              <Select {...catalogSearchSelectProps} placeholder="до" allowClear loading={loadingOptions}>
-                {availableCb.map((cb) => (
-                  <Option key={cb} value={cb}>
-                    {cb}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-        </Row>
+            <div className="filter-range" role="group" aria-label="ЦО">
+              <span className="filter-range__label">ЦО</span>
+              <Form.Item name="cbFrom" className="form-item filter-range__item">
+                <Select
+                  {...catalogSearchSelectProps}
+                  placeholder="от"
+                  aria-label="ЦО от"
+                  allowClear
+                  loading={loadingOptions}
+                >
+                  {availableCb.map((cb) => (
+                    <Option key={cb} value={cb}>
+                      {cb}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Form.Item name="cbTo" className="form-item filter-range__item">
+                <Select
+                  {...catalogSearchSelectProps}
+                  placeholder="до"
+                  aria-label="ЦО до"
+                  allowClear
+                  loading={loadingOptions}
+                >
+                  {availableCb.map((cb) => (
+                    <Option key={cb} value={cb}>
+                      {cb}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </div>
+          </div>
 
-        <Row gutter={16}>
-          <Col xs={24} sm={12}>
-            <Form.Item name="etFrom" label="ET" className="form-item">
-              <Select {...catalogSearchSelectProps} placeholder="от" allowClear loading={loadingOptions}>
-                {availableEt.map((et) => (
-                  <Option key={et} value={et}>
-                    {et}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-          <Col xs={24} sm={12}>
-            <Form.Item name="etTo" label=" " className="form-item form-item-label-hidden">
-              <Select {...catalogSearchSelectProps} placeholder="до" allowClear loading={loadingOptions}>
-                {availableEt.map((et) => (
-                  <Option key={et} value={et}>
-                    {et}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-        </Row>
+          <div className="search-form__row">
+            <div className="filter-group filter-group--brand">
+              <Form.Item name="brand" className="form-item form-item-brand">
+                <Select
+                  {...catalogSearchSelectProps}
+                  {...brandSelectCloseOnMouseLeave}
+                  mode="multiple"
+                  placeholder="Бренд"
+                  aria-label="Бренд"
+                  allowClear
+                  maxTagCount="responsive"
+                  optionFilterProp="children"
+                  loading={loadingOptions}
+                >
+                  {availableBrands.map((brand) => (
+                    <Option key={brand} value={brand}>
+                      {brand}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </div>
 
-        <Form.Item name="brand" label="Бренд" className="form-item form-item-brand">
-          <Select
-            {...catalogSearchSelectProps}
-            {...brandSelectCloseOnMouseLeave}
-            mode="multiple"
-            placeholder="Бренд"
-            allowClear
-            maxTagCount="responsive"
-            optionFilterProp="children"
-            loading={loadingOptions}
-          >
-            {availableBrands.map((brand) => (
-              <Option key={brand} value={brand}>
-                {brand}
-              </Option>
-            ))}
-          </Select>
-        </Form.Item>
+            <div className="filter-group filter-group--supplier">
+              <Form.Item name="supplier" className="form-item form-item-supplier">
+                <Select
+                  {...catalogSearchSelectProps}
+                  placeholder="Поставщик"
+                  aria-label="Поставщик"
+                  allowClear
+                  loading={loadingOptions}
+                >
+                  {availableSuppliers.map((supplier) => (
+                    <Option key={supplier} value={supplier}>
+                      {supplier}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </div>
 
-        <Form.Item name="supplier" label="Поставщик" className="form-item">
-          <Select {...catalogSearchSelectProps} placeholder="Поставщик" allowClear loading={loadingOptions}>
-            {availableSuppliers.map((supplier) => (
-              <Option key={supplier} value={supplier}>
-                {supplier}
-              </Option>
-            ))}
-          </Select>
-        </Form.Item>
+            <div className="filter-group filter-group--checks">
+              <Form.Item name="onlyAmountFrom4" valuePropName="checked" className="form-item form-item-check">
+                <Checkbox>от 4 шт</Checkbox>
+              </Form.Item>
+            </div>
 
-        <Form.Item name="onlyAmountFrom4" valuePropName="checked" className="form-item">
-          <Checkbox>Наличие от 4 шт.</Checkbox>
-        </Form.Item>
-
-        <Form.Item className="form-actions">
-          <Button
-            type="primary"
-            icon={<SearchOutlined />}
-            loading={loadingSearch}
-            htmlType="submit"
-            block
-          >
-            Подобрать
-          </Button>
-        </Form.Item>
+            <div className="filter-group filter-group--actions">
+              <Tooltip title="Найти">
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  className="filter-action-btn filter-action-btn--search"
+                  icon={<SearchOutlined aria-hidden />}
+                  loading={loadingSearch}
+                  aria-label="Найти"
+                />
+              </Tooltip>
+              <Tooltip title="Сбросить фильтры">
+                <Button
+                  htmlType="button"
+                  className="filter-action-btn filter-action-btn--reset"
+                  icon={<ClearOutlined aria-hidden />}
+                  onClick={handleResetFilters}
+                  aria-label="Сбросить фильтры"
+                />
+              </Tooltip>
+            </div>
+          </div>
+        </div>
       </Form>
 
       <PaginatedCardsList
@@ -391,7 +459,7 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
           />
         )}
       />
-    </Flex>
+    </div>
   );
 });
 

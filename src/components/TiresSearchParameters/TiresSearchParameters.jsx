@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, memo } from 'react';
-import { Form, Select, Button, Radio, Row, Col, Checkbox } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
+import { Form, Select, Button, Radio, Checkbox, Tooltip } from 'antd';
+import { SearchOutlined, ClearOutlined } from '@ant-design/icons';
 import { ReactComponent as SunIcon } from '../../icons/Sun.svg';
 import { ReactComponent as SnowIcon } from '../../icons/Snow.svg';
 import indexedDBService from '../../services/indexedDBService';
@@ -195,7 +195,7 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
     <div className="tires-search-parameters">
       <Form
         form={form}
-        layout="vertical"
+        layout="horizontal"
         onFinish={handleSearch}
         onValuesChange={handleFormChange}
         initialValues={{
@@ -210,118 +210,185 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
           onlyRunflat: false,
         }}
         className="search-form"
+        aria-label="Параметры поиска шин"
       >
-        <Form.Item className="form-reset-filters">
-          <Button htmlType="button" block onClick={handleResetFilters}>
-            Сбросить все фильтры
-          </Button>
-        </Form.Item>
+        <div className="search-form__toolbar">
+          <div className="search-form__row">
+            <div className="filter-group filter-group--season">
+              <Form.Item name="season" className="form-item-season">
+                <Radio.Group aria-label="Сезон">
+                  <Radio value="s" className="radio-summer">
+                    <span className="season-radio-label">
+                      <SunIcon className="season-radio-icon" aria-hidden />
+                      Летние
+                    </span>
+                  </Radio>
+                  <Radio value="w" className="radio-winter">
+                    <span className="season-radio-label">
+                      <SnowIcon className="season-radio-icon" aria-hidden />
+                      Зимние
+                    </span>
+                  </Radio>
+                </Radio.Group>
+              </Form.Item>
+            </div>
 
-        <Form.Item name="season" label="Сезон" className="form-item-season">
-          <Radio.Group>
-            <Radio value="s" className="radio-summer">
-              <span className="season-radio-label">
-                <SunIcon className="season-radio-icon" aria-hidden />
-                Летние
+            <div className="filter-group filter-group--size" role="group" aria-label="Размер шины">
+              <Form.Item name="width" className="form-item">
+                <Select
+                  {...catalogSearchSelectProps}
+                  allowClear
+                  placeholder="Ширина"
+                  aria-label="Ширина"
+                  loading={loadingOptions}
+                  className="filter-select--size"
+                >
+                  {widthOptions.map((width) => (
+                    <Option key={width} value={width}>
+                      {width}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <span className="size-sep" aria-hidden>/</span>
+              <Form.Item name="profile" className="form-item">
+                <Select
+                  {...catalogSearchSelectProps}
+                  allowClear
+                  placeholder="Профиль"
+                  aria-label="Профиль"
+                  loading={loadingOptions}
+                  className="filter-select--size"
+                >
+                  {availableProfiles.map((profile) => (
+                    <Option key={profile} value={profile}>
+                      {profile === 0 ? '0 (груз.)' : profile}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <span className="size-sep size-sep--r" aria-hidden>
+                R
               </span>
-            </Radio>
-            <Radio value="w" className="radio-winter">
-              <span className="season-radio-label">
-                <SnowIcon className="season-radio-icon" aria-hidden />
-                Зимние
-              </span>
-            </Radio>
-          </Radio.Group>
-        </Form.Item>
+              <Form.Item name="diameter" className="form-item">
+                <Select
+                  {...catalogSearchSelectProps}
+                  allowClear
+                  placeholder="Диаметр"
+                  aria-label="Диаметр"
+                  loading={loadingOptions}
+                  className="filter-select--size"
+                >
+                  {availableDiameters.map((diameter) => (
+                    <Option key={diameter} value={diameter}>
+                      {diameter}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </div>
 
-        {showSpikesFilter && (
-          <Form.Item name="spikes" label="Шипы" className="form-item-spikes">
-            <Radio.Group>
-              <Radio value={null}>Все</Radio>
-              <Radio value={true}>Шипы</Radio>
-              <Radio value={false}>Без шипов</Radio>
-            </Radio.Group>
-          </Form.Item>
-        )}
+            {showSpikesFilter ? (
+              <div className="filter-group filter-group--spikes">
+                <Form.Item
+                  name="spikes"
+                  className="form-item-spikes"
+                  getValueProps={(value) => ({
+                    value:
+                      value === true ? 'yes' : value === false ? 'no' : 'all',
+                  })}
+                  getValueFromEvent={(value) => {
+                    if (value === 'yes') return true;
+                    if (value === 'no') return false;
+                    return null;
+                  }}
+                >
+                  <Select
+                    {...catalogSearchSelectProps}
+                    aria-label="Шипы"
+                    className="filter-select--spikes"
+                    options={[
+                      { value: 'all', label: 'Все' },
+                      { value: 'yes', label: 'Шипы' },
+                      { value: 'no', label: 'Без шипов' },
+                    ]}
+                  />
+                </Form.Item>
+              </div>
+            ) : null}
 
-        <Row gutter={16}>
-          <Col xs={24} sm={8}>
-            <Form.Item name="width" label="Ширина" className="form-item">
-              <Select {...catalogSearchSelectProps} allowClear placeholder="Все" loading={loadingOptions}>
-                {widthOptions.map((width) => (
-                  <Option key={width} value={width}>
-                    {width}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-          <Col xs={24} sm={8}>
-            <Form.Item name="profile" label="Профиль" className="form-item">
-              <Select {...catalogSearchSelectProps} allowClear placeholder="Все" loading={loadingOptions}>
-                {availableProfiles.map((profile) => (
-                  <Option key={profile} value={profile}>
-                    {profile === 0 ? '0 (груз.)' : profile}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-          <Col xs={24} sm={8}>
-            <Form.Item name="diameter" label="Диаметр" className="form-item">
-              <Select {...catalogSearchSelectProps} allowClear placeholder="Все" loading={loadingOptions}>
-                {availableDiameters.map((diameter) => (
-                  <Option key={diameter} value={diameter}>
-                    {diameter}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-        </Row>
+            <div className="filter-group filter-group--brand">
+              <Form.Item name="brand" className="form-item form-item-brand">
+                <Select
+                  {...catalogSearchSelectProps}
+                  {...brandSelectCloseOnMouseLeave}
+                  mode="multiple"
+                  placeholder="Бренд"
+                  aria-label="Бренд"
+                  allowClear
+                  maxTagCount="responsive"
+                  optionFilterProp="children"
+                  loading={loadingOptions}
+                >
+                  {availableBrands.map((brand) => (
+                    <Option key={brand} value={brand}>
+                      {brand}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </div>
 
-        <Form.Item name="brand" label="Бренд" className="form-item form-item-brand">
-          <Select
-            {...catalogSearchSelectProps}
-            {...brandSelectCloseOnMouseLeave}
-            mode="multiple"
-            placeholder="Бренд"
-            allowClear
-            maxTagCount="responsive"
-            optionFilterProp="children"
-            loading={loadingOptions}
-          >
-            {availableBrands.map((brand) => (
-              <Option key={brand} value={brand}>
-                {brand}
-              </Option>
-            ))}
-          </Select>
-        </Form.Item>
+            <div className="filter-group filter-group--supplier">
+              <Form.Item name="supplier" className="form-item form-item-supplier">
+                <Select
+                  {...catalogSearchSelectProps}
+                  placeholder="Поставщик"
+                  aria-label="Поставщик"
+                  allowClear
+                  loading={loadingOptions}
+                >
+                  {availableSuppliers.map((supplier) => (
+                    <Option key={supplier} value={supplier}>
+                      {supplier}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </div>
 
-        <Form.Item name="supplier" label="Поставщик" className="form-item">
-          <Select {...catalogSearchSelectProps} placeholder="Поставщик" allowClear loading={loadingOptions}>
-            {availableSuppliers.map((supplier) => (
-              <Option key={supplier} value={supplier}>
-                {supplier}
-              </Option>
-            ))}
-          </Select>
-        </Form.Item>
+            <div className="filter-group filter-group--checks">
+              <Form.Item name="onlyAmountFrom4" valuePropName="checked" className="form-item form-item-check">
+                <Checkbox>от 4 шт</Checkbox>
+              </Form.Item>
+              <Form.Item name="onlyRunflat" valuePropName="checked" className="form-item form-item-check">
+                <Checkbox>RunFlat</Checkbox>
+              </Form.Item>
+            </div>
 
-        <Form.Item name="onlyAmountFrom4" valuePropName="checked" className="form-item">
-          <Checkbox>Наличие от 4 шт.</Checkbox>
-        </Form.Item>
-
-        <Form.Item name="onlyRunflat" valuePropName="checked" className="form-item">
-          <Checkbox>Runflat</Checkbox>
-        </Form.Item>
-
-        <Form.Item className="form-actions">
-          <Button type="primary" icon={<SearchOutlined />} loading={loadingSearch} htmlType="submit" block>
-            Подобрать
-          </Button>
-        </Form.Item>
+            <div className="filter-group filter-group--actions">
+              <Tooltip title="Найти">
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  className="filter-action-btn filter-action-btn--search"
+                  icon={<SearchOutlined aria-hidden />}
+                  loading={loadingSearch}
+                  aria-label="Найти"
+                />
+              </Tooltip>
+              <Tooltip title="Сбросить фильтры">
+                <Button
+                  htmlType="button"
+                  className="filter-action-btn filter-action-btn--reset"
+                  icon={<ClearOutlined aria-hidden />}
+                  onClick={handleResetFilters}
+                  aria-label="Сбросить фильтры"
+                />
+              </Tooltip>
+            </div>
+          </div>
+        </div>
       </Form>
 
       <PaginatedCardsList

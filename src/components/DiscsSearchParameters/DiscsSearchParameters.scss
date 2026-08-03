@@ -1,5 +1,4 @@
 @use '../shared/styles/catalog-search-form-controls' as catalog;
-@use '../../styles/tokens' as *;
 
 .discs-search-parameters {
   @include catalog.catalog-search-parameters-layout();
@@ -8,46 +7,5 @@
     @include catalog.catalog-search-form-shell();
     @include catalog.catalog-search-form-controls();
     @include catalog.catalog-search-form-item-utils();
-
-    // Discs-only: tabs switcher (params by size / by auto — if present in markup).
-    .ant-tabs {
-      width: 100%;
-
-      &-nav-list {
-        width: 100%;
-      }
-
-      &-tab {
-        justify-content: center;
-        flex: 1;
-        text-align: center;
-
-        .ant-tabs-tab-btn {
-          transition: color 0.2s ease, font-weight 0.2s ease;
-          font-size: 16px;
-          font-weight: 600;
-          color: $color-text-muted;
-        }
-      }
-
-      &-ink-bar {
-        background: $color-accent;
-      }
-
-      &-tab.ant-tabs-tab-active .ant-tabs-tab-btn,
-      &-tab:hover .ant-tabs-tab-btn {
-        color: $color-text;
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        &-tab .ant-tabs-tab-btn {
-          transition: none;
-        }
-      }
-    }
-
-    .form-item-product-type {
-      margin-bottom: 10px;
-    }
   }
 }

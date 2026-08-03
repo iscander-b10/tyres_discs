@@ -41,8 +41,10 @@
   --shadow-header: 0 1px 0 rgba(39, 48, 54, 0.06);
   --font-sans: 'Montserrat', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --z-header: 100;
+  --z-filter-bar: 90;
   --z-sidebar: 90;
   --z-modal: 1000;
+  --catalog-filter-sticky-top: 12px;
   color-scheme: light;
 }
 
@@ -114,6 +116,10 @@ time, mark, audio, video {
   font-size: 100%;
   font: inherit;
   vertical-align: baseline;
+}
+
+html {
+  scroll-padding-top: calc(var(--catalog-filter-sticky-top, 12px) + 64px);
 }
 
 body {

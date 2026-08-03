@@ -200,13 +200,16 @@
 .app-content-layout {
   display: flex;
   background: $color-bg;
+  overflow: visible;
 }
 
 .app-content {
+  --catalog-filter-sticky-top: #{$space-3};
   display: flex;
   justify-content: center;
   width: 100%;
-  padding-block: $space-5;
+  padding-block: var(--catalog-filter-sticky-top) $space-5;
+  scroll-padding-top: calc(var(--catalog-filter-sticky-top) + 64px);
 }
 
 .app-content-wrapper {
@@ -255,7 +258,8 @@
   }
 
   .app-content {
-    padding-block: $space-4;
+    --catalog-filter-sticky-top: #{$space-4};
+    padding-block: var(--catalog-filter-sticky-top);
     padding-bottom: 88px;
   }
 }
