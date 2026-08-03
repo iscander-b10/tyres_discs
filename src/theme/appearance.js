@@ -45,7 +45,8 @@ const lightTokens = {
   colorBgContainer: '#ffffff',
   colorBgElevated: '#ffffff',
   colorBgLayout: '#f4f5f6',
-  colorBgSpotlight: '#273036',
+  /* Tooltip / spotlight overlays — project surface, not inverted Ant default */
+  colorBgSpotlight: '#ffffff',
   colorError: '#e43141',
   colorSuccess: '#2f9e44',
   borderRadius: 8,
@@ -69,7 +70,8 @@ const darkTokens = {
   colorBgContainer: '#22262a',
   colorBgElevated: '#2a2f34',
   colorBgLayout: '#16191c',
-  colorBgSpotlight: '#eef0f1',
+  /* Elevated surface for tooltips (matches --color-surface-muted) */
+  colorBgSpotlight: '#2a2f34',
   colorError: '#e54552',
   colorSuccess: '#3db954',
   borderRadius: 8,
@@ -87,6 +89,10 @@ export function getAntdTheme(appearance) {
     token: isDark ? darkTokens : lightTokens,
     components: {
       ...sharedComponentTokens,
+      /* Tooltip text uses colorTextLightSolid by default — map to body text on surface bg */
+      Tooltip: {
+        colorTextLightSolid: isDark ? '#eef0f1' : '#273036',
+      },
       Tabs: {
         inkBarColor: isDark ? '#e54552' : '#e43141',
         itemSelectedColor: isDark ? '#eef0f1' : '#273036',

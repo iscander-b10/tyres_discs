@@ -217,6 +217,43 @@
   padding-inline: clamp(16px, 2vw, 32px);
 }
 
+/* App-wide Ant Tooltip — retail surface overlay (light/dark via CSS vars) */
+.app-tooltip {
+  --antd-arrow-background-color: #{$color-surface};
+  --ant-tooltip-color: #{$color-text};
+
+  .ant-tooltip-inner {
+    min-width: 0;
+    min-height: 0;
+    padding: $space-1 $space-2;
+    font-family: $font-sans;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.35;
+    color: $color-text !important;
+    background: $color-surface !important;
+    border: 1px solid $color-border;
+    border-radius: $radius-sm;
+    box-shadow: $shadow-card;
+  }
+
+  .ant-tooltip-arrow::before {
+    background: $color-surface !important;
+  }
+}
+
+[data-theme='dark'] .app-tooltip {
+  --antd-arrow-background-color: #{$color-surface-muted};
+
+  .ant-tooltip-inner {
+    background: $color-surface-muted !important;
+  }
+
+  .ant-tooltip-arrow::before {
+    background: $color-surface-muted !important;
+  }
+}
+
 @media (max-width: 768px) {
   .site-header__top {
     flex-wrap: wrap;

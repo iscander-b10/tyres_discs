@@ -22,7 +22,15 @@ function Root() {
   }, [appearance]);
 
   return (
-    <ConfigProvider locale={ruRU} theme={getAntdTheme(appearance)}>
+    <ConfigProvider
+      locale={ruRU}
+      theme={getAntdTheme(appearance)}
+      tooltip={{
+        classNames: {
+          root: 'app-tooltip',
+        },
+      }}
+    >
       <App appearance={appearance} onAppearanceChange={setAppearance} />
     </ConfigProvider>
   );
