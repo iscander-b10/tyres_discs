@@ -49,33 +49,23 @@ function App({ appearance = 'light', onAppearanceChange }) {
                 <span>8 800 250 88 50</span>
               </a>
 
-              <Tooltip title="Скоро">
-                <span className="site-header__icon-wrap">
-                  <button
-                    type="button"
-                    className="site-header__icon-btn"
-                    disabled
-                    aria-label="Личный кабинет (скоро)"
-                  >
-                    <UserOutlined aria-hidden />
-                    <span className="site-header__icon-label">Войти</span>
-                  </button>
-                </span>
-              </Tooltip>
+              <button
+                type="button"
+                className="site-header__icon-btn"
+                aria-label="Личный кабинет"
+              >
+                <UserOutlined aria-hidden />
+                <span className="site-header__icon-label">Войти</span>
+              </button>
 
-              <Tooltip title="Скоро">
-                <span className="site-header__icon-wrap">
-                  <button
-                    type="button"
-                    className="site-header__icon-btn"
-                    disabled
-                    aria-label="Корзина (скоро)"
-                  >
-                    <ShoppingCartOutlined aria-hidden />
-                    <span className="site-header__icon-label">Корзина</span>
-                  </button>
-                </span>
-              </Tooltip>
+              <button
+                type="button"
+                className="site-header__icon-btn"
+                aria-label="Корзина"
+              >
+                <ShoppingCartOutlined aria-hidden />
+                <span className="site-header__icon-label">Корзина</span>
+              </button>
             </div>
           </div>
 

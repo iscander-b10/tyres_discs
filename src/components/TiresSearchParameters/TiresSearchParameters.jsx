@@ -159,21 +159,18 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
       const isWinter = changedValues.season === 'w';
       setShowSpikesFilter(isWinter);
 
-      const seasonDependentReset = {
-        brand: [],
-        supplier: undefined,
-        width: undefined,
-        profile: undefined,
-        diameter: undefined,
-        spikes: isWinter ? (allValues.spikes === undefined ? null : allValues.spikes) : undefined,
+      // Keep size/brand/supplier/etc. — only sync spikes for winter UI.
+      const spikesUpdate = {
+        spikes: isWinter
+          ? (allValues.spikes === undefined ? null : allValues.spikes)
+          : undefined,
       };
-      form.setFieldsValue(seasonDependentReset);
-      valuesForFilters = { ...allValues, ...seasonDependentReset, season: changedValues.season };
-      await loadAvailableParameters(buildFiltersFromFormValues(valuesForFilters));
-    } else {
-      // Двусторонний каскад: не сбрасываем остальные size-поля; мягкая инвалидация после опций
-      await softInvalidateIncompatibleSizeValues(valuesForFilters);
+      form.setFieldsValue(spikesUpdate);
+      valuesForFilters = { ...allValues, ...spikesUpdate, season: changedValues.season };
     }
+
+    // Soft-drop only values missing from the new option lists (incl. after season change).
+    await softInvalidateIncompatibleSizeValues(valuesForFilters);
 
     if (
       (changedValues.onlyAmountFrom4 !== undefined || changedValues.onlyRunflat !== undefined) &&
@@ -233,61 +230,6 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
               </Form.Item>
             </div>
 
-            <div className="filter-group filter-group--size" role="group" aria-label="Размер шины">
-              <Form.Item name="width" className="form-item">
-                <Select
-                  {...catalogSearchSelectProps}
-                  allowClear
-                  placeholder="Ширина"
-                  aria-label="Ширина"
-                  loading={loadingOptions}
-                  className="filter-select--size"
-                >
-                  {widthOptions.map((width) => (
-                    <Option key={width} value={width}>
-                      {width}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-              <span className="size-sep" aria-hidden>/</span>
-              <Form.Item name="profile" className="form-item">
-                <Select
-                  {...catalogSearchSelectProps}
-                  allowClear
-                  placeholder="Профиль"
-                  aria-label="Профиль"
-                  loading={loadingOptions}
-                  className="filter-select--size"
-                >
-                  {availableProfiles.map((profile) => (
-                    <Option key={profile} value={profile}>
-                      {profile === 0 ? '0 (груз.)' : profile}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-              <span className="size-sep size-sep--r" aria-hidden>
-                R
-              </span>
-              <Form.Item name="diameter" className="form-item">
-                <Select
-                  {...catalogSearchSelectProps}
-                  allowClear
-                  placeholder="Диаметр"
-                  aria-label="Диаметр"
-                  loading={loadingOptions}
-                  className="filter-select--size"
-                >
-                  {availableDiameters.map((diameter) => (
-                    <Option key={diameter} value={diameter}>
-                      {diameter}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </div>
-
             {showSpikesFilter ? (
               <div className="filter-group filter-group--spikes">
                 <Form.Item
@@ -316,6 +258,57 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
                 </Form.Item>
               </div>
             ) : null}
+
+            <div className="filter-group filter-group--size" role="group" aria-label="Размер шины">
+              <Form.Item name="width" className="form-item">
+                <Select
+                  {...catalogSearchSelectProps}
+                  allowClear
+                  placeholder="Ширина"
+                  aria-label="Ширина"
+                  loading={loadingOptions}
+                  className="filter-select--size"
+                >
+                  {widthOptions.map((width) => (
+                    <Option key={width} value={width}>
+                      {width}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Form.Item name="profile" className="form-item">
+                <Select
+                  {...catalogSearchSelectProps}
+                  allowClear
+                  placeholder="Профиль"
+                  aria-label="Профиль"
+                  loading={loadingOptions}
+                  className="filter-select--size"
+                >
+                  {availableProfiles.map((profile) => (
+                    <Option key={profile} value={profile}>
+                      {profile === 0 ? '0 (груз.)' : profile}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Form.Item name="diameter" className="form-item">
+                <Select
+                  {...catalogSearchSelectProps}
+                  allowClear
+                  placeholder="Диаметр"
+                  aria-label="Диаметр"
+                  loading={loadingOptions}
+                  className="filter-select--size"
+                >
+                  {availableDiameters.map((diameter) => (
+                    <Option key={diameter} value={diameter}>
+                      {diameter}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </div>
 
             <div className="filter-group filter-group--brand">
               <Form.Item name="brand" className="form-item form-item-brand">

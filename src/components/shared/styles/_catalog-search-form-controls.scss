@@ -33,22 +33,33 @@ $catalog-text: $color-text;
 
 @mixin catalog-green-ant-select($selector-height: 32px, $border-radius: 8px) {
   $selector-inner-height: $selector-height - 2px;
-  // Ant multiple strut: item + 2×INTERNAL_FIXED_ITEM_MARGIN (+ borders) → 38px at controlHeight 40.
-  // Keep empty multi-select flush with single-select height.
+  // Ant theme controlHeight is 40; CSS-in-JS wins without !important and
+  // flex min-height:auto then grows filter-groups unevenly (single vs multiple).
   $multiple-item-height: 24px;
   $multiple-item-margin: ($selector-inner-height - $multiple-item-height) * 0.5;
 
   .ant-select {
     @include catalog-search-form-theme-tokens();
 
-    // Align Ant size math with our control height (theme default is 40).
-    --ant-control-height: #{$selector-height};
+    --ant-control-height: #{$selector-height} !important;
+    --ant-control-height-sm: #{$selector-height} !important;
+    --ant-control-height-lg: #{$selector-height} !important;
 
+    display: flex !important;
+    align-items: center;
     width: 100%;
+    height: $selector-height !important;
+    min-height: $selector-height !important;
+    max-height: $selector-height !important;
+    vertical-align: middle;
+    box-sizing: border-box !important;
 
     .ant-select-selector {
+      box-sizing: border-box !important;
       border-radius: $border-radius;
-      height: $selector-height;
+      height: $selector-height !important;
+      min-height: $selector-height !important;
+      max-height: $selector-height !important;
       border: 1px solid $color-border !important;
       background: $color-surface !important;
       box-shadow: none !important;
@@ -60,7 +71,7 @@ $catalog-text: $color-text;
         color: $catalog-text !important;
         font-weight: 600;
         font-size: 13px;
-        line-height: $selector-inner-height;
+        line-height: $selector-inner-height !important;
       }
 
       .ant-select-selection-placeholder {
@@ -69,6 +80,39 @@ $catalog-text: $color-text;
 
       .ant-select-selection-search-input {
         color: $catalog-text !important;
+      }
+    }
+
+    // Single-select: Ant pins root height + ::after strut to theme controlHeight (40).
+    &.ant-select-single {
+      height: $selector-height !important;
+      min-height: $selector-height !important;
+      max-height: $selector-height !important;
+
+      .ant-select-selector {
+        height: 100% !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        align-items: center;
+
+        &::after {
+          line-height: $selector-inner-height !important;
+        }
+
+        .ant-select-selection-search {
+          .ant-select-selection-search-input {
+            height: $selector-inner-height !important;
+          }
+        }
+
+        .ant-select-selection-item,
+        .ant-select-selection-placeholder {
+          line-height: $selector-inner-height !important;
+        }
+      }
+
+      .ant-select-selection-wrap::after {
+        line-height: $selector-inner-height !important;
       }
     }
 
@@ -81,14 +125,13 @@ $catalog-text: $color-text;
       outline: none !important;
     }
 
-    // One centering method for arrow + clear:
-    // top:42% + translate3d(0,-50%,0). Do NOT mix with Ant's marginTop:-6px.
+    // One centering method for arrow + clear (single + multiple):
+    // top:50% + translate3d(0,-50%,0). Do NOT mix with Ant's marginTop:-6px.
     // translate3d keeps Safari GPU compositing (Ant used translateZ(0) alone).
     .ant-select-arrow,
     .ant-select-clear {
-      color: $catalog-text !important;
-      top: 42% !important;
-      inset-block-start: 42% !important;
+      top: 50% !important;
+      inset-block-start: 50% !important;
       inset-block-end: auto !important;
       inset-inline-end: 11px;
       margin-top: 0 !important;
@@ -102,6 +145,7 @@ $catalog-text: $color-text;
     }
 
     .ant-select-arrow {
+      color: $color-accent !important;
       height: auto !important;
       pointer-events: none;
 
@@ -124,6 +168,7 @@ $catalog-text: $color-text;
     // Clear: chip matches icon size. Do NOT use height:100% — hover paints
     // background + border-radius:50%, so a full-height chip becomes a white oval.
     .ant-select-clear {
+      color: $catalog-accent !important;
       width: 14px !important;
       height: 14px !important;
       border-radius: 50%;
@@ -146,7 +191,7 @@ $catalog-text: $color-text;
     }
 
     .ant-select-clear:hover {
-      color: $catalog-accent !important;
+      color: $catalog-accent-hover !important;
     }
 
     &.ant-select-outlined:not(.ant-select-disabled):hover .ant-select-clear,
@@ -158,24 +203,19 @@ $catalog-text: $color-text;
     &.ant-select-outlined:not(.ant-select-disabled):hover .ant-select-arrow,
     &.ant-select-outlined:not(.ant-select-disabled).ant-select-focused .ant-select-arrow,
     &.ant-select-outlined:not(.ant-select-disabled).ant-select-open .ant-select-arrow {
-      color: $catalog-text !important;
+      color: $color-accent-hover !important;
     }
 
-    // Match single-select height (empty / one row). Grow only when tags wrap.
+    // Same fixed height as single-select (brand uses maxTagCount="responsive").
     &.ant-select-multiple {
-      height: auto;
+      height: $selector-height;
       min-height: $selector-height;
-
-      // Same arrow/clear vertical anchor as single-select (Ant multi defaults differ).
-      .ant-select-arrow,
-      .ant-select-clear {
-        top: 50% !important;
-        inset-block-start: 50% !important;
-      }
+      max-height: $selector-height;
 
       .ant-select-selector {
         min-height: $selector-height;
-        height: auto;
+        height: $selector-height !important;
+        max-height: $selector-height;
         padding-block: 0 !important;
         padding-inline: 4px 24px;
         align-items: center;
@@ -189,6 +229,7 @@ $catalog-text: $color-text;
 
       .ant-select-selection-wrap {
         align-self: center;
+        max-height: $selector-inner-height;
 
         &::after {
           margin-block: 0 !important;
@@ -198,10 +239,11 @@ $catalog-text: $color-text;
 
       .ant-select-selection-overflow {
         display: flex;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         align-items: center;
         align-content: center;
         min-height: $selector-inner-height;
+        max-height: $selector-inner-height;
       }
 
       .ant-select-selection-overflow-item {
@@ -254,7 +296,7 @@ $catalog-text: $color-text;
         font-size: 12px;
         line-height: 1;
         background: $catalog-accent-light;
-        border-color: $color-cta-border;
+        border-color: transparent;
         color: $catalog-text;
 
         .ant-select-selection-item-content {
@@ -354,7 +396,7 @@ $catalog-text: $color-text;
   .ant-checkbox-wrapper {
     @include catalog-search-form-theme-tokens();
 
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
     color: $catalog-text;
     align-items: center;
@@ -466,7 +508,7 @@ $catalog-text: $color-text;
         line-height: 1;
         font-weight: 600;
         padding: 0;
-        font-size: 12px;
+        font-size: 13px;
         letter-spacing: 0.15px;
         color: $color-text-muted;
         transition: color 0.2s ease;
@@ -597,33 +639,40 @@ $catalog-text: $color-text;
     gap: 6px;
     flex-shrink: 0;
     min-width: 0;
+    // Lock cross-size: default min-height:auto lets Ant's 40px select inflate the group.
     height: 32px;
+    min-height: 32px;
+    max-height: 32px;
   }
 
   .filter-group--season {
     flex: 0 0 auto;
   }
 
+  .filter-group--disk-type {
+    flex: 0 0 auto;
+    // Fits longest option label «Штампованный».
+    width: 9.5rem;
+    min-width: 9.5rem;
+  }
+
   .filter-group--spikes {
     flex: 0 0 auto;
     // Fits longest option label «Без шипов».
-    width: 7.75rem;
-    min-width: 7.75rem;
-  }
-
-  .filter-group--size {
-    gap: 4px;
+    width: 6rem;
+    min-width: 6rem;
   }
 
   .filter-group--mount {
     gap: 6px;
   }
 
+  // Fixed brand slot — summer/winter (spikes) must not change brand width.
   .filter-group--brand {
-    flex: 1 1 9rem;
-    width: auto;
-    min-width: 8.75rem;
-    max-width: 14rem;
+    flex: 0 0 11rem;
+    width: 11rem;
+    min-width: 11rem;
+    max-width: 11rem;
   }
 
   .filter-group--supplier {
@@ -632,10 +681,33 @@ $catalog-text: $color-text;
     min-width: 8.5rem;
   }
 
+  // Brand (multiple) + supplier (single) — identical box, same midline.
+  .filter-group--brand,
+  .filter-group--supplier {
+    align-items: stretch;
+
+    .ant-form-item,
+    .ant-form-item-row,
+    .ant-form-item-control,
+    .ant-form-item-control-input,
+    .ant-form-item-control-input-content,
+    .ant-select {
+      width: 100%;
+      height: 32px !important;
+      min-height: 32px !important;
+      max-height: 32px !important;
+    }
+
+    .ant-select-selector {
+      height: 32px !important;
+      min-height: 32px !important;
+      max-height: 32px !important;
+    }
+  }
+
   .filter-group--checks {
-    gap: 10px;
+    gap: 1px;
     flex: 0 0 auto;
-    height: 32px;
   }
 
   .filter-group--actions {
@@ -643,20 +715,6 @@ $catalog-text: $color-text;
     align-items: center;
     gap: 8px;
     flex: 0 0 auto;
-    height: 36px;
-  }
-
-  .size-sep {
-    flex-shrink: 0;
-    font-size: 12px;
-    font-weight: 700;
-    color: $color-text-subtle;
-    line-height: 1;
-    user-select: none;
-  }
-
-  .size-sep--r {
-    letter-spacing: 0.02em;
   }
 
   // Equal width for ширина / профиль / диаметр — fits longest placeholder «Диаметр».
@@ -683,6 +741,11 @@ $catalog-text: $color-text;
     width: 100%;
   }
 
+  .ant-select.filter-select--disk-type,
+  .form-item-disk-type .ant-select {
+    width: 100%;
+  }
+
   // Unified from–to cluster: label | от | до
   .filter-range {
     display: inline-flex;
@@ -699,8 +762,8 @@ $catalog-text: $color-text;
     display: inline-flex;
     align-items: center;
     padding-inline: 10px;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 500;
     color: $color-text;
     white-space: nowrap;
     border-inline-end: 1px solid $color-border;
@@ -740,7 +803,15 @@ $catalog-text: $color-text;
       border-radius: 0 !important;
       background: transparent !important;
       box-shadow: none !important;
-      padding-inline: 6px 20px !important;
+      // Equal inset so «от»/«до» sit on the visual midline; arrow overlays end.
+      padding-inline: 6px !important;
+    }
+
+    .ant-select .ant-select-selection-item,
+    .ant-select .ant-select-selection-placeholder {
+      text-align: center !important;
+      inset-inline-start: 0 !important;
+      inset-inline-end: 0 !important;
     }
 
     .ant-select.ant-select-outlined:not(.ant-select-disabled):hover .ant-select-selector,
@@ -757,22 +828,75 @@ $catalog-text: $color-text;
     }
 
     .ant-select .ant-select-clear {
+      color: $catalog-accent !important;
       inset-inline-end: 6px;
+    }
+
+    .ant-select .ant-select-clear:hover {
+      color: $catalog-accent-hover !important;
+    }
+
+    .ant-select.ant-select-outlined:not(.ant-select-disabled):hover .ant-select-arrow,
+    .ant-select.ant-select-outlined:not(.ant-select-disabled).ant-select-focused .ant-select-arrow,
+    .ant-select.ant-select-outlined:not(.ant-select-disabled).ant-select-open .ant-select-arrow {
+      color: $color-accent-hover !important;
     }
   }
 
+  // Keep every toolbar Form.Item on the same 32px midline as season/checks.
+  // Ant's control-input min-height + explain slot otherwise lifts selects optically.
   .ant-form-item {
     margin-bottom: 0;
     margin-inline-end: 0;
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    height: 32px;
+    min-height: 32px;
+    max-height: 32px;
+  }
+
+  .ant-form-item-row {
+    display: flex !important;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
   }
 
   .ant-form-item-label {
     display: none;
   }
 
-  .ant-form-item-control-input {
+  .ant-form-item-control {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100%;
+    max-height: 100%;
     min-height: 0;
+    max-width: 100%;
+  }
+
+  .ant-form-item-control-input {
+    min-height: 0 !important;
+    height: 32px;
+    display: flex;
+    align-items: center;
+  }
+
+  .ant-form-item-control-input-content {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    line-height: 1;
+  }
+
+  .ant-form-item-additional,
+  .ant-form-item-explain {
+    display: none;
   }
 
   .form-item-brand,
@@ -789,7 +913,7 @@ $catalog-text: $color-text;
 
     .ant-checkbox-wrapper {
       white-space: nowrap;
-      font-size: 12px;
+      font-size: 13px;
       line-height: 1.2;
       min-height: 32px;
     }
@@ -802,6 +926,23 @@ $catalog-text: $color-text;
   .form-item-spikes {
     width: 100%;
     min-width: 0;
+  }
+
+  .form-item-disk-type {
+    width: 100%;
+    min-width: 0;
+  }
+
+  // Range cluster (discs): stretch to the shared 32px strip, not center-clip.
+  .ant-form-item.filter-range__item {
+    align-items: stretch;
+    height: 100%;
+    max-height: none;
+    min-height: 0;
+
+    .ant-form-item-control-input {
+      height: 100%;
+    }
   }
 
   @media (max-width: 900px) {
@@ -820,8 +961,13 @@ $catalog-text: $color-text;
       min-width: 7.75rem;
     }
 
+    .filter-group--disk-type {
+      width: 9.5rem;
+      min-width: 9.5rem;
+    }
+
     .filter-group--brand {
-      flex: 0 0 auto;
+      flex: 0 0 9rem;
       width: 9rem;
       min-width: 9rem;
       max-width: 9rem;
@@ -858,9 +1004,9 @@ $catalog-text: $color-text;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    min-width: 36px;
-    height: 36px;
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
     padding: 0;
     border-radius: 50%;
     border: 1px solid transparent;

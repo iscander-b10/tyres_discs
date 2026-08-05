@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, memo } from 'react';
-import { Form, Select, Button, Radio, Checkbox, Tooltip } from 'antd';
+import { Form, Select, Button, Checkbox, Tooltip } from 'antd';
 import { SearchOutlined, ClearOutlined } from '@ant-design/icons';
 import indexedDBService from '../../services/indexedDBService';
 import CatalogItemModalWindow from '../shared/CatalogItemModalWindow/CatalogItemModalWindow';
@@ -93,9 +93,10 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
     }
   };
 
-  const softInvalidateIncompatibleValues = async (values) => {
+  const softInvalidateIncompatibleValues = async (values, optionsFilters = null) => {
     let currentValues = { ...values };
-    let options = await loadAvailableParameters(buildFiltersFromFormValues(currentValues));
+    const filtersForOptions = optionsFilters ?? buildFiltersFromFormValues(currentValues);
+    let options = await loadAvailableParameters(filtersForOptions);
     if (!options) return null;
 
     const incompatibleReset = {};
@@ -128,6 +129,10 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
     }
 
     if (Object.keys(incompatibleReset).length === 0) {
+      // After a type-only check, refresh cascade options with full current filters.
+      if (optionsFilters) {
+        return loadAvailableParameters(buildFiltersFromFormValues(currentValues));
+      }
       return options;
     }
 
@@ -166,7 +171,15 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
       return;
     }
 
-    await softInvalidateIncompatibleValues(allValues);
+    if (changedValues.diskType !== undefined) {
+      // Keep diameter/pcd/brand/supplier/ranges — only soft-drop values
+      // that do not exist for the new type at all (no full cascade wipe).
+      await softInvalidateIncompatibleValues(allValues, {
+        diskType: allValues.diskType,
+      });
+    } else {
+      await softInvalidateIncompatibleValues(allValues);
+    }
 
     if (changedValues.onlyAmountFrom4 !== undefined && searchResults !== null && !loadingSearch) {
       form.submit();
@@ -206,12 +219,26 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
       >
         <div className="search-form__toolbar">
           <div className="search-form__row">
-            <div className="filter-group filter-group--season">
-              <Form.Item name="diskType" className="form-item-season">
-                <Radio.Group aria-label="Тип диска">
-                  <Radio value="Литой">Литой</Radio>
-                  <Radio value="Штампованный">Штампованный</Radio>
-                </Radio.Group>
+            <div className="filter-group filter-group--disk-type">
+              <Form.Item
+                name="diskType"
+                className="form-item-disk-type"
+                getValueFromEvent={(value) => {
+                  if (value === 'all' || value == null) return undefined;
+                  return value;
+                }}
+              >
+                <Select
+                  {...catalogSearchSelectProps}
+                  aria-label="Тип диска"
+                  className="filter-select--disk-type"
+                  placeholder="Тип диска"
+                  options={[
+                    { value: 'Литой', label: 'Литой' },
+                    { value: 'Штампованный', label: 'Штампованный' },
+                    { value: 'all', label: 'Все' },
+                  ]}
+                />
               </Form.Item>
             </div>
 
@@ -260,6 +287,40 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
                   {availablePn.map((pn) => (
                     <Option key={pn} value={pn}>
                       {pn}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </div>
+
+            <div className="filter-range" role="group" aria-label="ЦО">
+              <span className="filter-range__label">ЦО</span>
+              <Form.Item name="cbFrom" className="form-item filter-range__item">
+                <Select
+                  {...catalogSearchSelectProps}
+                  placeholder="от"
+                  aria-label="ЦО от"
+                  allowClear
+                  loading={loadingOptions}
+                >
+                  {availableCb.map((cb) => (
+                    <Option key={cb} value={cb}>
+                      {cb}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Form.Item name="cbTo" className="form-item filter-range__item">
+                <Select
+                  {...catalogSearchSelectProps}
+                  placeholder="до"
+                  aria-label="ЦО до"
+                  allowClear
+                  loading={loadingOptions}
+                >
+                  {availableCb.map((cb) => (
+                    <Option key={cb} value={cb}>
+                      {cb}
                     </Option>
                   ))}
                 </Select>
@@ -334,42 +395,6 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
               </Form.Item>
             </div>
 
-            <div className="filter-range" role="group" aria-label="ЦО">
-              <span className="filter-range__label">ЦО</span>
-              <Form.Item name="cbFrom" className="form-item filter-range__item">
-                <Select
-                  {...catalogSearchSelectProps}
-                  placeholder="от"
-                  aria-label="ЦО от"
-                  allowClear
-                  loading={loadingOptions}
-                >
-                  {availableCb.map((cb) => (
-                    <Option key={cb} value={cb}>
-                      {cb}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-              <Form.Item name="cbTo" className="form-item filter-range__item">
-                <Select
-                  {...catalogSearchSelectProps}
-                  placeholder="до"
-                  aria-label="ЦО до"
-                  allowClear
-                  loading={loadingOptions}
-                >
-                  {availableCb.map((cb) => (
-                    <Option key={cb} value={cb}>
-                      {cb}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </div>
-          </div>
-
-          <div className="search-form__row">
             <div className="filter-group filter-group--brand">
               <Form.Item name="brand" className="form-item form-item-brand">
                 <Select
