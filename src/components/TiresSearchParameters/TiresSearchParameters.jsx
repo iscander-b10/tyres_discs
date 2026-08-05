@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo, useRef, memo } from 'react';
 import { Form, Select, Button, Radio, Checkbox } from 'antd';
-import { SearchOutlined, ClearOutlined } from '@ant-design/icons';
+import { SearchOutlined } from '@ant-design/icons';
 import { ReactComponent as SunIcon } from '../../icons/Sun.svg';
 import { ReactComponent as SnowIcon } from '../../icons/Snow.svg';
+import { ReactComponent as ResetIcon } from '../../icons/Reset.svg';
 import indexedDBService from '../../services/indexedDBService';
 import CatalogItemModalWindow from '../shared/CatalogItemModalWindow/CatalogItemModalWindow';
 import CatalogItemCard from '../shared/CatalogItemCard/CatalogItemCard';
@@ -375,7 +376,7 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
                 <Button
                   htmlType="button"
                   className="filter-action-btn filter-action-btn--reset"
-                  icon={<ClearOutlined aria-hidden />}
+                  icon={<ResetIcon aria-hidden />}
                   onClick={handleResetFilters}
                   aria-label="Сбросить фильтры"
                 />
