@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, memo } from 'react';
-import { Form, Select, Button, Radio, Checkbox, Tooltip } from 'antd';
+import { Form, Select, Button, Radio, Checkbox } from 'antd';
 import { SearchOutlined, ClearOutlined } from '@ant-design/icons';
 import { ReactComponent as SunIcon } from '../../icons/Sun.svg';
 import { ReactComponent as SnowIcon } from '../../icons/Snow.svg';
@@ -7,6 +7,7 @@ import indexedDBService from '../../services/indexedDBService';
 import CatalogItemModalWindow from '../shared/CatalogItemModalWindow/CatalogItemModalWindow';
 import CatalogItemCard from '../shared/CatalogItemCard/CatalogItemCard';
 import PaginatedCardsList from '../shared/PaginatedCardsList/PaginatedCardsList';
+import HoverTooltip from '../shared/HoverTooltip';
 import {
   catalogSearchSelectProps,
   useCatalogSelectCloseOnMouseLeave,
@@ -360,7 +361,7 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
             </div>
 
             <div className="filter-group filter-group--actions">
-              <Tooltip title="Найти">
+              <HoverTooltip title="Найти">
                 <Button
                   type="primary"
                   htmlType="submit"
@@ -369,8 +370,8 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
                   loading={loadingSearch}
                   aria-label="Найти"
                 />
-              </Tooltip>
-              <Tooltip title="Сбросить фильтры">
+              </HoverTooltip>
+              <HoverTooltip title="Сбросить фильтры">
                 <Button
                   htmlType="button"
                   className="filter-action-btn filter-action-btn--reset"
@@ -378,7 +379,7 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
                   onClick={handleResetFilters}
                   aria-label="Сбросить фильтры"
                 />
-              </Tooltip>
+              </HoverTooltip>
             </div>
           </div>
         </div>

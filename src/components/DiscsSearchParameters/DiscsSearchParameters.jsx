@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, memo } from 'react';
-import { Form, Select, Button, Checkbox, Tooltip } from 'antd';
+import { Form, Select, Button, Checkbox } from 'antd';
 import { SearchOutlined, ClearOutlined } from '@ant-design/icons';
 import indexedDBService from '../../services/indexedDBService';
 import CatalogItemModalWindow from '../shared/CatalogItemModalWindow/CatalogItemModalWindow';
 import CatalogItemCard from '../shared/CatalogItemCard/CatalogItemCard';
 import PaginatedCardsList from '../shared/PaginatedCardsList/PaginatedCardsList';
+import HoverTooltip from '../shared/HoverTooltip';
 import {
   catalogSearchSelectProps,
   useCatalogSelectCloseOnMouseLeave,
@@ -442,7 +443,7 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
             </div>
 
             <div className="filter-group filter-group--actions">
-              <Tooltip title="Найти">
+              <HoverTooltip title="Найти">
                 <Button
                   type="primary"
                   htmlType="submit"
@@ -451,8 +452,8 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
                   loading={loadingSearch}
                   aria-label="Найти"
                 />
-              </Tooltip>
-              <Tooltip title="Сбросить фильтры">
+              </HoverTooltip>
+              <HoverTooltip title="Сбросить фильтры">
                 <Button
                   htmlType="button"
                   className="filter-action-btn filter-action-btn--reset"
@@ -460,7 +461,7 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
                   onClick={handleResetFilters}
                   aria-label="Сбросить фильтры"
                 />
-              </Tooltip>
+              </HoverTooltip>
             </div>
           </div>
         </div>

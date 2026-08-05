@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { Button, Card, Divider, Flex, Image, Space, Tooltip, Typography, message } from 'antd';
+import { Button, Card, Divider, Flex, Image, Space, Typography, message } from 'antd';
 import { ShoppingCartOutlined, TruckOutlined } from '@ant-design/icons';
 import runflatIcon from '../../../icons/runflat.jpg';
 import { resolvePhotoUrl } from '../../../utils/fetchSupplier';
+import HoverTooltip from '../HoverTooltip';
 import './CatalogItemCard.scss';
 
 const { Meta } = Card;
@@ -198,11 +199,11 @@ const CatalogItemCard = ({
                 <Space className="item-stock-space" size={8} align="center">
                   <Text className="stock-value">{item.amount} шт.</Text>
                   {isClientMode && supplierLabel && (
-                    <Tooltip title={supplierLabel} placement="top">
+                    <HoverTooltip title={supplierLabel} placement="top">
                       <Text className="supplier-icon" aria-label={supplierLabel}>
                         <TruckOutlined />
                       </Text>
-                    </Tooltip>
+                    </HoverTooltip>
                   )}
                 </Space>
               </Flex>

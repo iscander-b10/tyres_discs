@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Flex, Layout, Switch, Tooltip } from 'antd';
+import { Flex, Layout, Switch } from 'antd';
 import {
   PhoneOutlined,
   ShoppingCartOutlined,
@@ -8,6 +8,7 @@ import {
 import TiresSearchParameters from './components/TiresSearchParameters/TiresSearchParameters';
 import DiscsSearchParameters from './components/DiscsSearchParameters/DiscsSearchParameters';
 import SideBar from './components/SideBar/SideBar';
+import HoverTooltip from './components/shared/HoverTooltip';
 import './App.scss';
 
 const NAV_ITEMS = [
@@ -94,9 +95,9 @@ function App({ appearance = 'light', onAppearanceChange }) {
 
               if (item.disabled) {
                 return (
-                  <Tooltip key={item.key} title="Скоро">
+                  <HoverTooltip key={item.key} title="Скоро">
                     <span className="site-nav-item-wrap">{button}</span>
-                  </Tooltip>
+                  </HoverTooltip>
                 );
               }
 

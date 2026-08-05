@@ -1,6 +1,7 @@
 import React from 'react';
-import { Flex, Switch, Tooltip } from 'antd';
+import { Flex, Switch } from 'antd';
 import LoadingData from '../LoadingData/LoadingData';
+import HoverTooltip from '../shared/HoverTooltip';
 import './SideBar.scss';
 
 function SideBar({ clientMode, setClientMode, onCatalogDataLoaded }) {
@@ -11,7 +12,7 @@ function SideBar({ clientMode, setClientMode, onCatalogDataLoaded }) {
           <LoadingData onDataLoaded={onCatalogDataLoaded} />
         </Flex>
 
-        <Tooltip
+        <HoverTooltip
           title={clientMode ? 'Режим клиента' : 'Режим менеджера'}
           placement="top"
         >
@@ -21,7 +22,7 @@ function SideBar({ clientMode, setClientMode, onCatalogDataLoaded }) {
             onChange={setClientMode}
             aria-label={clientMode ? 'Режим клиента' : 'Режим менеджера'}
           />
-        </Tooltip>
+        </HoverTooltip>
       </Flex>
     </aside>
   );

@@ -1,9 +1,10 @@
 import React from 'react';
-import { Alert, Button, Tooltip } from 'antd';
+import { Alert, Button } from 'antd';
 import { CloudDownloadOutlined } from '@ant-design/icons';
 import indexedDBService from '../../services/indexedDBService';
 import { loadAllSuppliersData } from '../../services/suppliers/supplierOrchestrator';
 import { usesCorsProxy } from '../../utils/fetchSupplier';
+import HoverTooltip from '../shared/HoverTooltip';
 import './LoadingData.scss';
 
 const LoadingData = ({ onDataLoaded }) => {
@@ -104,7 +105,7 @@ const LoadingData = ({ onDataLoaded }) => {
 
   return (
     <div className="loading-data">
-      <Tooltip title="Загрузить данные" placement="bottom">
+      <HoverTooltip title="Загрузить данные" placement="bottom">
         <Button
           className="load-data-button"
           icon={<CloudDownloadOutlined />}
@@ -114,7 +115,7 @@ const LoadingData = ({ onDataLoaded }) => {
           onClick={handleLoadShinService}
           shape="circle"
         />
-      </Tooltip>
+      </HoverTooltip>
       {error && (
         <Alert
           className="load-data-error"
