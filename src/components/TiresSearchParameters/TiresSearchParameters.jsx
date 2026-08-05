@@ -9,6 +9,7 @@ import CatalogItemModalWindow from '../shared/CatalogItemModalWindow/CatalogItem
 import CatalogItemCard from '../shared/CatalogItemCard/CatalogItemCard';
 import PaginatedCardsList from '../shared/PaginatedCardsList/PaginatedCardsList';
 import HoverTooltip from '../shared/HoverTooltip';
+import SupplierFilterSelect from '../shared/SupplierFilterSelect';
 import {
   catalogSearchSelectProps,
   useCatalogSelectCloseOnMouseLeave,
@@ -336,19 +337,11 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
 
             <div className="filter-group filter-group--supplier">
               <Form.Item name="supplier" className="form-item form-item-supplier">
-                <Select
-                  {...catalogSearchSelectProps}
-                  placeholder="Поставщик"
-                  aria-label="Поставщик"
-                  allowClear
+                <SupplierFilterSelect
+                  isClientMode={isClientMode}
                   loading={loadingOptions}
-                >
-                  {availableSuppliers.map((supplier) => (
-                    <Option key={supplier} value={supplier}>
-                      {supplier}
-                    </Option>
-                  ))}
-                </Select>
+                  options={availableSuppliers}
+                />
               </Form.Item>
             </div>
 

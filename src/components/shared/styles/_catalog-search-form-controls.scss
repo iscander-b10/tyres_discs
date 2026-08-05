@@ -736,6 +736,39 @@ $catalog-text: $color-text;
     width: 100%;
   }
 
+  // Client mode: hide readable supplier name in the closed selector.
+  .supplier-select-client-target {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+  }
+
+  .ant-select.filter-select--supplier-client {
+    .ant-select-selection-placeholder {
+      filter: blur(3px);
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .supplier-select__masked-label {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: $catalog-text;
+      font-size: 16px;
+      line-height: 1;
+      user-select: none;
+    }
+
+    // Keep clear affordance; selected label is icon-only via labelRender.
+    .ant-select-selection-item {
+      display: inline-flex;
+      align-items: center;
+    }
+  }
+
   .ant-select.filter-select--spikes,
   .form-item-spikes .ant-select {
     width: 100%;
