@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import { Flex, Layout, Switch } from 'antd';
-import {
-  PhoneOutlined,
-  ShoppingCartOutlined,
-  UserOutlined,
-} from '@ant-design/icons';
+import { ShoppingCartOutlined } from '@ant-design/icons';
+import { ReactComponent as PhoneIcon } from './icons/Phone.svg';
+import { ReactComponent as UserIcon } from './icons/User.svg';
 import TiresSearchParameters from './components/TiresSearchParameters/TiresSearchParameters';
 import DiscsSearchParameters from './components/DiscsSearchParameters/DiscsSearchParameters';
 import SideBar from './components/SideBar/SideBar';
@@ -15,6 +13,7 @@ const NAV_ITEMS = [
   { key: 'tires', label: 'Шины' },
   { key: 'disks', label: 'Диски' },
   { key: 'akb', label: 'АКБ', disabled: true },
+  { key: 'sensors', label: 'Датчики давления', disabled: true },
   { key: 'fitting', label: 'Примерка дисков', disabled: true },
   { key: 'service', label: 'Шиномонтаж', disabled: true },
 ];
@@ -46,7 +45,7 @@ function App({ appearance = 'light', onAppearanceChange }) {
               </label>
 
               <a className="site-header__phone" href="tel:+78002508850">
-                <PhoneOutlined aria-hidden />
+                <PhoneIcon className="site-header__phone-icon" aria-hidden />
                 <span>8 800 250 88 50</span>
               </a>
 
@@ -55,7 +54,7 @@ function App({ appearance = 'light', onAppearanceChange }) {
                 className="site-header__icon-btn"
                 aria-label="Личный кабинет"
               >
-                <UserOutlined aria-hidden />
+                <UserIcon className="site-header__icon-btn-icon" aria-hidden />
                 <span className="site-header__icon-label">Войти</span>
               </button>
 
