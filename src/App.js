@@ -4,6 +4,7 @@ import SiteHeader from './components/SiteHeader/SiteHeader';
 import TiresSearchParameters from './components/TiresSearchParameters/TiresSearchParameters';
 import DiscsSearchParameters from './components/DiscsSearchParameters/DiscsSearchParameters';
 import SideBar from './components/SideBar/SideBar';
+import ScrollToTop from './components/ScrollToTop/ScrollToTop';
 import './App.scss';
 
 function App({ appearance = 'light', onAppearanceChange }) {
@@ -43,6 +44,8 @@ function App({ appearance = 'light', onAppearanceChange }) {
         setClientMode={setClientMode}
         onCatalogDataLoaded={() => setCatalogDataVersion((v) => v + 1)}
       />
+
+      <ScrollToTop />
     </Layout>
   );
 }

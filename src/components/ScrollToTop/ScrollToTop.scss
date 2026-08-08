@@ -1,0 +1,83 @@
+@use '../../styles/tokens' as *;
+
+.scroll-to-top {
+  position: fixed;
+  right: max(#{$space-4}, env(safe-area-inset-right, 0px));
+  bottom: max(#{$space-5}, env(safe-area-inset-bottom, 0px));
+  z-index: 200;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  background: $color-surface;
+  color: $color-cta;
+  box-shadow: $shadow-elevated;
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(8px) scale(0.96);
+  transition-property: opacity, transform, visibility, background-color, border-color, color, box-shadow;
+  transition-duration: 0.2s;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+
+  &.is-visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+  }
+
+  &:hover {
+    color: $color-cta-hover;
+    background: $color-surface-muted;
+    border-color: $color-border-strong;
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+
+  &.is-visible:active {
+    transform: scale(0.96);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-accent;
+    outline-offset: 2px;
+  }
+}
+
+.scroll-to-top__icon {
+  font-size: 18px;
+  line-height: 1;
+  color: currentColor;
+}
+
+@media (max-width: 768px) {
+  .scroll-to-top {
+    right: max(#{$space-3}, env(safe-area-inset-right, 0px));
+    bottom: max(#{$space-4}, env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-to-top {
+    transition-duration: 0.01ms;
+    transform: none;
+
+    &.is-visible {
+      transform: none;
+    }
+
+    &:active,
+    &.is-visible:active {
+      transform: none;
+    }
+  }
+}
