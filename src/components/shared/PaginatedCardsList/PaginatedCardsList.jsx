@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { SortDescendingOutlined } from '@ant-design/icons';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { CloseCircleFilled, LoadingOutlined, SortDescendingOutlined } from '@ant-design/icons';
 import { Alert, Dropdown, Empty, Flex, Input, Pagination } from 'antd';
 import './PaginatedCardsList.scss';
 
 const DEFAULT_ITEMS_PER_PAGE = 20;
+const SEARCH_DEBOUNCE_MS = 600;
 
 const SORT_MODES = {
   DEFAULT: 'default',
@@ -29,10 +30,16 @@ const getSortablePrice = (item) => {
 
 const getSortableText = (item) => String(item?.title ?? item?.brand ?? '').trim().toLocaleLowerCase('ru');
 
-const matchesTitleSearch = (item, normalizedQuery) => {
+const matchesBrandModelSearch = (item, normalizedQuery) => {
   if (!normalizedQuery) return true;
-  const title = String(item?.title ?? '').toLowerCase();
-  return title.includes(normalizedQuery);
+  const brand = String(item?.brand ?? '').toLowerCase();
+  const model = String(item?.model ?? '').toLowerCase();
+  const combined = `${brand} ${model}`.trim();
+  return (
+    brand.includes(normalizedQuery) ||
+    model.includes(normalizedQuery) ||
+    combined.includes(normalizedQuery)
+  );
 };
 
 const PaginatedCardsList = ({
@@ -44,26 +51,51 @@ const PaginatedCardsList = ({
   itemsPerPage = DEFAULT_ITEMS_PER_PAGE,
   containerClassName,
   gridClassName,
+  searchResetKey = 0,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortMode, setSortMode] = useState(SORT_MODES.DEFAULT);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const debounceTimerRef = useRef(null);
+
+  const clearDebounceTimer = () => {
+    if (debounceTimerRef.current == null) return;
+    clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = null;
+  };
+
+  const applySearchImmediately = (value) => {
+    clearDebounceTimer();
+    setSearchQuery(value);
+    setDebouncedQuery(value);
+  };
+
+  useEffect(() => {
+    clearDebounceTimer();
+    setSearchQuery('');
+    setDebouncedQuery('');
+  }, [searchResetKey]);
+
+  useEffect(() => () => clearDebounceTimer(), []);
 
   const normalizedSearchQuery = useMemo(
-    () => searchQuery.trim().toLowerCase(),
-    [searchQuery]
+    () => debouncedQuery.trim().toLowerCase(),
+    [debouncedQuery]
   );
+
+  const isSearchPending = searchQuery.trim() !== '' && searchQuery !== debouncedQuery;
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [items, sortMode, searchQuery]);
+  }, [items, sortMode, debouncedQuery]);
 
   const safeItems = useMemo(() => items ?? null, [items]);
 
   const filteredItems = useMemo(() => {
     if (!safeItems) return null;
     if (!normalizedSearchQuery) return safeItems;
-    return safeItems.filter((item) => matchesTitleSearch(item, normalizedSearchQuery));
+    return safeItems.filter((item) => matchesBrandModelSearch(item, normalizedSearchQuery));
   }, [safeItems, normalizedSearchQuery]);
 
   const sortedItems = useMemo(() => {
@@ -94,6 +126,27 @@ const PaginatedCardsList = ({
     return filteredItems;
   }, [filteredItems, sortMode]);
 
+  const handleSearchChange = (event) => {
+    const value = event.target.value;
+    setSearchQuery(value);
+
+    if (!value.trim()) {
+      clearDebounceTimer();
+      setDebouncedQuery('');
+      return;
+    }
+
+    clearDebounceTimer();
+    debounceTimerRef.current = setTimeout(() => {
+      setDebouncedQuery(value);
+      debounceTimerRef.current = null;
+    }, SEARCH_DEBOUNCE_MS);
+  };
+
+  const handleSearchClear = () => {
+    applySearchImmediately('');
+  };
+
   if (error) {
     return (
       <Alert
@@ -121,6 +174,25 @@ const PaginatedCardsList = ({
 
   const hasSourceItems = safeItems.length > 0;
   const hasVisibleItems = totalItems > 0;
+  const showSearchClear = searchQuery.trim() !== '' && !isSearchPending;
+
+  const searchSuffix = isSearchPending ? (
+    <span className="list-toolbar__search-affix" aria-hidden="true">
+      <LoadingOutlined className="list-toolbar__search-loading-icon" spin />
+    </span>
+  ) : showSearchClear ? (
+    <button
+      type="button"
+      className="list-toolbar__search-clear"
+      aria-label="Очистить поиск"
+      onClick={handleSearchClear}
+      onMouseDown={(event) => event.preventDefault()}
+    >
+      <CloseCircleFilled className="list-toolbar__search-clear-icon" aria-hidden />
+    </button>
+  ) : (
+    <span className="list-toolbar__search-affix" aria-hidden="true" />
+  );
 
   return (
     <Flex className={containerClassName} vertical>
@@ -128,12 +200,16 @@ const PaginatedCardsList = ({
         <Flex className="list-toolbar" align="flex-end" wrap="wrap">
           <Input
             className="list-toolbar__search"
-            allowClear
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            prefix="Поиск:"
-            placeholder="По названию"
+            onChange={handleSearchChange}
+            placeholder="Поиск: По бренду, модели"
+            aria-label="Поиск по бренду, модели"
+            aria-busy={isSearchPending || undefined}
+            suffix={searchSuffix}
           />
+          <span className="list-toolbar__search-status" role="status" aria-live="polite">
+            {isSearchPending ? 'Фильтрация…' : ''}
+          </span>
           <Dropdown
             menu={{
               items: SORT_MENU_ITEMS,

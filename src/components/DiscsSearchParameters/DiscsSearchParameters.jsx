@@ -30,6 +30,7 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [errorSearch, setErrorSearch] = useState(null);
   const [searchResults, setSearchResults] = useState(null);
+  const [searchResetKey, setSearchResetKey] = useState(0);
   const [availableBrands, setAvailableBrands] = useState([]);
   const [availableSuppliers, setAvailableSuppliers] = useState([]);
   const [availableDiameters, setAvailableDiameters] = useState([]);
@@ -145,6 +146,7 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
   };
 
   const handleSearch = async (values) => {
+    setSearchResetKey((key) => key + 1);
     setLoadingSearch(true);
     setErrorSearch(null);
     setSearchResults(null);
@@ -190,6 +192,7 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
   };
 
   const handleResetFilters = () => {
+    setSearchResetKey((key) => key + 1);
     form.resetFields();
     setSearchResults(null);
     loadAvailableParameters();
@@ -465,6 +468,7 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
         items={searchResults}
         error={errorSearch}
         isClientMode={isClientMode}
+        searchResetKey={searchResetKey}
         containerClassName="items-list-container"
         gridClassName="items-grid"
         emptyText="Диски не найдены. Попробуйте изменить параметры поиска."

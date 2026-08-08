@@ -42,7 +42,7 @@
   --font-sans: 'Montserrat', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --z-header: 100;
   --z-filter-bar: 90;
-  --z-sidebar: 90;
+  --z-sidebar: 1200;
   --z-modal: 1000;
   --catalog-filter-sticky-top: 12px;
   color-scheme: light;
@@ -161,6 +161,27 @@ input[type="number"]::-webkit-inner-spin-button {
   outline-offset: 2px;
 }
 
+/* Smooth theme crossfade (View Transitions API) */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.32s;
+  animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Fallback when View Transitions are unavailable */
+html.theme-transitioning,
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition:
+    background-color 0.32s cubic-bezier(0.2, 0, 0, 1),
+    color 0.32s cubic-bezier(0.2, 0, 0, 1),
+    border-color 0.32s cubic-bezier(0.2, 0, 0, 1),
+    box-shadow 0.32s cubic-bezier(0.2, 0, 0, 1),
+    fill 0.32s cubic-bezier(0.2, 0, 0, 1),
+    stroke 0.32s cubic-bezier(0.2, 0, 0, 1) !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -168,5 +189,10 @@ input[type="number"]::-webkit-inner-spin-button {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
   }
 }

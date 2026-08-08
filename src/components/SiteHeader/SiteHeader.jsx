@@ -3,6 +3,7 @@ import { ShoppingCartOutlined } from '@ant-design/icons';
 import { ReactComponent as PhoneIcon } from '../../icons/Phone.svg';
 import { ReactComponent as UserIcon } from '../../icons/User.svg';
 import { ReactComponent as ThemeIcon } from '../../icons/Theme.svg';
+import { THEME_TRANSITION_MS } from '../../theme/appearance';
 import HoverTooltip from '../shared/HoverTooltip';
 import './SiteHeader.scss';
 
@@ -14,8 +15,6 @@ const NAV_ITEMS = [
   { key: 'service', label: 'Шиномонтаж', disabled: true },
   { key: 'storage', label: 'Хранение шин', disabled: true },
 ];
-
-const THEME_SWITCH_DELAY_MS = 280;
 
 function SiteHeader({ appearance = 'light', onAppearanceChange, activeKey, onActiveKeyChange }) {
   const isDark = appearance === 'dark';
@@ -37,12 +36,12 @@ function SiteHeader({ appearance = 'light', onAppearanceChange, activeKey, onAct
 
     const nextAppearance = isDark ? 'light' : 'dark';
     setIsThemePending(true);
+    onAppearanceChange?.(nextAppearance);
 
     themeTimeoutRef.current = window.setTimeout(() => {
       themeTimeoutRef.current = null;
-      onAppearanceChange?.(nextAppearance);
       setIsThemePending(false);
-    }, THEME_SWITCH_DELAY_MS);
+    }, THEME_TRANSITION_MS);
   };
 
   return (

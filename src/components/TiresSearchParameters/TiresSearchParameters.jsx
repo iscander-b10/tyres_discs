@@ -34,6 +34,7 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [errorSearch, setErrorSearch] = useState(null);
   const [searchResults, setSearchResults] = useState(null);
+  const [searchResetKey, setSearchResetKey] = useState(0);
   const [availableWidths, setAvailableWidths] = useState([]);
   const [availableProfiles, setAvailableProfiles] = useState([]);
   const [availableDiameters, setAvailableDiameters] = useState([]);
@@ -129,6 +130,7 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
   };
 
   const handleSearch = async (values) => {
+    setSearchResetKey((key) => key + 1);
     setLoadingSearch(true);
     setErrorSearch(null);
     setSearchResults(null);
@@ -185,6 +187,7 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
   };
 
   const handleResetFilters = () => {
+    setSearchResetKey((key) => key + 1);
     form.resetFields();
     setSearchResults(null);
     setShowSpikesFilter(false);
@@ -383,6 +386,7 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
         items={searchResults}
         error={errorSearch}
         isClientMode={isClientMode}
+        searchResetKey={searchResetKey}
         containerClassName="items-list-container"
         gridClassName="items-grid"
         emptyText="Шины не найдены. Попробуйте изменить параметры поиска."

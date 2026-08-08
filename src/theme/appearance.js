@@ -1,6 +1,7 @@
 import { theme as antdTheme } from 'antd';
 
 export const THEME_STORAGE_KEY = 'ivanor-appearance';
+export const THEME_TRANSITION_MS = 320;
 
 export function getInitialAppearance() {
   try {
@@ -26,6 +27,37 @@ export function applyAppearance(appearance) {
   } catch {
     /* ignore */
   }
+}
+
+function prefersReducedMotion() {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/**
+ * Smoothly applies a theme change: View Transitions when available,
+ * otherwise a short CSS color crossfade via `.theme-transitioning`.
+ */
+export function runAppearanceTransition(updateDom) {
+  if (prefersReducedMotion()) {
+    updateDom();
+    return Promise.resolve();
+  }
+
+  if (typeof document.startViewTransition === 'function') {
+    const transition = document.startViewTransition(updateDom);
+    return transition.finished.catch(() => {});
+  }
+
+  const root = document.documentElement;
+  root.classList.add('theme-transitioning');
+  updateDom();
+
+  return new Promise((resolve) => {
+    window.setTimeout(() => {
+      root.classList.remove('theme-transitioning');
+      resolve();
+    }, THEME_TRANSITION_MS);
+  });
 }
 
 const sharedComponentTokens = {
