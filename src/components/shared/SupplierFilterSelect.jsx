@@ -1,6 +1,5 @@
-import React, { memo, useCallback } from 'react';
+import React, { memo } from 'react';
 import { Select } from 'antd';
-import { TruckOutlined } from '@ant-design/icons';
 import HoverTooltip from './HoverTooltip';
 import { catalogSearchSelectProps } from './catalogSearchSelectProps';
 
@@ -8,7 +7,7 @@ const { Option } = Select;
 
 /**
  * Supplier Select for catalog filters.
- * In client mode hides the supplier name in the closed selector (blur / truck icon)
+ * In client mode hides the supplier name in the closed selector (blur)
  * while Form value stays real; name is available via HoverTooltip.
  */
 const SupplierFilterSelect = memo(function SupplierFilterSelect({
@@ -22,12 +21,6 @@ const SupplierFilterSelect = memo(function SupplierFilterSelect({
   const hasValue = value !== undefined && value !== null && value !== '';
   const tooltipTitle = hasValue ? `Поставщик: ${value}` : 'Поставщик';
   const ariaLabel = isClientMode && hasValue ? tooltipTitle : 'Поставщик';
-
-  const labelRender = useCallback(() => (
-    <span className="supplier-select__masked-label" aria-hidden>
-      <TruckOutlined />
-    </span>
-  ), []);
 
   const select = (
     <Select
@@ -45,7 +38,6 @@ const SupplierFilterSelect = memo(function SupplierFilterSelect({
       ]
         .filter(Boolean)
         .join(' ')}
-      labelRender={isClientMode ? labelRender : undefined}
     >
       {options.map((supplier) => (
         <Option key={supplier} value={supplier}>

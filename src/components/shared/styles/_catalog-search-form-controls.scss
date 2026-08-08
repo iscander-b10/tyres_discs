@@ -746,26 +746,14 @@ $catalog-text: $color-text;
   }
 
   .ant-select.filter-select--supplier-client {
-    .ant-select-selection-placeholder {
+    .ant-select-selection-placeholder,
+    .ant-select-selection-item {
       filter: blur(3px);
       user-select: none;
+    }
+
+    .ant-select-selection-placeholder {
       pointer-events: none;
-    }
-
-    .supplier-select__masked-label {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      color: $catalog-text;
-      font-size: 16px;
-      line-height: 1;
-      user-select: none;
-    }
-
-    // Keep clear affordance; selected label is icon-only via labelRender.
-    .ant-select-selection-item {
-      display: inline-flex;
-      align-items: center;
     }
   }
 

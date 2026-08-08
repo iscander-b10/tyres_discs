@@ -3,7 +3,7 @@ import { SortDescendingOutlined } from '@ant-design/icons';
 import { Alert, Dropdown, Empty, Flex, Input, Pagination } from 'antd';
 import './PaginatedCardsList.scss';
 
-const DEFAULT_ITEMS_PER_PAGE = 21;
+const DEFAULT_ITEMS_PER_PAGE = 20;
 
 const SORT_MODES = {
   DEFAULT: 'default',
