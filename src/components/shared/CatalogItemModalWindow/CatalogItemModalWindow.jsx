@@ -87,7 +87,6 @@ const CatalogItemModalWindow = ({ isOpen, onClose, item, isClientMode = false })
           key: 'selling',
           label: 'Цена',
           value: formatPriceDisplay(item.sellingPrice ?? item.price),
-          emphasize: true,
         },
       ];
     }
@@ -105,7 +104,6 @@ const CatalogItemModalWindow = ({ isOpen, onClose, item, isClientMode = false })
         label: 'Цена',
         value: item.sellingPrice ?? item.price,
         show: isValidPrice(item.sellingPrice) || isValidPrice(item.price),
-        emphasize: true,
       },
     ]
       .filter((row) => row.show)
@@ -205,12 +203,7 @@ const CatalogItemModalWindow = ({ isOpen, onClose, item, isClientMode = false })
               {priceRows.map((row) => (
                 <Flex
                   key={row.key}
-                  className={[
-                    'product-modal__price-row',
-                    row.emphasize ? 'is-emphasize' : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
+                  className="product-modal__price-row"
                   justify="space-between"
                   align="baseline"
                 >

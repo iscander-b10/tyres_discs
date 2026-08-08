@@ -1,10 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { CloseCircleFilled, LoadingOutlined, SortDescendingOutlined } from '@ant-design/icons';
+import { CloseCircleFilled, LoadingOutlined } from '@ant-design/icons';
 import { Alert, Dropdown, Empty, Flex, Input, Pagination } from 'antd';
+import { ReactComponent as SortIcon } from '../../../icons/Sotring.svg';
+import { ReactComponent as ItemsPerPageIcon } from '../../../icons/Items_Per_Page_Selector.svg';
+import HoverTooltip from '../HoverTooltip';
 import './PaginatedCardsList.scss';
 
 const DEFAULT_ITEMS_PER_PAGE = 20;
 const SEARCH_DEBOUNCE_MS = 600;
+const ITEMS_PER_PAGE_STORAGE_KEY = 'ivanor-catalog-items-per-page';
+const PAGE_SIZE_OPTIONS = [20, 40, 60, 80, 100];
 
 const SORT_MODES = {
   DEFAULT: 'default',
@@ -22,13 +27,42 @@ const SORT_MENU_ITEMS = [
   { key: SORT_MODES.ALPHABET_DESC, label: 'По алфавиту (Я → А)' },
 ];
 
+const PAGE_SIZE_MENU_ITEMS = PAGE_SIZE_OPTIONS.map((size) => ({
+  key: String(size),
+  label: `${size} на странице`,
+}));
+
+const isValidPageSize = (value) => PAGE_SIZE_OPTIONS.includes(value);
+
+const readStoredItemsPerPage = (fallback = DEFAULT_ITEMS_PER_PAGE) => {
+  const safeFallback = isValidPageSize(fallback) ? fallback : DEFAULT_ITEMS_PER_PAGE;
+
+  try {
+    const stored = window.localStorage.getItem(ITEMS_PER_PAGE_STORAGE_KEY);
+    const num = Number(stored);
+    if (isValidPageSize(num)) return num;
+  } catch {
+    /* ignore */
+  }
+
+  return safeFallback;
+};
+
+const persistItemsPerPage = (value) => {
+  try {
+    window.localStorage.setItem(ITEMS_PER_PAGE_STORAGE_KEY, String(value));
+  } catch {
+    /* ignore */
+  }
+};
+
 const getSortablePrice = (item) => {
   const raw = item?.sellingPrice ?? item?.price ?? item?.cost ?? null;
   const num = typeof raw === 'number' ? raw : raw != null ? Number(String(raw).replace(',', '.')) : NaN;
   return Number.isFinite(num) ? num : null;
 };
 
-const getSortableText = (item) => String(item?.title ?? item?.brand ?? '').trim().toLocaleLowerCase('ru');
+const getSortableText = (item) => String(item?.title ?? item?.brand ?? '').toLocaleLowerCase('ru');
 
 const matchesBrandModelSearch = (item, normalizedQuery) => {
   if (!normalizedQuery) return true;
@@ -48,13 +82,14 @@ const PaginatedCardsList = ({
   isClientMode,
   renderCard,
   emptyText = 'Ничего не найдено. Попробуйте изменить параметры поиска.',
-  itemsPerPage = DEFAULT_ITEMS_PER_PAGE,
+  itemsPerPage: itemsPerPageProp = DEFAULT_ITEMS_PER_PAGE,
   containerClassName,
   gridClassName,
   searchResetKey = 0,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortMode, setSortMode] = useState(SORT_MODES.DEFAULT);
+  const [itemsPerPage, setItemsPerPage] = useState(() => readStoredItemsPerPage(itemsPerPageProp));
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const debounceTimerRef = useRef(null);
@@ -88,7 +123,7 @@ const PaginatedCardsList = ({
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [items, sortMode, debouncedQuery]);
+  }, [items, sortMode, debouncedQuery, itemsPerPage]);
 
   const safeItems = useMemo(() => items ?? null, [items]);
 
@@ -145,6 +180,13 @@ const PaginatedCardsList = ({
 
   const handleSearchClear = () => {
     applySearchImmediately('');
+  };
+
+  const handleItemsPerPageChange = (key) => {
+    const next = Number(key);
+    if (!isValidPageSize(next) || next === itemsPerPage) return;
+    setItemsPerPage(next);
+    persistItemsPerPage(next);
   };
 
   if (error) {
@@ -210,21 +252,52 @@ const PaginatedCardsList = ({
           <span className="list-toolbar__search-status" role="status" aria-live="polite">
             {isSearchPending ? 'Фильтрация…' : ''}
           </span>
-          <Dropdown
-            menu={{
-              items: SORT_MENU_ITEMS,
-              selectedKeys: [sortMode],
-              onClick: ({ key }) => setSortMode(key),
-            }}
-            trigger={['click']}
-            overlayClassName="catalog-search-select-dropdown"
-          >
-            <SortDescendingOutlined
-              className="list-toolbar__sort-icon"
-              role="button"
-              aria-label="Сортировка"
-            />
-          </Dropdown>
+          <div className="list-toolbar__actions">
+            <HoverTooltip title="Сортировка" placement="bottom">
+              <span className="list-toolbar__icon-wrap">
+                <Dropdown
+                  menu={{
+                    items: SORT_MENU_ITEMS,
+                    selectedKeys: [sortMode],
+                    onClick: ({ key }) => setSortMode(key),
+                  }}
+                  trigger={['click']}
+                  overlayClassName="catalog-search-select-dropdown"
+                >
+                  <button
+                    type="button"
+                    className="list-toolbar__icon-btn"
+                    aria-label="Сортировка"
+                    aria-haspopup="menu"
+                  >
+                    <SortIcon className="list-toolbar__icon" aria-hidden />
+                  </button>
+                </Dropdown>
+              </span>
+            </HoverTooltip>
+            <HoverTooltip title="Товаров на странице" placement="bottom">
+              <span className="list-toolbar__icon-wrap">
+                <Dropdown
+                  menu={{
+                    items: PAGE_SIZE_MENU_ITEMS,
+                    selectedKeys: [String(itemsPerPage)],
+                    onClick: ({ key }) => handleItemsPerPageChange(key),
+                  }}
+                  trigger={['click']}
+                  overlayClassName="catalog-search-select-dropdown"
+                >
+                  <button
+                    type="button"
+                    className="list-toolbar__icon-btn"
+                    aria-label="Количество товаров на странице"
+                    aria-haspopup="menu"
+                  >
+                    <ItemsPerPageIcon className="list-toolbar__icon" aria-hidden />
+                  </button>
+                </Dropdown>
+              </span>
+            </HoverTooltip>
+          </div>
         </Flex>
       )}
       {hasVisibleItems ? (

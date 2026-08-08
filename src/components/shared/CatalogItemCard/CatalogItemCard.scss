@@ -181,17 +181,40 @@
   }
 
   .supplier-icon {
-    color: $color-text;
-    font-size: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: $color-text-muted;
     cursor: help;
+    line-height: 1;
+    transition-property: color;
+    transition-duration: 0.2s;
+    transition-timing-function: ease;
+
+    &:hover {
+      color: $color-text;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      transition-duration: 0.01ms;
+    }
+  }
+
+  .supplier-icon__svg {
+    display: block;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    transform: scaleX(-1);
   }
 
   .stock-value {
     display: inline-flex;
     align-items: center;
     line-height: 1;
-    color: $color-stock;
-    font-weight: 600;
+    font-weight: 700;
+    text-align: right;
+    color: $color-text;
     font-variant-numeric: tabular-nums;
   }
 

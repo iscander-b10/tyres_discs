@@ -131,19 +131,6 @@
 
 .product-modal__price-row {
   width: 100%;
-
-  &.is-emphasize {
-    .product-modal__price-label {
-      font-weight: 600;
-      color: $color-text;
-    }
-
-    .product-modal__price-value {
-      font-size: 22px;
-      font-weight: 800;
-      color: $color-text;
-    }
-  }
 }
 
 .product-modal__price-label {
