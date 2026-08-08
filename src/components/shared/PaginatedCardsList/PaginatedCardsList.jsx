@@ -64,16 +64,10 @@ const getSortablePrice = (item) => {
 
 const getSortableText = (item) => String(item?.title ?? item?.brand ?? '').toLocaleLowerCase('ru');
 
-const matchesBrandModelSearch = (item, normalizedQuery) => {
+const matchesTitleSearch = (item, normalizedQuery) => {
   if (!normalizedQuery) return true;
-  const brand = String(item?.brand ?? '').toLowerCase();
-  const model = String(item?.model ?? '').toLowerCase();
-  const combined = `${brand} ${model}`.trim();
-  return (
-    brand.includes(normalizedQuery) ||
-    model.includes(normalizedQuery) ||
-    combined.includes(normalizedQuery)
-  );
+  const title = String(item?.title ?? '').toLowerCase();
+  return title.includes(normalizedQuery);
 };
 
 const PaginatedCardsList = ({
@@ -130,7 +124,7 @@ const PaginatedCardsList = ({
   const filteredItems = useMemo(() => {
     if (!safeItems) return null;
     if (!normalizedSearchQuery) return safeItems;
-    return safeItems.filter((item) => matchesBrandModelSearch(item, normalizedSearchQuery));
+    return safeItems.filter((item) => matchesTitleSearch(item, normalizedSearchQuery));
   }, [safeItems, normalizedSearchQuery]);
 
   const sortedItems = useMemo(() => {
@@ -244,8 +238,8 @@ const PaginatedCardsList = ({
             className="list-toolbar__search"
             value={searchQuery}
             onChange={handleSearchChange}
-            placeholder="Поиск: По бренду, модели"
-            aria-label="Поиск по бренду, модели"
+            placeholder="Поиск: По названию"
+            aria-label="Поиск по названию"
             aria-busy={isSearchPending || undefined}
             suffix={searchSuffix}
           />
