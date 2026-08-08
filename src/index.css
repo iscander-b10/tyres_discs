@@ -74,7 +74,7 @@
   --color-cta-outline: rgba(207, 211, 214, 0.28);
   --color-cta-border: rgba(207, 211, 214, 0.32);
   --color-checkbox: #03cd2f;
-  --color-checkbox-hover: #04e036;
+  --color-checkbox-hover: #02b829;
   --color-stock: #3db954;
   --color-danger: #e54552;
   --color-overlay: rgba(8, 10, 12, 0.72);
@@ -86,11 +86,6 @@
   --shadow-elevated: 0 10px 28px rgba(0, 0, 0, 0.4);
   --shadow-header: 0 1px 0 rgba(0, 0, 0, 0.35);
   color-scheme: dark;
-}
-
-/* Light CTA track → dark switch handle for contrast */
-[data-theme='dark'] .ant-switch.ant-switch-checked .ant-switch-handle::before {
-  background-color: var(--color-cta-on);
 }
 
 * {

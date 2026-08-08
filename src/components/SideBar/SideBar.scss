@@ -62,19 +62,26 @@
 }
 
 .client-mode-switch.ant-switch {
-  background: $color-switch-track;
+  /* Fixed system burgundy (#e43141) — same in light and dark */
+  --ant-color-primary: #e43141;
+  --ant-color-primary-hover: #c92938;
+  background: $color-switch-track !important;
   cursor: pointer;
 
   &.ant-switch-checked {
-    background: $color-checkbox;
+    background: #e43141 !important;
   }
 
   &:hover:not(.ant-switch-disabled) {
-    background: $color-switch-track-hover;
+    background: $color-switch-track-hover !important;
   }
 
   &.ant-switch-checked:hover:not(.ant-switch-disabled) {
-    background: $color-checkbox-hover;
+    background: #c92938 !important;
+  }
+
+  &.ant-switch-checked .ant-switch-handle::before {
+    background-color: $color-on-accent;
   }
 }
 

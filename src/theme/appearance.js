@@ -138,9 +138,10 @@ export function getAntdTheme(appearance) {
         itemHoverColor: isDark ? '#eef0f1' : '#273036',
         itemActiveColor: isDark ? '#eef0f1' : '#273036',
       },
+      /* Client/manager mode — fixed system burgundy in both appearances */
       Switch: {
-        colorPrimary: isDark ? '#cfd3d6' : '#595d60',
-        colorPrimaryHover: isDark ? '#e0e3e5' : '#45494c',
+        colorPrimary: '#e43141',
+        colorPrimaryHover: '#c92938',
       },
     },
   };
