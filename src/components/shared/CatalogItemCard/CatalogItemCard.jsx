@@ -5,24 +5,15 @@ import runflatIcon from '../../../icons/runflat.jpg';
 import { ReactComponent as VanIcon } from '../../../icons/Van.svg';
 import { resolvePhotoUrl } from '../../../utils/fetchSupplier';
 import HoverTooltip from '../HoverTooltip';
+import {
+  formatPriceDisplay,
+  formatWebsitePriceDisplay,
+  isValidPrice,
+} from '../catalogCopy';
 import './CatalogItemCard.scss';
 
 const { Meta } = Card;
 const { Text } = Typography;
-
-const isValidPrice = (value) => {
-  if (value == null || value === '') return false;
-  const num =
-    typeof value === 'number' ? value : Number(String(value).replace(',', '.'));
-  return Number.isFinite(num) && num > 0;
-};
-
-const formatPriceDisplay = (value) => {
-  if (!isValidPrice(value)) return '—';
-  const num =
-    typeof value === 'number' ? value : Number(String(value).replace(',', '.'));
-  return `${num.toLocaleString('ru-RU')} руб.`;
-};
 
 const DetailRow = ({ label, value, rowClassName = 'item-detail-row' }) => (
   <Flex className={rowClassName} justify="space-between" align="center">
@@ -64,25 +55,22 @@ const CatalogItemCard = ({
     }
 
     const rows = [
-      { key: 'b2b', label: 'B2B:', value: item.price, show: isValidPrice(item.price) },
+      { key: 'b2b', label: 'B2B:', value: formatPriceDisplay(item.price), show: isValidPrice(item.price) },
       {
         key: 'website',
         label: 'Интернет цена:',
-        value: item.websitePrice,
-        show: isValidPrice(item.websitePrice),
+        value: formatWebsitePriceDisplay(item),
+        show: true,
       },
       {
         key: 'selling',
         label: 'Цена:',
-        value: item.sellingPrice ?? item.price,
+        value: formatPriceDisplay(item.sellingPrice ?? item.price),
         show: isValidPrice(item.sellingPrice) || isValidPrice(item.price),
       },
     ]
       .filter((row) => row.show)
-      .map(({ show, value, ...row }) => ({
-        ...row,
-        value: formatPriceDisplay(value),
-      }));
+      .map(({ show, ...row }) => row);
 
     if (item.supplier) {
       rows.push({

@@ -1,24 +1,24 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import { Button, Flex, Typography, message } from 'antd';
+import { Button, message } from 'antd';
 import { CloseOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 import { resolvePhotoUrl } from '../../../utils/fetchSupplier';
+import {
+  formatCatalogSizeDisplay,
+  formatPriceDisplay,
+  formatWebsitePriceDisplay,
+  isValidPrice,
+  resolveCatalogLoadIndex,
+  resolveCatalogModel,
+  resolveCatalogSpeedIndex,
+} from '../catalogCopy';
 import './CatalogItemModalWindow.scss';
 
-const { Text, Title } = Typography;
-
-const isValidPrice = (value) => {
-  if (value == null || value === '') return false;
-  const num =
-    typeof value === 'number' ? value : Number(String(value).replace(',', '.'));
-  return Number.isFinite(num) && num > 0;
-};
-
-const formatPriceDisplay = (value) => {
-  if (!isValidPrice(value)) return '—';
-  const num =
-    typeof value === 'number' ? value : Number(String(value).replace(',', '.'));
-  return `${num.toLocaleString('ru-RU')} руб.`;
+const formatStockDisplay = (amount) => {
+  if (amount == null || amount === '') return null;
+  const num = typeof amount === 'number' ? amount : Number(amount);
+  if (!Number.isFinite(num)) return `${amount} шт.`;
+  return `${num.toLocaleString('ru-RU')}\u00A0шт.`;
 };
 
 const CatalogItemModalWindow = ({ isOpen, onClose, item, isClientMode = false }) => {
@@ -78,6 +78,37 @@ const CatalogItemModalWindow = ({ isOpen, onClose, item, isClientMode = false })
     [item]
   );
 
+  const model = useMemo(() => resolveCatalogModel(item), [item]);
+  const sizeDisplay = useMemo(() => formatCatalogSizeDisplay(item), [item]);
+  const loadIndex = useMemo(() => resolveCatalogLoadIndex(item), [item]);
+  const speedIndex = useMemo(() => resolveCatalogSpeedIndex(item), [item]);
+
+  const metaFields = useMemo(() => {
+    if (!item) return [];
+    const fields = [];
+
+    if (item.brand) fields.push({ key: 'brand', label: 'Бренд', value: item.brand });
+    if (model) fields.push({ key: 'model', label: 'Модель', value: model });
+    if (sizeDisplay) {
+      fields.push({ key: 'size', label: 'Типоразмер', value: sizeDisplay });
+    }
+    if (loadIndex) {
+      fields.push({ key: 'loadIndex', label: 'Индекс нагрузки', value: loadIndex });
+    }
+    if (speedIndex) {
+      fields.push({ key: 'speedIndex', label: 'Индекс скорости', value: speedIndex });
+    }
+    if (item.code) fields.push({ key: 'code', label: 'Код', value: item.code });
+
+    const stock = formatStockDisplay(item.amount);
+    if (stock) fields.push({ key: 'stock', label: 'В наличии', value: stock });
+
+    if (!isClientMode && item.supplier) {
+      fields.push({ key: 'supplier', label: 'Поставщик', value: item.supplier });
+    }
+    return fields;
+  }, [item, isClientMode, model, sizeDisplay, loadIndex, speedIndex]);
+
   const priceRows = useMemo(() => {
     if (!item) return [];
 
@@ -87,55 +118,37 @@ const CatalogItemModalWindow = ({ isOpen, onClose, item, isClientMode = false })
           key: 'selling',
           label: 'Цена',
           value: formatPriceDisplay(item.sellingPrice ?? item.price),
+          primary: true,
         },
       ];
     }
 
     return [
-      { key: 'b2b', label: 'B2B', value: item.price, show: isValidPrice(item.price) },
+      { key: 'b2b', label: 'B2B', value: formatPriceDisplay(item.price), show: isValidPrice(item.price) },
       {
         key: 'website',
         label: 'Интернет цена',
-        value: item.websitePrice,
-        show: isValidPrice(item.websitePrice),
+        value: formatWebsitePriceDisplay(item),
+        show: true,
       },
       {
         key: 'selling',
         label: 'Цена',
-        value: item.sellingPrice ?? item.price,
+        value: formatPriceDisplay(item.sellingPrice ?? item.price),
         show: isValidPrice(item.sellingPrice) || isValidPrice(item.price),
+        primary: true,
       },
     ]
       .filter((row) => row.show)
-      .map(({ show, value, ...row }) => ({
-        ...row,
-        value: formatPriceDisplay(value),
-      }));
-  }, [item, isClientMode]);
-
-  const specs = useMemo(() => {
-    if (!item) return [];
-    const rows = [];
-    if (item.brand) rows.push({ label: 'Бренд', value: item.brand });
-    if (item.sizeTitle) rows.push({ label: 'Размер', value: item.sizeTitle });
-    if (item.width != null) rows.push({ label: 'Ширина', value: String(item.width) });
-    if (item.profile != null) rows.push({ label: 'Профиль', value: String(item.profile) });
-    if (item.diameter != null) rows.push({ label: 'Диаметр', value: String(item.diameter) });
-    if (item.color) rows.push({ label: 'Цвет', value: item.color });
-    if (item.code) rows.push({ label: 'Код', value: item.code });
-    if (item.amount != null) rows.push({ label: 'В наличии', value: `${item.amount} шт.` });
-    if (item.runflat) rows.push({ label: 'Runflat', value: 'Да' });
-    if (!isClientMode && item.supplier) {
-      rows.push({ label: 'Поставщик', value: item.supplier });
-    }
-    return rows;
+      .map(({ show, ...row }) => row);
   }, [item, isClientMode]);
 
   const handleOverlayClick = (e) => {
     if (e.target === e.currentTarget) onClose();
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = (e) => {
+    e.stopPropagation();
     message.info('Корзина скоро будет доступна');
   };
 
@@ -159,71 +172,77 @@ const CatalogItemModalWindow = ({ isOpen, onClose, item, isClientMode = false })
           ref={closeBtnRef}
           className="product-modal__close"
           type="text"
-          icon={<CloseOutlined />}
+          icon={<CloseOutlined aria-hidden="true" />}
           onClick={onClose}
           aria-label="Закрыть"
         />
 
         <div className="product-modal__layout">
-          <div className="product-modal__media">
-            <img
-              src={photoSrc}
-              alt={item.title}
-              className="product-modal__image"
-              referrerPolicy="no-referrer"
-              onError={(e) => {
-                e.target.src = 'https://via.placeholder.com/800x600?text=No+Image';
-              }}
-            />
+          <div className="product-modal__stage">
+            <div className="product-modal__frame">
+              <img
+                src={photoSrc}
+                alt={item.title}
+                className="product-modal__image"
+                data-supplier={item.supplier || undefined}
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  e.target.src = 'https://via.placeholder.com/800x600?text=No+Image';
+                }}
+              />
+            </div>
           </div>
 
-          <div className="product-modal__info">
-            <Title id="product-modal-title" level={3} className="product-modal__title">
-              {item.title}
-            </Title>
+          <aside className="product-modal__meta">
+            <header className="product-modal__header">
+              <h2 id="product-modal-title" className="product-modal__title">
+                {item.title}
+              </h2>
+              {sizeDisplay ? (
+                <p className="product-modal__subtitle">{sizeDisplay}</p>
+              ) : null}
+            </header>
 
-            {(item.brand || item.sizeTitle) && (
-              <Text className="product-modal__subtitle">
-                {[item.brand, item.sizeTitle].filter(Boolean).join(', ')}
-              </Text>
-            )}
-
-            {specs.length > 0 && (
-              <dl className="product-modal__specs">
-                {specs.map((row) => (
-                  <div key={row.label} className="product-modal__spec-row">
-                    <dt>{row.label}</dt>
-                    <dd>{row.value}</dd>
+            {metaFields.length > 0 && (
+              <dl className="product-modal__meta-fields">
+                {metaFields.map((field) => (
+                  <div key={field.key} className="product-modal__meta-field">
+                    <dt>{field.label}</dt>
+                    <dd>{field.value}</dd>
                   </div>
                 ))}
               </dl>
             )}
 
-            <div className="product-modal__prices">
-              {priceRows.map((row) => (
-                <Flex
-                  key={row.key}
-                  className="product-modal__price-row"
-                  justify="space-between"
-                  align="baseline"
-                >
-                  <Text className="product-modal__price-label">{row.label}</Text>
-                  <Text className="product-modal__price-value">{row.value}</Text>
-                </Flex>
-              ))}
-            </div>
+            {priceRows.length > 0 && (
+              <div className="product-modal__prices">
+                {priceRows.map((row) => (
+                  <div
+                    key={row.key}
+                    className={[
+                      'product-modal__price-row',
+                      row.primary ? 'product-modal__price-row--primary' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                  >
+                    <span className="product-modal__price-label">{row.label}</span>
+                    <span className="product-modal__price-value">{row.value}</span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <Button
               className="product-modal__cart-btn"
               type="primary"
-              size="large"
               icon={<ShoppingCartOutlined />}
               onClick={handleAddToCart}
               block
             >
               В корзину
             </Button>
-          </div>
+          </aside>
         </div>
       </div>
     </div>,

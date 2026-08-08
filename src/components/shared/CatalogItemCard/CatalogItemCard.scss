@@ -149,6 +149,10 @@
     padding: 4px 0;
   }
 
+  .item-stock {
+    margin-bottom: 12px;
+  }
+
   .detail-label {
     color: $color-text-muted;
     flex-shrink: 0;
@@ -224,7 +228,7 @@
   }
 
   .item-cart-btn {
-    margin-top: 12px;
+    margin-top: auto;
     height: 40px;
     border-radius: $radius-md;
     font-weight: 600;
