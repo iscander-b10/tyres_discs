@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Flex, Layout } from 'antd';
 import { CartProvider } from './cart/CartContext';
 import SiteHeader from './components/SiteHeader/SiteHeader';
@@ -9,8 +9,30 @@ import SideBar from './components/SideBar/SideBar';
 import ScrollToTop from './components/ScrollToTop/ScrollToTop';
 import './App.scss';
 
+const CLIENT_MODE_STORAGE_KEY = 'ivanor-client-mode';
+
+/** @returns {boolean} true = client, false = manager. Default: manager. */
+function getInitialClientMode() {
+  try {
+    const stored = window.localStorage.getItem(CLIENT_MODE_STORAGE_KEY);
+    if (stored === 'true') return true;
+    if (stored === 'false') return false;
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
+
 function App({ appearance = 'light', onAppearanceChange }) {
-  const [clientMode, setClientMode] = useState(true);
+  const [clientMode, setClientMode] = useState(getInitialClientMode);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(CLIENT_MODE_STORAGE_KEY, String(clientMode));
+    } catch {
+      /* ignore */
+    }
+  }, [clientMode]);
   const [activeKey, setActiveKey] = useState('tires');
   const [catalogDataVersion, setCatalogDataVersion] = useState(0);
   const [sessionResetKey, setSessionResetKey] = useState(0);
