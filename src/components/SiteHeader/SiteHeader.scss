@@ -43,6 +43,14 @@
   flex-shrink: 0;
 }
 
+.site-header__contact {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  margin-right: 4px;
+}
+
 .site-header__icon-wrap {
   display: inline-flex;
 }
@@ -55,7 +63,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin-right: 8px;
+  margin-right: 0;
   padding: 8px 10px;
   border-radius: $radius-md;
   color: $color-text;
@@ -125,8 +133,6 @@
 .site-header__nav {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: $space-3;
   border-top: 1px solid $color-border-soft;
 }
 
@@ -138,74 +144,6 @@
   flex: 1;
   overflow-x: auto;
   scrollbar-width: thin;
-}
-
-.site-header__theme-btn {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  margin-block: 4px;
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: $radius-md;
-  cursor: pointer;
-  transition:
-    background-color 0.2s cubic-bezier(0.2, 0, 0, 1),
-    color 0.2s cubic-bezier(0.2, 0, 0, 1),
-    border-color 0.2s cubic-bezier(0.2, 0, 0, 1),
-    transform 0.15s cubic-bezier(0.2, 0, 0, 1),
-    box-shadow 0.2s cubic-bezier(0.2, 0, 0, 1);
-
-  .site-header__theme-btn-icon {
-    width: 22px;
-    height: 22px;
-    display: block;
-  }
-
-  /* Preview of destination theme: dark chip when switching to dark */
-  &.is-to-dark {
-    color: #f4f4f5;
-    background: #18181b;
-    border-color: #27272a;
-    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.06);
-
-    &:hover {
-      background: #27272a;
-    }
-  }
-
-  /* Preview of destination theme: light chip when switching to light */
-  &.is-to-light {
-    color: #18181b;
-    background: #f4f4f5;
-    border-color: #e4e4e7;
-    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.04);
-
-    &:hover {
-      background: #ffffff;
-    }
-  }
-
-  &:active:not(:disabled) {
-    transform: scale(0.96);
-  }
-
-  &.is-pending {
-    opacity: 0.72;
-    pointer-events: none;
-  }
-
-  &:disabled {
-    cursor: wait;
-  }
-
-  &:focus-visible {
-    outline: 2px solid $color-accent;
-    outline-offset: 2px;
-  }
 }
 
 .site-nav-item {
@@ -284,10 +222,5 @@
   .site-nav-item {
     padding: 10px 12px;
     font-size: 13px;
-  }
-
-  .site-header__theme-btn {
-    width: 32px;
-    height: 32px;
   }
 }

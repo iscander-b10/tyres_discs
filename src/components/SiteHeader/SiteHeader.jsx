@@ -1,10 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import { ShoppingCartOutlined } from '@ant-design/icons';
 import { ReactComponent as PhoneIcon } from '../../icons/Phone.svg';
 import { ReactComponent as UserIcon } from '../../icons/User.svg';
-import { ReactComponent as ThemeIcon } from '../../icons/Theme.svg';
-import { THEME_TRANSITION_MS } from '../../theme/appearance';
 import HoverTooltip from '../shared/HoverTooltip';
+import ThemeSwitch from '../shared/ThemeSwitch/ThemeSwitch';
 import './SiteHeader.scss';
 
 const NAV_ITEMS = [
@@ -23,33 +22,6 @@ function SiteHeader({
   onActiveKeyChange,
   onBrandClick,
 }) {
-  const isDark = appearance === 'dark';
-  const themeActionLabel = isDark ? 'Включить светлую тему' : 'Включить тёмную тему';
-  const themeTooltip = isDark ? 'Светлая тема' : 'Тёмная тема';
-  const [isThemePending, setIsThemePending] = useState(false);
-  const themeTimeoutRef = useRef(null);
-
-  useEffect(() => {
-    return () => {
-      if (themeTimeoutRef.current != null) {
-        window.clearTimeout(themeTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const handleThemeToggle = () => {
-    if (isThemePending) return;
-
-    const nextAppearance = isDark ? 'light' : 'dark';
-    setIsThemePending(true);
-    onAppearanceChange?.(nextAppearance);
-
-    themeTimeoutRef.current = window.setTimeout(() => {
-      themeTimeoutRef.current = null;
-      setIsThemePending(false);
-    }, THEME_TRANSITION_MS);
-  };
-
   return (
     <header className="site-header">
       <div className="site-header__inner">
@@ -66,10 +38,17 @@ function SiteHeader({
           </a>
 
           <div className="site-header__actions">
-            <a className="site-header__phone" href="tel:+78002508850">
-              <PhoneIcon className="site-header__phone-icon" aria-hidden />
-              <span>8 800 250 88 50</span>
-            </a>
+            <div className="site-header__contact">
+              <ThemeSwitch
+                appearance={appearance}
+                onAppearanceChange={onAppearanceChange}
+              />
+
+              <a className="site-header__phone" href="tel:+78002508850">
+                <PhoneIcon className="site-header__phone-icon" aria-hidden />
+                <span>8 800 250 88 50</span>
+              </a>
+            </div>
 
             <button
               type="button"
@@ -126,26 +105,6 @@ function SiteHeader({
               return <React.Fragment key={item.key}>{button}</React.Fragment>;
             })}
           </div>
-
-          <HoverTooltip title={themeTooltip} placement="bottom">
-            <button
-              type="button"
-              className={[
-                'site-header__theme-btn',
-                isDark ? 'is-to-light' : 'is-to-dark',
-                isThemePending ? 'is-pending' : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-              aria-label={themeActionLabel}
-              aria-pressed={isDark}
-              aria-busy={isThemePending || undefined}
-              disabled={isThemePending}
-              onClick={handleThemeToggle}
-            >
-              <ThemeIcon className="site-header__theme-btn-icon" aria-hidden />
-            </button>
-          </HoverTooltip>
         </nav>
       </div>
     </header>
