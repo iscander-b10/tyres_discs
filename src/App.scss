@@ -25,6 +25,10 @@
   padding-inline: clamp(16px, 2vw, 32px);
 }
 
+.catalog-panel[hidden] {
+  display: none;
+}
+
 /* App-wide Ant Tooltip — retail surface overlay (light/dark via CSS vars) */
 .app-tooltip {
   --antd-arrow-background-color: #{$color-surface};

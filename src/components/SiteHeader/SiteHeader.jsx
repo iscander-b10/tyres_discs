@@ -16,7 +16,13 @@ const NAV_ITEMS = [
   { key: 'storage', label: 'Хранение шин', disabled: true },
 ];
 
-function SiteHeader({ appearance = 'light', onAppearanceChange, activeKey, onActiveKeyChange }) {
+function SiteHeader({
+  appearance = 'light',
+  onAppearanceChange,
+  activeKey,
+  onActiveKeyChange,
+  onBrandClick,
+}) {
   const isDark = appearance === 'dark';
   const themeActionLabel = isDark ? 'Включить светлую тему' : 'Включить тёмную тему';
   const themeTooltip = isDark ? 'Светлая тема' : 'Тёмная тема';
@@ -48,7 +54,14 @@ function SiteHeader({ appearance = 'light', onAppearanceChange, activeKey, onAct
     <header className="site-header">
       <div className="site-header__inner">
         <div className="site-header__top">
-          <a className="site-brand" href="/" onClick={(e) => e.preventDefault()}>
+          <a
+            className="site-brand"
+            href="/"
+            onClick={(e) => {
+              e.preventDefault();
+              onBrandClick?.();
+            }}
+          >
             <span className="site-brand__mark">IVANOR</span>
           </a>
 

@@ -11,6 +11,12 @@ function App({ appearance = 'light', onAppearanceChange }) {
   const [clientMode, setClientMode] = useState(true);
   const [activeKey, setActiveKey] = useState('tires');
   const [catalogDataVersion, setCatalogDataVersion] = useState(0);
+  const [sessionResetKey, setSessionResetKey] = useState(0);
+
+  const handleBrandClick = () => {
+    setSessionResetKey((key) => key + 1);
+    setActiveKey('tires');
+  };
 
   return (
     <Layout className="app-layout">
@@ -19,22 +25,34 @@ function App({ appearance = 'light', onAppearanceChange }) {
         onAppearanceChange={onAppearanceChange}
         activeKey={activeKey}
         onActiveKeyChange={setActiveKey}
+        onBrandClick={handleBrandClick}
       />
 
       <Layout className="app-content-layout">
         <Layout.Content className="app-content">
           <Flex className="app-content-wrapper" vertical>
-            {activeKey === 'tires' ? (
+            <div
+              className="catalog-panel"
+              hidden={activeKey !== 'tires'}
+              inert={activeKey !== 'tires' ? true : undefined}
+            >
               <TiresSearchParameters
+                key={`tires-${sessionResetKey}`}
                 isClientMode={clientMode}
                 catalogDataVersion={catalogDataVersion}
               />
-            ) : (
+            </div>
+            <div
+              className="catalog-panel"
+              hidden={activeKey !== 'disks'}
+              inert={activeKey !== 'disks' ? true : undefined}
+            >
               <DiscsSearchParameters
+                key={`discs-${sessionResetKey}`}
                 isClientMode={clientMode}
                 catalogDataVersion={catalogDataVersion}
               />
-            )}
+            </div>
           </Flex>
         </Layout.Content>
       </Layout>
