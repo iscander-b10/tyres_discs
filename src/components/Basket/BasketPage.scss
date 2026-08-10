@@ -1,0 +1,495 @@
+@use '../../styles/tokens' as *;
+
+.basket-page {
+  width: 100%;
+  padding-block: $space-2 $space-6;
+
+  /* System green checkbox + white check — same as catalog filters */
+  .ant-checkbox {
+    width: 18px;
+    height: 18px;
+    --ant-color-primary: #{$color-checkbox};
+    --ant-color-primary-hover: #{$color-checkbox-hover};
+    --ant-wave-color: transparent;
+  }
+
+  .ant-checkbox .ant-checkbox-inner {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 1px solid $color-border !important;
+    background-color: $color-surface !important;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .ant-checkbox-checked .ant-checkbox-inner {
+    background-color: $color-checkbox !important;
+    border-color: $color-checkbox !important;
+  }
+
+  .ant-checkbox-checked .ant-checkbox-inner::after {
+    border-color: $color-on-accent !important;
+    width: 6px;
+    height: 9px;
+  }
+
+  .ant-checkbox-indeterminate .ant-checkbox-inner {
+    background-color: $color-surface !important;
+    border-color: $color-border-strong !important;
+  }
+
+  .ant-checkbox-indeterminate .ant-checkbox-inner::after {
+    background-color: $color-checkbox !important;
+  }
+
+  .ant-checkbox-wrapper:not(.ant-checkbox-wrapper-disabled):hover
+    .ant-checkbox:not(.ant-checkbox-checked):not(.ant-checkbox-disabled)
+    .ant-checkbox-inner,
+  .ant-checkbox:not(.ant-checkbox-checked):not(.ant-checkbox-disabled):hover .ant-checkbox-inner {
+    border-color: $color-border-strong !important;
+    background-color: $color-surface !important;
+  }
+
+  .ant-checkbox-wrapper:not(.ant-checkbox-wrapper-disabled):hover
+    .ant-checkbox-checked:not(.ant-checkbox-disabled)
+    .ant-checkbox-inner,
+  .ant-checkbox-checked:not(.ant-checkbox-disabled):hover .ant-checkbox-inner {
+    background-color: $color-checkbox-hover !important;
+    border-color: $color-checkbox-hover !important;
+  }
+
+  .ant-checkbox-wrapper:not(.ant-checkbox-wrapper-disabled):hover
+    .ant-checkbox-checked:not(.ant-checkbox-disabled)
+    .ant-checkbox-inner::after,
+  .ant-checkbox-checked:not(.ant-checkbox-disabled):hover .ant-checkbox-inner::after {
+    border-color: $color-on-accent !important;
+  }
+}
+
+.basket-page--empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 520px;
+  padding-block: clamp(48px, 12vh, 96px) $space-6;
+}
+
+.basket-page__header {
+  margin-bottom: $space-4;
+}
+
+.basket-page__title {
+  margin: 0 !important;
+  color: $color-text !important;
+  font-weight: 800 !important;
+  font-size: clamp(28px, 4vw, 36px) !important;
+  line-height: 1.15 !important;
+}
+
+.basket-page__lead {
+  margin: $space-3 0 $space-5 !important;
+  color: $color-text-muted !important;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.basket-page__cta {
+  height: 48px !important;
+  padding-inline: 28px !important;
+  border-radius: $radius-md !important;
+  font-weight: 700 !important;
+  background: $color-accent !important;
+  border-color: $color-accent !important;
+  color: $color-on-accent !important;
+
+  &:not(:disabled):hover {
+    background: $color-accent-hover !important;
+    border-color: $color-accent-hover !important;
+  }
+
+  &:not(:disabled):active {
+    transform: scale(0.96);
+  }
+}
+
+.basket-page__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  gap: $space-5;
+  align-items: start;
+}
+
+.basket-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-2;
+  padding: $space-3 $space-4;
+  margin-bottom: $space-3;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  background: $color-surface;
+}
+
+.basket-toolbar__link {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 4px 0;
+  min-height: 44px;
+  color: $color-text-muted;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+
+  &:hover {
+    color: $color-accent;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-accent;
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+.basket-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+}
+
+.basket-line {
+  display: grid;
+  grid-template-columns: auto 96px minmax(0, 1fr);
+  gap: $space-3;
+  padding: $space-4;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  background: $color-surface;
+  box-shadow: $shadow-card;
+}
+
+.basket-line__check {
+  display: flex;
+  align-items: flex-start;
+  padding-top: 4px;
+}
+
+.basket-line__media {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  width: 96px;
+  height: 96px;
+  border-radius: $radius-md;
+  background: $color-surface-muted;
+  overflow: hidden;
+  cursor: pointer;
+  outline: 1px solid oklch(0 0 0 / 0.1);
+
+  &:focus-visible {
+    outline: 2px solid $color-accent;
+    outline-offset: 2px;
+  }
+}
+
+[data-theme='dark'] .basket-line__media {
+  outline-color: oklch(1 0 0 / 0.1);
+}
+
+.basket-line__image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+}
+
+.basket-line__body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+}
+
+.basket-line__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $space-2;
+}
+
+.basket-line__info {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  min-width: 0;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+  border-radius: $radius-sm;
+
+  &:focus-visible {
+    outline: 2px solid $color-accent;
+    outline-offset: 2px;
+  }
+
+  &:hover .basket-line__name {
+    color: $color-accent;
+  }
+}
+
+.basket-line__code {
+  font-size: 12px;
+}
+
+.basket-line__name {
+  font-size: 15px;
+  font-weight: 600;
+  color: $color-text;
+  line-height: 1.35;
+  transition: color 0.15s ease;
+}
+
+.basket-line__size,
+.basket-line__supplier {
+  font-size: 13px;
+}
+
+.basket-line__remove {
+  flex-shrink: 0;
+  width: 44px !important;
+  height: 44px !important;
+  color: $color-text-subtle !important;
+  border-radius: $radius-md !important;
+
+  &:hover {
+    color: $color-accent !important;
+    background: $color-accent-muted !important;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-accent;
+    outline-offset: 1px;
+  }
+}
+
+.basket-line__bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: $space-3;
+}
+
+.basket-line__prices-hit {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  border-radius: $radius-sm;
+
+  &:focus-visible {
+    outline: 2px solid $color-accent;
+    outline-offset: 2px;
+  }
+}
+
+.basket-line__prices {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+}
+
+.basket-line__price-row {
+  display: flex;
+  justify-content: space-between;
+  gap: $space-3;
+  font-size: 13px;
+  color: $color-text-muted;
+
+  span:last-child {
+    font-variant-numeric: tabular-nums;
+    color: $color-text;
+  }
+
+  &--primary {
+    font-weight: 700;
+    color: $color-text;
+    font-size: 14px;
+  }
+}
+
+.basket-line__qty-sum {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $space-3;
+  margin-left: auto;
+}
+
+.basket-line__sum {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 110px;
+}
+
+.basket-line__sum-total {
+  font-size: 18px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: $color-text;
+  line-height: 1.2;
+}
+
+.basket-line__sum-unit {
+  font-size: 12px;
+  color: $color-text-subtle;
+  font-variant-numeric: tabular-nums;
+}
+
+.basket-summary {
+  position: sticky;
+  top: $space-3;
+  padding: $space-4;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  background: $color-surface;
+  box-shadow: $shadow-card;
+}
+
+.basket-summary__title {
+  margin: 0 0 $space-4;
+  font-size: 18px;
+  font-weight: 700;
+  color: $color-text;
+}
+
+.basket-summary__row {
+  display: flex;
+  justify-content: space-between;
+  gap: $space-3;
+  margin-bottom: $space-2;
+  font-size: 14px;
+  color: $color-text;
+  font-variant-numeric: tabular-nums;
+
+  &--muted {
+    color: $color-text-muted;
+  }
+}
+
+.basket-summary__total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: $space-3;
+  margin: $space-4 0;
+  padding-top: $space-3;
+  border-top: 1px solid $color-border-soft;
+  font-size: 20px;
+  font-weight: 800;
+  color: $color-text;
+  font-variant-numeric: tabular-nums;
+}
+
+.basket-summary__continue {
+  height: 48px !important;
+  border-radius: $radius-md !important;
+  font-weight: 700 !important;
+  background: $color-accent !important;
+  border-color: $color-accent !important;
+  color: $color-on-accent !important;
+
+  &:not(:disabled):hover {
+    background: $color-accent-hover !important;
+    border-color: $color-accent-hover !important;
+  }
+
+  &:not(:disabled):active {
+    transform: scale(0.96);
+  }
+}
+
+.basket-summary__clear {
+  display: block;
+  width: 100%;
+  margin-top: $space-3;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  min-height: 44px;
+  color: $color-text-muted;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+
+  &:hover {
+    color: $color-accent;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-accent;
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+@media (max-width: 960px) {
+  .basket-page__layout {
+    grid-template-columns: 1fr;
+  }
+
+  .basket-summary {
+    position: static;
+    order: -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .basket-line {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'check body'
+      'media body';
+  }
+
+  .basket-line__check {
+    grid-area: check;
+  }
+
+  .basket-line__media {
+    grid-area: media;
+    width: 72px;
+    height: 72px;
+  }
+
+  .basket-line__body {
+    grid-area: body;
+  }
+
+  .basket-line__qty-sum {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+  }
+}

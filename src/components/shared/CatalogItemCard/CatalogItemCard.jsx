@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { Button, Card, Divider, Flex, Image, Space, Typography, message } from 'antd';
-import { ShoppingCartOutlined } from '@ant-design/icons';
+import { Card, Divider, Flex, Image, Space, Typography } from 'antd';
 import runflatIcon from '../../../icons/runflat.jpg';
 import { ReactComponent as VanIcon } from '../../../icons/Van.svg';
 import { resolvePhotoUrl } from '../../../utils/fetchSupplier';
 import HoverTooltip from '../HoverTooltip';
+import AddToCartControl from '../AddToCartControl/AddToCartControl';
 import {
   formatPriceDisplay,
   formatWebsitePriceDisplay,
@@ -85,11 +85,6 @@ const CatalogItemCard = ({
 
   const handleImageClick = () => setIsModalOpen(true);
   const handleCloseModal = () => setIsModalOpen(false);
-
-  const handleAddToCart = (e) => {
-    e.stopPropagation();
-    message.info('Корзина скоро будет доступна');
-  };
 
   if (!item) return null;
 
@@ -196,15 +191,7 @@ const CatalogItemCard = ({
                   )}
                 </Space>
               </Flex>
-              <Button
-                className="item-cart-btn"
-                type="primary"
-                icon={<ShoppingCartOutlined />}
-                onClick={handleAddToCart}
-                block
-              >
-                В корзину
-              </Button>
+              <AddToCartControl item={item} className="item-cart-control" />
             </Flex>
           }
         />

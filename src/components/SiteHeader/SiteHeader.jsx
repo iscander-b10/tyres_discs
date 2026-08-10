@@ -2,6 +2,7 @@ import React from 'react';
 import { ShoppingCartOutlined } from '@ant-design/icons';
 import { ReactComponent as PhoneIcon } from '../../icons/Phone.svg';
 import { ReactComponent as UserIcon } from '../../icons/User.svg';
+import { useCart } from '../../cart/CartContext';
 import HoverTooltip from '../shared/HoverTooltip';
 import ThemeSwitch from '../shared/ThemeSwitch/ThemeSwitch';
 import './SiteHeader.scss';
@@ -22,6 +23,11 @@ function SiteHeader({
   onActiveKeyChange,
   onBrandClick,
 }) {
+  const { totalQuantity, goToBasket } = useCart();
+  const cartActive = activeKey === 'basket';
+  const badgeLabel =
+    totalQuantity > 99 ? '99+' : totalQuantity > 0 ? String(totalQuantity) : null;
+
   return (
     <header className="site-header">
       <div className="site-header__inner">
@@ -59,14 +65,42 @@ function SiteHeader({
               <span className="site-header__icon-label">Войти</span>
             </button>
 
-            <button
-              type="button"
-              className="site-header__icon-btn"
-              aria-label="Корзина"
+            <div
+              className={[
+                'site-header__cart-shell',
+                cartActive ? 'is-active' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
             >
-              <ShoppingCartOutlined aria-hidden />
-              <span className="site-header__icon-label">Корзина</span>
-            </button>
+              <button
+                type="button"
+                className={[
+                  'site-header__icon-btn',
+                  'site-header__cart-btn',
+                  cartActive ? 'is-active' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                aria-label={
+                  totalQuantity > 0
+                    ? `Корзина, ${totalQuantity}`
+                    : 'Корзина'
+                }
+                aria-current={cartActive ? 'page' : undefined}
+                onClick={() => goToBasket()}
+              >
+                <span className="site-header__cart-icon-wrap">
+                  <ShoppingCartOutlined aria-hidden />
+                  {badgeLabel ? (
+                    <span className="site-header__cart-badge" aria-hidden>
+                      {badgeLabel}
+                    </span>
+                  ) : null}
+                </span>
+                <span className="site-header__icon-label">Корзина</span>
+              </button>
+            </div>
           </div>
         </div>
 

@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import { Button, message } from 'antd';
-import { CloseOutlined, ShoppingCartOutlined } from '@ant-design/icons';
+import { Button } from 'antd';
+import { CloseOutlined } from '@ant-design/icons';
 import { resolvePhotoUrl } from '../../../utils/fetchSupplier';
+import AddToCartControl from '../AddToCartControl/AddToCartControl';
 import {
   formatCatalogSizeDisplay,
   formatPriceDisplay,
@@ -147,11 +148,6 @@ const CatalogItemModalWindow = ({ isOpen, onClose, item, isClientMode = false })
     if (e.target === e.currentTarget) onClose();
   };
 
-  const handleAddToCart = (e) => {
-    e.stopPropagation();
-    message.info('Корзина скоро будет доступна');
-  };
-
   if (!isOpen || !item) return null;
 
   return ReactDOM.createPortal(
@@ -233,15 +229,13 @@ const CatalogItemModalWindow = ({ isOpen, onClose, item, isClientMode = false })
               </div>
             )}
 
-            <Button
-              className="product-modal__cart-btn"
-              type="primary"
-              icon={<ShoppingCartOutlined />}
-              onClick={handleAddToCart}
-              block
-            >
-              В корзину
-            </Button>
+            <AddToCartControl
+              item={item}
+              className="product-modal__cart-control"
+              onGoToCart={() => {
+                onClose?.();
+              }}
+            />
           </aside>
         </div>
       </div>

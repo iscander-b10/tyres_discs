@@ -1,0 +1,67 @@
+import React from 'react';
+import { Button } from 'antd';
+import { ShoppingCartOutlined } from '@ant-design/icons';
+import { useCart } from '../../../cart/CartContext';
+import { getCartItemKey, getDefaultCartQty, parseStock } from '../../../cart/cartUtils';
+import CartQtyControls from '../CartQtyControls/CartQtyControls';
+import './AddToCartControl.scss';
+
+function AddToCartControl({ item, onGoToCart, className = '', block = true }) {
+  const { addItem, getItem, increment, decrement, goToBasket } = useCart();
+  const key = getCartItemKey(item);
+  const cartLine = getItem(key);
+  const stock = parseStock(item?.amount);
+  const canAdd = stock > 0 && getDefaultCartQty(item?.amount) > 0;
+
+  const handleGoToCart = (e) => {
+    e.stopPropagation();
+    onGoToCart?.();
+    goToBasket();
+  };
+
+  if (cartLine) {
+    const maxStock = parseStock(cartLine.maxStock ?? cartLine.amount ?? item?.amount);
+    return (
+      <div
+        className={['add-to-cart', 'add-to-cart--in-cart', className]
+          .filter(Boolean)
+          .join(' ')}
+      >
+        <CartQtyControls
+          quantity={cartLine.quantity}
+          maxStock={maxStock}
+          onDecrement={() => decrement(key)}
+          onIncrement={() => increment(key)}
+          size="small"
+        />
+        <Button
+          className="add-to-cart__go"
+          type="default"
+          onClick={handleGoToCart}
+          block={block}
+        >
+          Перейти в корзину
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <Button
+      className={['add-to-cart__add', className].filter(Boolean).join(' ')}
+      type="primary"
+      icon={<ShoppingCartOutlined aria-hidden />}
+      disabled={!canAdd}
+      block={block}
+      onClick={(e) => {
+        e.stopPropagation();
+        addItem(item);
+      }}
+      aria-label={canAdd ? 'Добавить в корзину' : 'Нет в наличии'}
+    >
+      В корзину
+    </Button>
+  );
+}
+
+export default AddToCartControl;

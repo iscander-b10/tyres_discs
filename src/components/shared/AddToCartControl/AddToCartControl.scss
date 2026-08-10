@@ -1,0 +1,73 @@
+@use '../../../styles/tokens' as *;
+
+.add-to-cart {
+  display: flex;
+  align-items: stretch;
+  gap: $space-2;
+  width: 100%;
+  margin-top: auto;
+}
+
+.add-to-cart--in-cart {
+  flex-wrap: nowrap;
+}
+
+.add-to-cart__add {
+  margin-top: auto;
+  height: 40px;
+  border-radius: $radius-md !important;
+  font-weight: 600;
+  background: $color-accent !important;
+  border-color: $color-accent !important;
+  color: $color-on-accent !important;
+
+  &:not(:disabled):hover {
+    background: $color-accent-hover !important;
+    border-color: $color-accent-hover !important;
+    color: $color-on-accent !important;
+  }
+
+  &:not(:disabled):active {
+    transform: scale(0.96);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-accent;
+    outline-offset: 2px;
+  }
+}
+
+.add-to-cart__go {
+  flex: 1;
+  min-width: 0;
+  height: auto !important;
+  min-height: 40px;
+  padding-inline: 10px !important;
+  border-radius: $radius-md !important;
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.2;
+  white-space: normal;
+  background: $color-accent-muted !important;
+  border: 1px solid $color-accent-border !important;
+  color: $color-accent !important;
+
+  &:not(:disabled):hover {
+    background: $color-accent-muted !important;
+    border-color: $color-accent !important;
+    color: $color-accent-hover !important;
+  }
+
+  &:not(:disabled):active {
+    transform: scale(0.96);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-accent;
+    outline-offset: 2px;
+  }
+}
