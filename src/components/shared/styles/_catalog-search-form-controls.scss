@@ -407,14 +407,16 @@ $catalog-text: $color-text;
   .ant-checkbox {
     @include catalog-search-form-theme-tokens();
 
+    width: 18px;
+    height: 18px;
     --ant-color-primary: #{$color-checkbox};
     --ant-color-primary-hover: #{$color-checkbox-hover};
     --ant-wave-color: transparent;
   }
 
   .ant-checkbox .ant-checkbox-inner {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
     border-radius: 4px;
     border: 1px solid $color-border !important;
     background-color: $color-surface !important;
@@ -428,8 +430,8 @@ $catalog-text: $color-text;
 
   .ant-checkbox-checked .ant-checkbox-inner::after {
     border-color: $color-on-accent !important;
-    width: 5px;
-    height: 8px;
+    width: 6px;
+    height: 9px;
   }
 
   // Unchecked hover/focus: keep neutral border, no accent ring
@@ -1029,7 +1031,7 @@ $catalog-text: $color-text;
     min-width: 32px;
     height: 32px;
     padding: 0;
-    border-radius: 50%;
+    border-radius: $radius-md;
     border: 1px solid transparent;
     box-shadow: none;
     font-size: 16px;
