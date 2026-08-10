@@ -168,8 +168,9 @@
 
 .basket-line {
   display: grid;
-  grid-template-columns: auto 96px minmax(0, 1fr);
+  grid-template-columns: auto 148px minmax(0, 1fr);
   gap: $space-3;
+  align-items: stretch;
   padding: $space-4;
   border: 1px solid $color-border;
   border-radius: $radius-lg;
@@ -187,22 +188,53 @@
   appearance: none;
   border: 0;
   padding: 0;
-  width: 96px;
-  height: 96px;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 148px;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: $radius-md;
-  background: $color-surface-muted;
+  background: transparent;
   overflow: hidden;
   cursor: pointer;
-  outline: 1px solid oklch(0 0 0 / 0.1);
+  outline: none;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: $color-accent-muted;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    pointer-events: none;
+    border-radius: inherit;
+  }
+
+  &:hover::after {
+    opacity: 1;
+  }
+
+  &:hover .basket-line__image {
+    transform: scale(1.03);
+  }
 
   &:focus-visible {
     outline: 2px solid $color-accent;
     outline-offset: 2px;
   }
-}
 
-[data-theme='dark'] .basket-line__media {
-  outline-color: oklch(1 0 0 / 0.1);
+  @media (prefers-reduced-motion: reduce) {
+    &::after {
+      transition: none;
+    }
+
+    &:hover .basket-line__image {
+      transform: none;
+    }
+  }
 }
 
 .basket-line__image {
@@ -211,6 +243,11 @@
   object-fit: contain;
   display: block;
   pointer-events: none;
+  transition: transform 0.2s ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
 
 .basket-line__body {
@@ -218,6 +255,7 @@
   display: flex;
   flex-direction: column;
   gap: $space-3;
+  height: 100%;
 }
 
 .basket-line__top {
@@ -236,7 +274,7 @@
   text-align: left;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   cursor: pointer;
   border-radius: $radius-sm;
 
@@ -250,21 +288,26 @@
   }
 }
 
+/* Type scale: code (sm) → size/supplier (md) → name (lg) */
 .basket-line__code {
-  font-size: 12px;
+  font-size: 13px;
+  line-height: 1.35;
 }
 
 .basket-line__name {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 700;
   color: $color-text;
-  line-height: 1.35;
+  line-height: 1.3;
+  text-wrap: balance;
   transition: color 0.15s ease;
 }
 
 .basket-line__size,
 .basket-line__supplier {
-  font-size: 13px;
+  font-size: 15px;
+  line-height: 1.35;
+  color: $color-text-muted;
 }
 
 .basket-line__remove {
@@ -290,7 +333,8 @@
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
-  gap: $space-3;
+  gap: $space-4;
+  margin-top: auto;
 }
 
 .basket-line__prices-hit {
@@ -298,9 +342,16 @@
   border: 0;
   background: transparent;
   padding: 0;
+  flex: 0 1 auto;
+  display: flex;
+  justify-content: flex-start;
   cursor: pointer;
   text-align: left;
   border-radius: $radius-sm;
+  font-family: $font-sans;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
 
   &:focus-visible {
     outline: 2px solid $color-accent;
@@ -309,28 +360,39 @@
 }
 
 .basket-line__prices {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 160px;
+  display: grid;
+  grid-template-columns: auto minmax(11ch, max-content);
+  column-gap: $space-4;
+  row-gap: 6px;
+  align-items: baseline;
+  min-width: 180px;
+  max-width: 280px;
+  font-family: $font-sans;
 }
 
 .basket-line__price-row {
-  display: flex;
-  justify-content: space-between;
-  gap: $space-3;
-  font-size: 13px;
+  display: contents;
+  font-family: $font-sans;
+  font-size: 15px;
+  line-height: 1.35;
   color: $color-text-muted;
 
-  span:last-child {
-    font-variant-numeric: tabular-nums;
-    color: $color-text;
+  > span:first-child {
+    text-align: start;
+    color: $color-text-muted;
   }
 
-  &--primary {
+  > span:last-child {
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    color: $color-text;
+    font-family: $font-sans;
+  }
+
+  &--primary > span {
     font-weight: 700;
     color: $color-text;
-    font-size: 14px;
+    font-size: 16px;
   }
 }
 
@@ -339,7 +401,8 @@
   flex-wrap: wrap;
   align-items: center;
   gap: $space-3;
-  margin-left: auto;
+  margin-inline-start: auto;
+  flex-shrink: 0;
 }
 
 .basket-line__sum {
@@ -348,9 +411,11 @@
   align-items: flex-end;
   gap: 2px;
   min-width: 110px;
+  font-family: $font-sans;
 }
 
 .basket-line__sum-total {
+  font-family: $font-sans;
   font-size: 18px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
@@ -359,6 +424,7 @@
 }
 
 .basket-line__sum-unit {
+  font-family: $font-sans;
   font-size: 12px;
   color: $color-text-subtle;
   font-variant-numeric: tabular-nums;
@@ -479,17 +545,29 @@
 
   .basket-line__media {
     grid-area: media;
-    width: 72px;
-    height: 72px;
+    width: 96px;
+    min-height: 96px;
+    height: auto;
+    padding: 0;
   }
 
   .basket-line__body {
     grid-area: body;
   }
 
+  .basket-line__prices-hit {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+  }
+
+  .basket-line__prices {
+    max-width: none;
+    width: 100%;
+  }
+
   .basket-line__qty-sum {
     width: 100%;
-    margin-left: 0;
+    margin-inline-start: 0;
     justify-content: space-between;
   }
 }

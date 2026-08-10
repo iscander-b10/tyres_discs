@@ -209,7 +209,7 @@ function BasketPage({ isClientMode = false, onContinueSelection, isActive = true
                             {item.sizeTitle}
                           </Text>
                         ) : null}
-                        {item.supplier ? (
+                        {!isClientMode && item.supplier ? (
                           <Text className="basket-line__supplier" type="secondary">
                             {item.supplier}
                           </Text>
