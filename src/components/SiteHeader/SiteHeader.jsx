@@ -67,12 +67,7 @@ function SiteHeader({
 
             <button
               type="button"
-              className={[
-                'site-header__icon-btn',
-                cartActive ? 'is-active' : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
+              className="site-header__icon-btn"
               aria-label={
                 totalQuantity > 0
                   ? `Корзина, ${totalQuantity}`
