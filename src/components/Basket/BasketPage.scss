@@ -170,7 +170,7 @@
   display: grid;
   grid-template-columns: auto 148px minmax(0, 1fr);
   gap: $space-3;
-  align-items: stretch;
+  align-items: start;
   padding: $space-4;
   border: 1px solid $color-border;
   border-radius: $radius-lg;
@@ -189,15 +189,14 @@
   border: 0;
   padding: 0;
   position: relative;
-  width: 100%;
-  height: 100%;
-  min-height: 148px;
-  align-self: stretch;
+  width: 148px;
+  height: 148px;
+  align-self: start;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: $radius-md;
-  background: transparent;
+  background: $color-surface-muted;
   overflow: hidden;
   cursor: pointer;
   outline: none;
@@ -206,7 +205,8 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: $color-accent-muted;
+    /* Soft light-gray wash (theme-aware), not a solid fill that hides the photo */
+    background: $color-cta-muted-hover;
     opacity: 0;
     transition: opacity 0.15s ease;
     pointer-events: none;
@@ -222,7 +222,7 @@
   }
 
   &:focus-visible {
-    outline: 2px solid $color-accent;
+    outline: 2px solid $color-border-strong;
     outline-offset: 2px;
   }
 
@@ -251,18 +251,26 @@
 }
 
 .basket-line__body {
+  position: relative;
+  min-width: 0;
+  min-height: 148px; /* match photo so right store total can sit at card bottom */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: $space-4;
+  align-items: stretch;
+  /* No padding-inline-end gutter — totals right-align under × */
+}
+
+.basket-line__main {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: $space-3;
-  height: 100%;
+  /* Manager: info → unit prices tight (same as info stack) */
+  gap: 4px;
 }
 
-.basket-line__top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: $space-2;
+.basket-page--client .basket-line__main {
+  min-height: 100%;
 }
 
 .basket-line__info {
@@ -311,6 +319,10 @@
 }
 
 .basket-line__remove {
+  position: absolute;
+  top: -4px;
+  inset-inline-end: -4px;
+  z-index: 1;
   flex-shrink: 0;
   width: 44px !important;
   height: 44px !important;
@@ -332,8 +344,11 @@
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: $space-4;
+}
+
+.basket-page--client .basket-line__bottom {
   margin-top: auto;
 }
 
@@ -354,7 +369,7 @@
   color: inherit;
 
   &:focus-visible {
-    outline: 2px solid $color-accent;
+    outline: 2px solid $color-border-strong;
     outline-offset: 2px;
   }
 }
@@ -396,12 +411,36 @@
   }
 }
 
-.basket-line__qty-sum {
+.basket-line__end {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  align-self: stretch;
+  /* Clear absolute × above the totals block */
+  padding-top: 36px;
+}
+
+.basket-page--client .basket-line__end {
+  padding-top: 0;
+}
+
+/* Website total above; qty + store sum as one bottom row */
+.basket-line__sums {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.basket-line__store {
+  display: flex;
   align-items: center;
   gap: $space-3;
-  margin-inline-start: auto;
+}
+
+.basket-line__qty {
   flex-shrink: 0;
 }
 
@@ -412,6 +451,13 @@
   gap: 2px;
   min-width: 110px;
   font-family: $font-sans;
+}
+
+.basket-line__sum-label {
+  font-family: $font-sans;
+  font-size: 12px;
+  line-height: 1.25;
+  color: $color-text-muted;
 }
 
 .basket-line__sum-total {
@@ -428,6 +474,27 @@
   font-size: 12px;
   color: $color-text-subtle;
   font-variant-numeric: tabular-nums;
+}
+
+/* Internet kit total: same scale as left «Интернет цена», store sum stays dominant */
+.basket-line__sum--website {
+  .basket-line__sum-label {
+    font-size: 15px;
+    line-height: 1.35;
+    color: $color-text-muted;
+  }
+
+  .basket-line__sum-total {
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 1.35;
+    color: $color-text;
+  }
+
+  .basket-line__sum-unit {
+    font-size: 12px;
+    color: $color-text-subtle;
+  }
 }
 
 .basket-summary {
@@ -546,17 +613,29 @@
   .basket-line__media {
     grid-area: media;
     width: 96px;
-    min-height: 96px;
-    height: auto;
+    height: 96px;
+    min-height: 0;
+    align-self: start;
     padding: 0;
   }
 
   .basket-line__body {
     grid-area: body;
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+    row-gap: $space-3;
+  }
+
+  .basket-page--client .basket-line__body {
+    min-height: 96px;
+  }
+
+  .basket-line__main {
+    padding-inline-end: 44px; /* clear × when columns stack */
   }
 
   .basket-line__prices-hit {
-    flex: 1 1 100%;
+    flex: 1 1 auto;
     justify-content: flex-start;
   }
 
@@ -565,9 +644,27 @@
     width: 100%;
   }
 
-  .basket-line__qty-sum {
+  .basket-line__bottom {
     width: 100%;
-    margin-inline-start: 0;
+  }
+
+  .basket-line__end {
+    width: 100%;
+    align-items: flex-end;
+    padding-top: 0;
+    min-height: 0;
+  }
+
+  .basket-line__sums {
+    width: 100%;
+  }
+
+  .basket-line__store {
+    width: 100%;
     justify-content: space-between;
+  }
+
+  .basket-page--client .basket-line__end {
+    margin-top: auto;
   }
 }

@@ -2,7 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Checkbox, Typography } from 'antd';
 import { CloseOutlined } from '@ant-design/icons';
 import { useCart } from '../../cart/CartContext';
-import { getUnitSellingPrice, parseStock } from '../../cart/cartUtils';
+import {
+  getUnitSellingPrice,
+  getUnitWebsitePrice,
+  parseStock,
+} from '../../cart/cartUtils';
 import {
   formatPriceDisplay,
   formatWebsitePriceDisplay,
@@ -124,7 +128,10 @@ function BasketPage({ isClientMode = false, onContinueSelection, isActive = true
         : `${totals.quantity} товаров`;
 
   return (
-    <section className="basket-page" aria-labelledby="basket-title">
+    <section
+      className={`basket-page${isClientMode ? ' basket-page--client' : ''}`}
+      aria-labelledby="basket-title"
+    >
       <header className="basket-page__header">
         <Title id="basket-title" level={2} className="basket-page__title">
           Корзина
@@ -156,6 +163,9 @@ function BasketPage({ isClientMode = false, onContinueSelection, isActive = true
             {items.map((item) => {
               const unit = getUnitSellingPrice(item);
               const lineTotal = unit * (item.quantity || 0);
+              const websiteUnit = !isClientMode ? getUnitWebsitePrice(item) : 0;
+              const websiteTotal =
+                websiteUnit > 0 ? websiteUnit * (item.quantity || 0) : 0;
               const photoSrc = resolvePhotoUrl(item.photoUrl, item.supplier);
               const maxStock = parseStock(item.maxStock ?? item.amount);
 
@@ -192,7 +202,18 @@ function BasketPage({ isClientMode = false, onContinueSelection, isActive = true
                   </button>
 
                   <div className="basket-line__body">
-                    <div className="basket-line__top">
+                    <Button
+                      className="basket-line__remove"
+                      type="text"
+                      icon={<CloseOutlined aria-hidden />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeItem(item.key);
+                      }}
+                      aria-label={`Удалить ${item.title}`}
+                    />
+
+                    <div className="basket-line__main">
                       <button
                         type="button"
                         className="basket-line__info"
@@ -216,46 +237,55 @@ function BasketPage({ isClientMode = false, onContinueSelection, isActive = true
                         ) : null}
                       </button>
 
-                      <Button
-                        className="basket-line__remove"
-                        type="text"
-                        icon={<CloseOutlined aria-hidden />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeItem(item.key);
-                        }}
-                        aria-label={`Удалить ${item.title}`}
-                      />
+                      <div className="basket-line__bottom">
+                        <button
+                          type="button"
+                          className="basket-line__prices-hit"
+                          onClick={() => setModalItem(item)}
+                        >
+                          <BasketLinePrices item={item} isClientMode={isClientMode} />
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="basket-line__bottom">
-                      <button
-                        type="button"
-                        className="basket-line__prices-hit"
-                        onClick={() => setModalItem(item)}
-                      >
-                        <BasketLinePrices item={item} isClientMode={isClientMode} />
-                      </button>
-
-                      <div
-                        className="basket-line__qty-sum"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <CartQtyControls
-                          quantity={item.quantity}
-                          maxStock={maxStock}
-                          onDecrement={() => decrement(item.key)}
-                          onIncrement={() => increment(item.key)}
-                        />
-                        <div className="basket-line__sum">
-                          <span className="basket-line__sum-total">
-                            {formatMoney(lineTotal)}
-                          </span>
-                          {unit > 0 ? (
-                            <span className="basket-line__sum-unit">
-                              {formatMoney(unit)} × {item.quantity}
+                    <div
+                      className="basket-line__end"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="basket-line__sums">
+                        {websiteTotal > 0 ? (
+                          <div className="basket-line__sum basket-line__sum--website">
+                            <span className="basket-line__sum-label">
+                              Интернет цена
                             </span>
-                          ) : null}
+                            <span className="basket-line__sum-total">
+                              {formatMoney(websiteTotal)}
+                            </span>
+                            <span className="basket-line__sum-unit">
+                              {formatMoney(websiteUnit)} × {item.quantity}
+                            </span>
+                          </div>
+                        ) : null}
+
+                        <div className="basket-line__store">
+                          <div className="basket-line__qty">
+                            <CartQtyControls
+                              quantity={item.quantity}
+                              maxStock={maxStock}
+                              onDecrement={() => decrement(item.key)}
+                              onIncrement={() => increment(item.key)}
+                            />
+                          </div>
+                          <div className="basket-line__sum basket-line__sum--store">
+                            <span className="basket-line__sum-total">
+                              {formatMoney(lineTotal)}
+                            </span>
+                            {unit > 0 ? (
+                              <span className="basket-line__sum-unit">
+                                {formatMoney(unit)} × {item.quantity}
+                              </span>
+                            ) : null}
+                          </div>
                         </div>
                       </div>
                     </div>

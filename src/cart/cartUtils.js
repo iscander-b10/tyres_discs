@@ -39,6 +39,14 @@ export const getUnitB2bPrice = (item) => {
   return Number.isFinite(num) && num > 0 ? num : 0;
 };
 
+export const getUnitWebsitePrice = (item) => {
+  if (!item) return 0;
+  const raw = item.websitePrice;
+  if (raw == null || raw === '') return 0;
+  const num = typeof raw === 'number' ? raw : Number(String(raw).replace(',', '.'));
+  return Number.isFinite(num) && num > 0 ? num : 0;
+};
+
 export const clampCartQty = (qty, maxStock) => {
   const stock = parseStock(maxStock);
   const n = Math.floor(Number(qty));
