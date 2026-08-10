@@ -65,42 +65,32 @@ function SiteHeader({
               <span className="site-header__icon-label">Войти</span>
             </button>
 
-            <div
+            <button
+              type="button"
               className={[
-                'site-header__cart-shell',
+                'site-header__icon-btn',
                 cartActive ? 'is-active' : '',
               ]
                 .filter(Boolean)
                 .join(' ')}
+              aria-label={
+                totalQuantity > 0
+                  ? `Корзина, ${totalQuantity}`
+                  : 'Корзина'
+              }
+              aria-current={cartActive ? 'page' : undefined}
+              onClick={() => goToBasket()}
             >
-              <button
-                type="button"
-                className={[
-                  'site-header__icon-btn',
-                  'site-header__cart-btn',
-                  cartActive ? 'is-active' : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                aria-label={
-                  totalQuantity > 0
-                    ? `Корзина, ${totalQuantity}`
-                    : 'Корзина'
-                }
-                aria-current={cartActive ? 'page' : undefined}
-                onClick={() => goToBasket()}
-              >
-                <span className="site-header__cart-icon-wrap">
-                  <ShoppingCartOutlined aria-hidden />
-                  {badgeLabel ? (
-                    <span className="site-header__cart-badge" aria-hidden>
-                      {badgeLabel}
-                    </span>
-                  ) : null}
-                </span>
-                <span className="site-header__icon-label">Корзина</span>
-              </button>
-            </div>
+              <span className="site-header__cart-icon-wrap">
+                <ShoppingCartOutlined aria-hidden />
+                {badgeLabel ? (
+                  <span className="site-header__cart-badge" aria-hidden>
+                    {badgeLabel}
+                  </span>
+                ) : null}
+              </span>
+              <span className="site-header__icon-label">Корзина</span>
+            </button>
           </div>
         </div>
 
