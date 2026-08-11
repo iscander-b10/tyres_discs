@@ -96,8 +96,10 @@ export const loadSupplierData = async (supplierKey) => {
     }
 
     const tyres = supplier.transformTyres && rawTyres ? supplier.transformTyres(rawTyres) : [];
+    // Общий raw: объект с .rims (Форточки) или плоский массив строк (ШинаСу)
     const rawDiscsFallback =
-      !rawDiscs && rawTyres && Array.isArray(rawTyres.rims) ? rawTyres : rawDiscs;
+      rawDiscs ??
+      (rawTyres && (Array.isArray(rawTyres.rims) || Array.isArray(rawTyres)) ? rawTyres : null);
     const discs =
       supplier.transformDiscs && rawDiscsFallback ? supplier.transformDiscs(rawDiscsFallback) : [];
 
