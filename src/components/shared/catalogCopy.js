@@ -26,6 +26,59 @@ export const formatWebsitePriceDisplay = (item) => {
   return '—';
 };
 
+/** Short accessible names for price cells (card + modal). */
+export const CATALOG_PRICE_LABELS = {
+  b2b: 'B2B',
+  website: 'Интернет',
+  selling: 'Магазин',
+};
+
+/** Hover tooltip titles for channel price cells. */
+export const CATALOG_PRICE_TOOLTIPS = {
+  b2b: 'B2B цена',
+  website: 'Интернет цена',
+};
+
+/**
+ * Display-only price cells for card/modal strips.
+ * Manager: always 3 stable cells — B2B | Website | store (invalid → «—»). Client: store only.
+ */
+export const getCatalogPriceStripItems = (item, { isClientMode = false } = {}) => {
+  const sellingValue = formatPriceDisplay(item?.sellingPrice ?? item?.price);
+
+  if (isClientMode) {
+    return [
+      {
+        key: 'selling',
+        label: 'Цена',
+        value: sellingValue,
+        primary: true,
+      },
+    ];
+  }
+
+  return [
+    {
+      key: 'b2b',
+      label: CATALOG_PRICE_LABELS.b2b,
+      value: formatPriceDisplay(item?.price),
+      primary: false,
+    },
+    {
+      key: 'website',
+      label: CATALOG_PRICE_LABELS.website,
+      value: formatWebsitePriceDisplay(item),
+      primary: false,
+    },
+    {
+      key: 'selling',
+      label: CATALOG_PRICE_LABELS.selling,
+      value: sellingValue,
+      primary: true,
+    },
+  ];
+};
+
 const hasText = (value) => value != null && String(value).trim() !== '';
 
 const pickText = (...values) => {

@@ -7,7 +7,8 @@ import CartQtyControls from '../CartQtyControls/CartQtyControls';
 import './AddToCartControl.scss';
 
 function AddToCartControl({ item, onGoToCart, className = '', block = true }) {
-  const { addItem, getItem, increment, decrement, goToBasket } = useCart();
+  const { addItem, getItem, increment, decrement, removeItem, goToBasket } =
+    useCart();
   const key = getCartItemKey(item);
   const cartLine = getItem(key);
   const stock = parseStock(item?.amount);
@@ -19,20 +20,31 @@ function AddToCartControl({ item, onGoToCart, className = '', block = true }) {
     goToBasket();
   };
 
+  const rootClassName = [
+    'add-to-cart',
+    cartLine ? 'add-to-cart--in-cart' : null,
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   if (cartLine) {
     const maxStock = parseStock(cartLine.maxStock ?? cartLine.amount ?? item?.amount);
     return (
-      <div
-        className={['add-to-cart', 'add-to-cart--in-cart', className]
-          .filter(Boolean)
-          .join(' ')}
-      >
+      <div className={rootClassName}>
         <CartQtyControls
           quantity={cartLine.quantity}
           maxStock={maxStock}
-          onDecrement={() => decrement(key)}
+          onDecrement={() => {
+            if (cartLine.quantity <= 1) {
+              removeItem(key);
+              return;
+            }
+            decrement(key);
+          }}
           onIncrement={() => increment(key)}
           size="small"
+          allowRemoveAtMin
         />
         <Button
           className="add-to-cart__go"
@@ -47,20 +59,22 @@ function AddToCartControl({ item, onGoToCart, className = '', block = true }) {
   }
 
   return (
-    <Button
-      className={['add-to-cart__add', className].filter(Boolean).join(' ')}
-      type="primary"
-      icon={<ShoppingCartOutlined aria-hidden />}
-      disabled={!canAdd}
-      block={block}
-      onClick={(e) => {
-        e.stopPropagation();
-        addItem(item);
-      }}
-      aria-label={canAdd ? 'Добавить в корзину' : 'Нет в наличии'}
-    >
-      В корзину
-    </Button>
+    <div className={rootClassName}>
+      <Button
+        className="add-to-cart__add"
+        type="primary"
+        icon={<ShoppingCartOutlined aria-hidden />}
+        disabled={!canAdd}
+        block={block}
+        onClick={(e) => {
+          e.stopPropagation();
+          addItem(item);
+        }}
+        aria-label={canAdd ? 'Добавить в корзину' : 'Нет в наличии'}
+      >
+        В корзину
+      </Button>
+    </div>
   );
 }
 

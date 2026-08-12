@@ -1,26 +1,15 @@
 import React, { useMemo, useState } from 'react';
-import { Card, Divider, Flex, Image, Space, Typography } from 'antd';
+import { Card, Divider, Flex, Image, Typography } from 'antd';
 import runflatIcon from '../../../icons/runflat.jpg';
 import { ReactComponent as VanIcon } from '../../../icons/Van.svg';
 import { resolvePhotoUrl } from '../../../utils/fetchSupplier';
 import HoverTooltip from '../HoverTooltip';
 import AddToCartControl from '../AddToCartControl/AddToCartControl';
-import {
-  formatPriceDisplay,
-  formatWebsitePriceDisplay,
-  isValidPrice,
-} from '../catalogCopy';
+import CatalogPriceStrip from '../CatalogPriceStrip/CatalogPriceStrip';
 import './CatalogItemCard.scss';
 
 const { Meta } = Card;
 const { Text } = Typography;
-
-const DetailRow = ({ label, value, rowClassName = 'item-detail-row' }) => (
-  <Flex className={rowClassName} justify="space-between" align="center">
-    <Text className="detail-label">{label}</Text>
-    <Text className="detail-value">{value}</Text>
-  </Flex>
-);
 
 const CatalogItemCard = ({
   item,
@@ -31,57 +20,16 @@ const CatalogItemCard = ({
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const supplierLabel = useMemo(
-    () => (item?.supplier ? `Поставщик: ${item.supplier}` : null),
-    [item?.supplier]
+  const supplierName = item?.supplier || null;
+  const supplierTooltip = useMemo(
+    () => (supplierName ? `Поставщик: ${supplierName}` : null),
+    [supplierName]
   );
 
   const photoSrc = useMemo(
     () => resolvePhotoUrl(item?.photoUrl, item?.supplier),
     [item?.photoUrl, item?.supplier]
   );
-
-  const detailRows = useMemo(() => {
-    if (!item) return [];
-
-    if (isClientMode) {
-      return [
-        {
-          key: 'selling',
-          label: 'Цена:',
-          value: formatPriceDisplay(item.sellingPrice ?? item.price),
-        },
-      ];
-    }
-
-    const rows = [
-      { key: 'b2b', label: 'B2B:', value: formatPriceDisplay(item.price), show: isValidPrice(item.price) },
-      {
-        key: 'website',
-        label: 'Интернет цена:',
-        value: formatWebsitePriceDisplay(item),
-        show: true,
-      },
-      {
-        key: 'selling',
-        label: 'Цена:',
-        value: formatPriceDisplay(item.sellingPrice ?? item.price),
-        show: isValidPrice(item.sellingPrice) || isValidPrice(item.price),
-      },
-    ]
-      .filter((row) => row.show)
-      .map(({ show, ...row }) => row);
-
-    if (item.supplier) {
-      rows.push({
-        key: 'supplier',
-        label: 'Поставщик:',
-        value: item.supplier,
-      });
-    }
-
-    return rows;
-  }, [item, isClientMode]);
 
   const handleImageClick = () => setIsModalOpen(true);
   const handleCloseModal = () => setIsModalOpen(false);
@@ -171,26 +119,48 @@ const CatalogItemCard = ({
           }
           description={
             <Flex className="item-details" vertical>
-              {detailRows.map((row) => (
-                <React.Fragment key={row.key}>
-                  <Divider className="item-detail-divider" />
-                  <DetailRow label={row.label} value={row.value} />
-                </React.Fragment>
-              ))}
               <Divider className="item-detail-divider" />
+
+              {!isClientMode && supplierName ? (
+                <>
+                  <Flex className="item-supplier" justify="space-between" align="center">
+                    <Text className="detail-label">Поставщик:</Text>
+                    <Text
+                      className="stock-value supplier-name"
+                      ellipsis={{ tooltip: supplierName }}
+                    >
+                      {supplierName}
+                    </Text>
+                  </Flex>
+                  <Divider className="item-detail-divider" />
+                </>
+              ) : null}
+
               <Flex className="item-stock" justify="space-between" align="center">
                 <Text className="detail-label">В наличии:</Text>
-                <Space className="item-stock-space" size={8} align="center">
+                <Flex className="item-stock__value-row" align="center" gap={8}>
                   <Text className="stock-value">{item.amount} шт.</Text>
-                  {isClientMode && supplierLabel && (
-                    <HoverTooltip title={supplierLabel} placement="top">
-                      <span className="supplier-icon" aria-label={supplierLabel} role="img">
-                        <VanIcon className="supplier-icon__svg" aria-hidden />
+                  {isClientMode && supplierName ? (
+                    <HoverTooltip title={supplierTooltip} placement="top">
+                      <span
+                        className="supplier-icon"
+                        aria-label={supplierTooltip}
+                      >
+                        <VanIcon className="supplier-icon__svg" />
                       </span>
                     </HoverTooltip>
-                  )}
-                </Space>
+                  ) : null}
+                </Flex>
               </Flex>
+
+              <Divider className="item-detail-divider" />
+
+              <CatalogPriceStrip
+                item={item}
+                isClientMode={isClientMode}
+                className="item-price-strip"
+              />
+
               <AddToCartControl item={item} className="item-cart-control" />
             </Flex>
           }

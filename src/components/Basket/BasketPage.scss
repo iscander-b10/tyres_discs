@@ -358,6 +358,8 @@
   background: transparent;
   padding: 0;
   flex: 0 1 auto;
+  min-width: min(100%, 220px);
+  max-width: 280px;
   display: flex;
   justify-content: flex-start;
   cursor: pointer;
@@ -374,41 +376,8 @@
   }
 }
 
-.basket-line__prices {
-  display: grid;
-  grid-template-columns: auto minmax(11ch, max-content);
-  column-gap: $space-4;
-  row-gap: 6px;
-  align-items: baseline;
-  min-width: 180px;
-  max-width: 280px;
-  font-family: $font-sans;
-}
-
-.basket-line__price-row {
-  display: contents;
-  font-family: $font-sans;
-  font-size: 15px;
-  line-height: 1.35;
-  color: $color-text-muted;
-
-  > span:first-child {
-    text-align: start;
-    color: $color-text-muted;
-  }
-
-  > span:last-child {
-    text-align: center;
-    font-variant-numeric: tabular-nums;
-    color: $color-text;
-    font-family: $font-sans;
-  }
-
-  &--primary > span {
-    font-weight: 700;
-    color: $color-text;
-    font-size: 16px;
-  }
+.basket-line__price-strip {
+  width: 100%;
 }
 
 .basket-line__end {
@@ -431,13 +400,58 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 4px;
+  gap: $space-2;
 }
 
 .basket-line__store {
   display: flex;
   align-items: center;
   gap: $space-3;
+  box-sizing: border-box;
+  min-height: 42px;
+  padding-block: $space-1;
+  padding-inline: $space-2;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  background: $color-price-store-bg;
+
+  .cart-qty {
+    min-height: 28px;
+    min-width: 82px;
+    padding: 1px;
+    border-color: color-mix(in srgb, #273036 8%, transparent);
+    border-radius: 6px;
+    background: color-mix(in srgb, #273036 3.5%, #fafafb);
+  }
+
+  .cart-qty__btn {
+    width: 26px !important;
+    min-width: 26px !important;
+    height: 26px !important;
+    font-size: 11px !important;
+    border-radius: 4px !important;
+
+    &:hover:not(:disabled) {
+      background: color-mix(in srgb, #273036 6%, #fafafb) !important;
+    }
+  }
+
+  .cart-qty__value {
+    min-width: 1.4ch;
+    font-size: 13px;
+    font-weight: 600;
+  }
+}
+
+[data-theme='dark'] .basket-line__store {
+  .cart-qty {
+    border-color: color-mix(in srgb, #eef0f1 10%, transparent);
+    background: color-mix(in srgb, #eef0f1 5%, #1a1d21);
+  }
+
+  .cart-qty__btn:hover:not(:disabled) {
+    background: color-mix(in srgb, #eef0f1 8%, #1a1d21) !important;
+  }
 }
 
 .basket-line__qty {
@@ -451,13 +465,6 @@
   gap: 2px;
   min-width: 110px;
   font-family: $font-sans;
-}
-
-.basket-line__sum-label {
-  font-family: $font-sans;
-  font-size: 12px;
-  line-height: 1.25;
-  color: $color-text-muted;
 }
 
 .basket-line__sum-total {
@@ -476,18 +483,59 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Internet kit total: same scale as left «Интернет цена», store sum stays dominant */
-.basket-line__sum--website {
-  .basket-line__sum-label {
-    font-size: 15px;
-    line-height: 1.35;
-    color: $color-text-muted;
+/* Website kit total — same cool-gray chip family as CatalogPriceStrip website tile */
+.basket-line__website-total {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: $space-1;
+  box-sizing: border-box;
+  min-height: 36px;
+  padding-block: $space-2;
+  padding-inline: $space-2;
+  border: 1px solid $color-border-soft;
+  border-radius: $radius-md;
+  background: $color-bg;
+  cursor: help;
+  transition-property: border-color, background-color;
+  transition-duration: 0.2s;
+  transition-timing-function: ease;
+
+  &:hover {
+    border-color: $color-border;
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    transition-duration: 0.01ms;
+  }
+}
+
+.basket-line__website-total-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 16px;
+  line-height: 1;
+  color: $color-text-subtle;
+}
+
+.basket-line__website-total-svg {
+  display: block;
+  width: 1em;
+  height: 1em;
+  color: inherit;
+}
+
+.basket-line__sum--website {
+  min-width: 0;
+
   .basket-line__sum-total {
-    font-size: 15px;
-    font-weight: 400;
-    line-height: 1.35;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
     color: $color-text;
   }
 
@@ -637,9 +685,7 @@
   .basket-line__prices-hit {
     flex: 1 1 auto;
     justify-content: flex-start;
-  }
-
-  .basket-line__prices {
+    min-width: 0;
     max-width: none;
     width: 100%;
   }

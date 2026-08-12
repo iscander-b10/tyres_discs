@@ -595,7 +595,11 @@ $catalog-text: $color-text;
 }
 
 // Sticky filter strip — top matches content gap above the form (header is not sticky).
+// Theme tokens stay here (before nested rules) so later controls mixins don't trigger
+// Sass mixed-decls when shell is included first.
 @mixin catalog-search-form-shell() {
+  @include catalog-search-form-theme-tokens();
+
   position: sticky;
   top: var(--catalog-filter-sticky-top, 12px);
   z-index: $z-filter-bar;
@@ -1015,7 +1019,7 @@ $catalog-text: $color-text;
 }
 
 @mixin catalog-search-form-controls() {
-  @include catalog-search-form-theme-tokens();
+  // Theme tokens live in catalog-search-form-shell() (included first by consumers).
   @include catalog-green-wave-targets();
   @include catalog-green-ant-select(32px, 8px);
   @include catalog-search-form-checkbox();

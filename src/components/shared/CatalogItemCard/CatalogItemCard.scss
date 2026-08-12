@@ -47,9 +47,9 @@
 
   .item-image-frame {
     position: relative;
-    background: $color-surface;
+    background: $color-bg;
     width: 100%;
-    height: clamp(200px, 16vw, 260px);
+    height: clamp(220px, 18vw, 280px);
     overflow: hidden;
     border-bottom: 1px solid $color-border-soft;
     cursor: pointer;
@@ -66,7 +66,13 @@
     height: 100%;
     object-fit: contain;
     object-position: center;
-    background: $color-surface;
+    background: $color-bg;
+    outline: 1px solid oklch(0 0 0 / 0.1);
+    outline-offset: -1px;
+  }
+
+  [data-theme='dark'] & .item-image :where(img.ant-image-img) {
+    outline-color: oklch(1 0 0 / 0.1);
   }
 
   .item-image-overlays {
@@ -142,52 +148,32 @@
     flex: 1;
   }
 
-  .item-detail-row,
+  .item-supplier {
+    width: 100%;
+    min-height: 28px;
+    padding-block: $space-1;
+  }
+
+  .supplier-name {
+    min-width: 0;
+    max-width: 65%;
+  }
+
   .item-stock {
     width: 100%;
     min-height: 28px;
-    padding: 4px 0;
+    padding-block: $space-1;
   }
 
-  .item-stock {
-    margin-bottom: 12px;
-  }
-
-  .detail-label {
-    color: $color-text-muted;
-    flex-shrink: 0;
-    font-size: 13px;
-  }
-
-  .detail-value {
-    font-weight: 700;
-    text-align: right;
-    margin-left: 12px;
-    color: $color-text;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .item-stock-space {
-    display: inline-flex;
-    align-items: center;
-    align-self: center;
-    height: 100%;
-
-    .ant-space-item {
-      display: inline-flex;
-      align-items: center;
-
-      > * {
-        display: inline-flex;
-        align-items: center;
-      }
-    }
+  .item-stock__value-row {
+    min-width: 0;
   }
 
   .supplier-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
     color: $color-text-muted;
     cursor: help;
     line-height: 1;
@@ -206,10 +192,16 @@
 
   .supplier-icon__svg {
     display: block;
-    width: 40px;
-    height: 40px;
+    width: 28px;
+    height: 28px;
     flex-shrink: 0;
     transform: scaleX(-1);
+  }
+
+  .detail-label {
+    color: $color-text-muted;
+    flex-shrink: 0;
+    font-size: 13px;
   }
 
   .stock-value {
@@ -227,7 +219,12 @@
     border-block-start-color: $color-border-soft;
   }
 
+  .item-price-strip {
+    margin-block-start: 0;
+  }
+
   .item-cart-control {
     margin-top: auto;
+    padding-top: $space-2;
   }
 }

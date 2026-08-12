@@ -219,6 +219,8 @@ function SideBar({ clientMode, setClientMode, onCatalogDataLoaded }) {
   }, [isSnapping, position]);
 
   useEffect(() => {
+    const asideEl = asideRef.current;
+
     return () => {
       if (rafRef.current != null) {
         window.cancelAnimationFrame(rafRef.current);
@@ -231,7 +233,7 @@ function SideBar({ clientMode, setClientMode, onCatalogDataLoaded }) {
       window.removeEventListener('pointerup', drag.onPointerUp);
       window.removeEventListener('pointercancel', drag.onPointerUp);
       dragRef.current = null;
-      asideRef.current?.classList.remove('is-dragging');
+      asideEl?.classList.remove('is-dragging');
     };
   }, []);
 

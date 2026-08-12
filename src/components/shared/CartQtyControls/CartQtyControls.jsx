@@ -11,10 +11,13 @@ function CartQtyControls({
   size = 'middle',
   className = '',
   disabled = false,
+  /** Catalog only: keep minus enabled at 1 so parent can remove the line. */
+  allowRemoveAtMin = false,
 }) {
   const max = Number(maxStock);
   const atMin = quantity <= 1;
   const atMax = Number.isFinite(max) && max > 0 && quantity >= max;
+  const decrementDisabled = disabled || (atMin && !allowRemoveAtMin);
 
   return (
     <div
@@ -32,8 +35,12 @@ function CartQtyControls({
           e.stopPropagation();
           onDecrement?.(e);
         }}
-        disabled={disabled || atMin}
-        aria-label="Уменьшить количество"
+        disabled={decrementDisabled}
+        aria-label={
+          allowRemoveAtMin && atMin
+            ? 'Удалить из корзины'
+            : 'Уменьшить количество'
+        }
       />
       <span className="cart-qty__value" aria-live="polite">
         {quantity}

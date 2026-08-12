@@ -6,6 +6,8 @@
   --color-bg-sunken: #eef0f1;
   --color-surface: #ffffff;
   --color-surface-muted: #fafafa;
+  /* Store price tile: Website + same cool-gray step as Website−B2B (not surface/white) */
+  --color-price-store-bg: #fafafb;
   --color-text: #273036;
   --color-text-muted: #595d60;
   --color-text-subtle: #8a8f93;
@@ -54,6 +56,8 @@
   --color-bg-sunken: #121517;
   --color-surface: #22262a;
   --color-surface-muted: #2a2f34;
+  /* Store price tile: Website + same cool-gray step as Website−B2B */
+  --color-price-store-bg: #1a1d21;
   --color-text: #eef0f1;
   --color-text-muted: #a8adb2;
   --color-text-subtle: #7e858c;

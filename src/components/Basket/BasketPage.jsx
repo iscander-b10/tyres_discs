@@ -7,13 +7,12 @@ import {
   getUnitWebsitePrice,
   parseStock,
 } from '../../cart/cartUtils';
-import {
-  formatPriceDisplay,
-  formatWebsitePriceDisplay,
-  isValidPrice,
-} from '../shared/catalogCopy';
+import { CATALOG_PRICE_TOOLTIPS, formatPriceDisplay } from '../shared/catalogCopy';
 import CartQtyControls from '../shared/CartQtyControls/CartQtyControls';
 import CatalogItemModalWindow from '../shared/CatalogItemModalWindow/CatalogItemModalWindow';
+import CatalogPriceStrip from '../shared/CatalogPriceStrip/CatalogPriceStrip';
+import HoverTooltip from '../shared/HoverTooltip';
+import { ReactComponent as WebsiteIcon } from '../../icons/Website.svg';
 import { resolvePhotoUrl } from '../../utils/fetchSupplier';
 import './BasketPage.scss';
 
@@ -23,40 +22,6 @@ const formatMoney = (value) => {
   if (!Number.isFinite(value) || value <= 0) return formatPriceDisplay(null);
   return `${Math.round(value).toLocaleString('ru-RU')}\u00A0руб.`;
 };
-
-function BasketLinePrices({ item, isClientMode }) {
-  if (isClientMode) {
-    return (
-      <div className="basket-line__prices">
-        <div className="basket-line__price-row basket-line__price-row--primary">
-          <span>Цена</span>
-          <span>{formatPriceDisplay(item.sellingPrice ?? item.price)}</span>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="basket-line__prices">
-      {isValidPrice(item.price) ? (
-        <div className="basket-line__price-row">
-          <span>B2B</span>
-          <span>{formatPriceDisplay(item.price)}</span>
-        </div>
-      ) : null}
-      <div className="basket-line__price-row">
-        <span>Интернет цена</span>
-        <span>{formatWebsitePriceDisplay(item)}</span>
-      </div>
-      {(isValidPrice(item.sellingPrice) || isValidPrice(item.price)) && (
-        <div className="basket-line__price-row basket-line__price-row--primary">
-          <span>Цена</span>
-          <span>{formatPriceDisplay(item.sellingPrice ?? item.price)}</span>
-        </div>
-      )}
-    </div>
-  );
-}
 
 function BasketPage({ isClientMode = false, onContinueSelection, isActive = true }) {
   const { items, totals, increment, decrement, removeItem, clear } = useCart();
@@ -243,7 +208,11 @@ function BasketPage({ isClientMode = false, onContinueSelection, isActive = true
                           className="basket-line__prices-hit"
                           onClick={() => setModalItem(item)}
                         >
-                          <BasketLinePrices item={item} isClientMode={isClientMode} />
+                          <CatalogPriceStrip
+                            item={item}
+                            isClientMode={isClientMode}
+                            className="basket-line__price-strip"
+                          />
                         </button>
                       </div>
                     </div>
@@ -255,12 +224,28 @@ function BasketPage({ isClientMode = false, onContinueSelection, isActive = true
                       <div className="basket-line__sums">
                         {websiteTotal > 0 ? (
                           <div className="basket-line__sum basket-line__sum--website">
-                            <span className="basket-line__sum-label">
-                              Интернет цена
-                            </span>
-                            <span className="basket-line__sum-total">
-                              {formatMoney(websiteTotal)}
-                            </span>
+                            <HoverTooltip
+                              title={CATALOG_PRICE_TOOLTIPS.website}
+                              placement="top"
+                            >
+                              <div
+                                className="basket-line__website-total"
+                                aria-label={`${CATALOG_PRICE_TOOLTIPS.website}: ${formatMoney(websiteTotal)}`}
+                              >
+                                <span
+                                  className="basket-line__website-total-icon"
+                                  aria-hidden="true"
+                                >
+                                  <WebsiteIcon
+                                    className="basket-line__website-total-svg"
+                                    focusable="false"
+                                  />
+                                </span>
+                                <span className="basket-line__sum-total">
+                                  {formatMoney(websiteTotal)}
+                                </span>
+                              </div>
+                            </HoverTooltip>
                             <span className="basket-line__sum-unit">
                               {formatMoney(websiteUnit)} × {item.quantity}
                             </span>
@@ -274,6 +259,7 @@ function BasketPage({ isClientMode = false, onContinueSelection, isActive = true
                               maxStock={maxStock}
                               onDecrement={() => decrement(item.key)}
                               onIncrement={() => increment(item.key)}
+                              size="small"
                             />
                           </div>
                           <div className="basket-line__sum basket-line__sum--store">

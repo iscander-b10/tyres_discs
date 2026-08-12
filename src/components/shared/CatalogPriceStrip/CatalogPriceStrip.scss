@@ -1,0 +1,177 @@
+@use '../../../styles/tokens' as *;
+
+.catalog-price-strip {
+  container-type: inline-size;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+// Soft price tiles — hierarchy lives in surfaces, not loud type.
+.catalog-price-strip--manager,
+.catalog-price-strip--client {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: $space-2;
+  padding-block: $space-1;
+}
+
+.catalog-price-strip__channels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $space-2;
+  min-width: 0;
+}
+
+.catalog-price-strip__channel {
+  min-width: 0;
+}
+
+.catalog-price-strip__tile {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 40px;
+  padding-block: $space-2;
+  padding-inline: $space-2;
+  border: 1px solid transparent;
+  border-radius: $radius-md;
+}
+
+.catalog-price-strip__tile--channel {
+  justify-content: center;
+  gap: $space-1;
+  cursor: help;
+  transition-property: border-color, background-color;
+  transition-duration: 0.2s;
+  transition-timing-function: ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition-duration: 0.01ms;
+  }
+}
+
+// B2B — denser sunken chip (wholesale reference).
+.catalog-price-strip__tile--b2b {
+  background: $color-bg-sunken;
+  border-color: $color-border;
+
+  &:hover {
+    border-color: $color-border-strong;
+  }
+}
+
+// Website — lighter chip in the same cool-gray family.
+.catalog-price-strip__tile--website {
+  background: $color-bg;
+  border-color: $color-border-soft;
+
+  &:hover {
+    border-color: $color-border;
+  }
+}
+
+// Store — third cool-gray step (B2B denser → website lighter → ours elevated).
+.catalog-price-strip__tile--primary {
+  justify-content: center;
+  gap: $space-2;
+  min-height: 44px;
+  padding-inline: $space-3;
+  background: $color-price-store-bg;
+  border-color: $color-border;
+}
+
+.catalog-price-strip__tile--with-caption {
+  justify-content: space-between;
+}
+
+.catalog-price-strip__caption {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: $color-text-muted;
+}
+
+.catalog-price-strip__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.catalog-price-strip__tile--b2b .catalog-price-strip__icon {
+  color: $color-text-muted;
+}
+
+.catalog-price-strip__tile--website .catalog-price-strip__icon {
+  color: $color-text-subtle;
+}
+
+.catalog-price-strip__icon-svg {
+  display: block;
+  width: 1em;
+  height: 1em;
+  color: inherit;
+}
+
+.catalog-price-strip__value {
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.catalog-price-strip__tile--channel .catalog-price-strip__value {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: $color-text;
+  text-align: center;
+}
+
+.catalog-price-strip__tile--primary .catalog-price-strip__value {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-align: center;
+  color: $color-text;
+}
+
+.catalog-price-strip__tile--with-caption .catalog-price-strip__value {
+  text-align: right;
+}
+
+@container (max-width: 260px) {
+  .catalog-price-strip__channels {
+    gap: $space-1;
+  }
+
+  .catalog-price-strip__tile {
+    min-height: 36px;
+    padding-block: 6px;
+    padding-inline: 6px;
+  }
+
+  .catalog-price-strip__tile--primary {
+    min-height: 40px;
+    padding-inline: $space-2;
+  }
+
+  .catalog-price-strip__icon {
+    font-size: 16px;
+  }
+
+  .catalog-price-strip__tile--channel .catalog-price-strip__value {
+    font-size: 11px;
+  }
+
+  .catalog-price-strip__tile--primary .catalog-price-strip__value {
+    font-size: 14px;
+  }
+}

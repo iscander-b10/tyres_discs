@@ -4,11 +4,9 @@ import { Button } from 'antd';
 import { CloseOutlined } from '@ant-design/icons';
 import { resolvePhotoUrl } from '../../../utils/fetchSupplier';
 import AddToCartControl from '../AddToCartControl/AddToCartControl';
+import CatalogPriceStrip from '../CatalogPriceStrip/CatalogPriceStrip';
 import {
   formatCatalogSizeDisplay,
-  formatPriceDisplay,
-  formatWebsitePriceDisplay,
-  isValidPrice,
   resolveCatalogLoadIndex,
   resolveCatalogModel,
   resolveCatalogSpeedIndex,
@@ -110,40 +108,6 @@ const CatalogItemModalWindow = ({ isOpen, onClose, item, isClientMode = false })
     return fields;
   }, [item, isClientMode, model, sizeDisplay, loadIndex, speedIndex]);
 
-  const priceRows = useMemo(() => {
-    if (!item) return [];
-
-    if (isClientMode) {
-      return [
-        {
-          key: 'selling',
-          label: 'Цена',
-          value: formatPriceDisplay(item.sellingPrice ?? item.price),
-          primary: true,
-        },
-      ];
-    }
-
-    return [
-      { key: 'b2b', label: 'B2B', value: formatPriceDisplay(item.price), show: isValidPrice(item.price) },
-      {
-        key: 'website',
-        label: 'Интернет цена',
-        value: formatWebsitePriceDisplay(item),
-        show: true,
-      },
-      {
-        key: 'selling',
-        label: 'Цена',
-        value: formatPriceDisplay(item.sellingPrice ?? item.price),
-        show: isValidPrice(item.sellingPrice) || isValidPrice(item.price),
-        primary: true,
-      },
-    ]
-      .filter((row) => row.show)
-      .map(({ show, ...row }) => row);
-  }, [item, isClientMode]);
-
   const handleOverlayClick = (e) => {
     if (e.target === e.currentTarget) onClose();
   };
@@ -210,32 +174,21 @@ const CatalogItemModalWindow = ({ isOpen, onClose, item, isClientMode = false })
               </dl>
             )}
 
-            {priceRows.length > 0 && (
-              <div className="product-modal__prices">
-                {priceRows.map((row) => (
-                  <div
-                    key={row.key}
-                    className={[
-                      'product-modal__price-row',
-                      row.primary ? 'product-modal__price-row--primary' : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                  >
-                    <span className="product-modal__price-label">{row.label}</span>
-                    <span className="product-modal__price-value">{row.value}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="product-modal__footer">
+              <CatalogPriceStrip
+                item={item}
+                isClientMode={isClientMode}
+                className="product-modal__prices"
+              />
 
-            <AddToCartControl
-              item={item}
-              className="product-modal__cart-control"
-              onGoToCart={() => {
-                onClose?.();
-              }}
-            />
+              <AddToCartControl
+                item={item}
+                className="product-modal__cart-control"
+                onGoToCart={() => {
+                  onClose?.();
+                }}
+              />
+            </div>
           </aside>
         </div>
       </div>
