@@ -234,6 +234,10 @@
       background: transparent;
     }
 
+    .catalog-price-strip__tile + .catalog-price-strip__tile {
+      border-block-start: 1px solid $color-border-soft;
+    }
+
     .catalog-price-strip__caption {
       font-size: 13px;
       font-weight: 400;
