@@ -49,7 +49,29 @@ $space-4: 16px;
 $space-5: 24px;
 $space-6: 32px;
 
-$font-sans: 'Montserrat', system-ui, -apple-system, 'Segoe UI', sans-serif;
+$font-sans: var(--font-sans);
+$font-display: var(--font-display);
+
+// Catalog card type roles — values live in CSS vars (index.css)
+$catalog-type-title-size: var(--catalog-type-title-size);
+$catalog-type-title-weight: var(--catalog-type-title-weight);
+$catalog-type-title-lh: var(--catalog-type-title-lh);
+$catalog-type-size-size: var(--catalog-type-size-size);
+$catalog-type-size-weight: var(--catalog-type-size-weight);
+$catalog-type-size-lh: var(--catalog-type-size-lh);
+$catalog-type-label-size: var(--catalog-type-label-size);
+$catalog-type-label-weight: var(--catalog-type-label-weight);
+$catalog-type-label-lh: var(--catalog-type-label-lh);
+$catalog-type-value-size: var(--catalog-type-value-size);
+$catalog-type-value-weight: var(--catalog-type-value-weight);
+$catalog-type-value-lh: var(--catalog-type-value-lh);
+$catalog-type-price-size: var(--catalog-type-price-size);
+$catalog-type-price-weight: var(--catalog-type-price-weight);
+$catalog-type-price-lh: var(--catalog-type-price-lh);
+$catalog-type-code-size: var(--catalog-type-code-size);
+$catalog-type-code-weight: var(--catalog-type-code-weight);
+$catalog-type-code-lh: var(--catalog-type-code-lh);
+
 $z-header: 100;
 $z-filter-bar: 90;
 $z-sidebar: 1200;

@@ -94,9 +94,10 @@
     border-radius: $radius-sm;
     background: $color-overlay-strong;
     color: $color-on-accent;
-    font-size: 11px;
-    font-weight: 500;
-    line-height: 16px;
+    font-size: $catalog-type-code-size;
+    font-weight: $catalog-type-code-weight;
+    line-height: $catalog-type-code-lh;
+    font-variant-numeric: tabular-nums;
     max-width: 100%;
   }
 
@@ -122,24 +123,32 @@
   }
 
   .item-title-text {
-    font-weight: 600;
-    font-size: 16px;
-    line-height: 1.2;
+    font-size: $catalog-type-title-size;
+    font-weight: $catalog-type-title-weight;
+    line-height: $catalog-type-title-lh;
+    letter-spacing: -0.01em;
     color: $color-text;
+    text-wrap: balance;
     max-width: 100%;
   }
 
-  .item-size-text,
-  .item-color-text {
-    font-size: 14px;
-    line-height: 1.3;
-    font-weight: 400;
+  .item-size-text {
+    font-size: $catalog-type-size-size;
+    font-weight: $catalog-type-size-weight;
+    line-height: $catalog-type-size-lh;
+    font-variant-numeric: tabular-nums;
     max-width: 100%;
     color: $color-text-muted;
   }
 
   .item-color-text {
     margin-top: 2px;
+    font-size: $catalog-type-label-size;
+    font-weight: $catalog-type-label-weight;
+    line-height: $catalog-type-label-lh;
+    max-width: 100%;
+    color: $color-text-muted;
+    text-wrap: pretty;
   }
 
   .item-details {
@@ -202,14 +211,17 @@
   .detail-label {
     color: $color-text-muted;
     flex-shrink: 0;
-    font-size: 13px;
+    font-size: $catalog-type-label-size;
+    font-weight: $catalog-type-label-weight;
+    line-height: $catalog-type-label-lh;
   }
 
   .stock-value {
     display: inline-flex;
     align-items: center;
-    line-height: 1;
-    font-weight: 600;
+    font-size: $catalog-type-value-size;
+    font-weight: $catalog-type-value-weight;
+    line-height: $catalog-type-value-lh;
     text-align: right;
     color: $color-text;
     font-variant-numeric: tabular-nums;
@@ -240,9 +252,9 @@
     }
 
     .catalog-price-strip__caption {
-      font-size: 13px;
-      font-weight: 400;
-      line-height: 1.3;
+      font-size: $catalog-type-label-size;
+      font-weight: $catalog-type-label-weight;
+      line-height: $catalog-type-label-lh;
       color: $color-text-muted;
 
       &::after {
@@ -253,10 +265,10 @@
     .catalog-price-strip__value {
       display: inline-flex;
       align-items: center;
-      font-size: 16px;
-      font-weight: 600;
-      line-height: 1.2;
-      letter-spacing: -0.01em;
+      font-size: $catalog-type-price-size;
+      font-weight: $catalog-type-price-weight;
+      line-height: $catalog-type-price-lh;
+      letter-spacing: -0.015em;
       color: $color-text;
       font-variant-numeric: tabular-nums;
     }

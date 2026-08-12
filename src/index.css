@@ -1,4 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
+/*
+  UI face: Inter (chosen). Short compare for catalog Cyrillic + numbers:
+  - Inter — large x-height, screen UI, solid tnum, good Cyrillic (pick)
+  - IBM Plex Sans — excellent Cyrillic, slightly more “document”
+  - Golos Text / Golos UI — RU-native; Inter denser for card scan
+  - PT Root UI / Source Sans 3 / Onest — solid; Inter wins density + tooling
+  Montserrat kept only as --font-display for brand marks outside catalog cards.
+*/
+@import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;500;600;700;800&family=Montserrat:wght@800&display=swap');
 
 /*
   Light — ShinService retail white (source of truth).
@@ -45,7 +53,29 @@
   --shadow-card: 0 1px 2px rgba(39, 48, 54, 0.04), 0 2px 10px rgba(39, 48, 54, 0.06);
   --shadow-elevated: 0 2px 6px rgba(39, 48, 54, 0.05), 0 8px 24px rgba(39, 48, 54, 0.1);
   --shadow-header: 0 1px 0 rgba(39, 48, 54, 0.06), 0 4px 12px rgba(22, 31, 48, 0.04);
-  --font-sans: 'Montserrat', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Montserrat', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Catalog card type roles (size / weight / line-height) */
+  --catalog-type-title-size: 15px;
+  --catalog-type-title-weight: 600;
+  --catalog-type-title-lh: 1.35;
+  --catalog-type-size-size: 15px;
+  --catalog-type-size-weight: 500;
+  --catalog-type-size-lh: 1.35;
+  --catalog-type-label-size: 12px;
+  --catalog-type-label-weight: 400;
+  --catalog-type-label-lh: 1.4;
+  --catalog-type-value-size: 14px;
+  --catalog-type-value-weight: 600;
+  --catalog-type-value-lh: 1.35;
+  --catalog-type-price-size: 17px;
+  --catalog-type-price-weight: 600;
+  --catalog-type-price-lh: 1.25;
+  --catalog-type-code-size: 12px;
+  --catalog-type-code-weight: 500;
+  --catalog-type-code-lh: 1.35;
+
   --z-header: 100;
   --z-filter-bar: 90;
   --z-sidebar: 1200;

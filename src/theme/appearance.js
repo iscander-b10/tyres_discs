@@ -72,7 +72,7 @@ const sharedComponentTokens = {
 };
 
 const lightTokens = {
-  fontFamily: "'Montserrat', system-ui, -apple-system, 'Segoe UI', sans-serif",
+  fontFamily: "'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif",
   colorPrimary: '#595d60',
   colorLink: '#273036',
   colorText: '#273036',
@@ -96,7 +96,7 @@ const lightTokens = {
 };
 
 const darkTokens = {
-  fontFamily: "'Montserrat', system-ui, -apple-system, 'Segoe UI', sans-serif",
+  fontFamily: "'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif",
   colorPrimary: '#cfd3d6',
   colorLink: '#eef0f1',
   colorText: '#eef0f1',

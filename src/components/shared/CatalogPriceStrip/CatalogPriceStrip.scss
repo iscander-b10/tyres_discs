@@ -67,23 +67,23 @@
 
 .catalog-price-strip__caption {
   flex-shrink: 0;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.3;
+  font-size: $catalog-type-label-size;
+  font-weight: $catalog-type-label-weight;
+  line-height: $catalog-type-label-lh;
   color: $color-text-muted;
 }
 
 .catalog-price-strip--client .catalog-price-strip__caption {
-  font-weight: 400;
-  line-height: inherit;
+  font-weight: $catalog-type-label-weight;
+  line-height: $catalog-type-label-lh;
 }
 
 .catalog-price-strip__value {
   min-width: 0;
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
+  font-size: $catalog-type-price-size;
+  font-weight: $catalog-type-price-weight;
+  line-height: $catalog-type-price-lh;
+  letter-spacing: -0.015em;
   color: $color-text;
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
@@ -91,10 +91,23 @@
 }
 
 .catalog-price-strip--client .catalog-price-strip__tile--primary .catalog-price-strip__value {
-  font-size: 16px;
+  font-size: $catalog-type-price-size;
+  font-weight: $catalog-type-price-weight;
+  line-height: $catalog-type-price-lh;
+  letter-spacing: -0.015em;
+}
+
+/* Primary selling price is the numeric hero — channel rows stay one step softer. */
+.catalog-price-strip--manager .catalog-price-strip__tile--channel .catalog-price-strip__value {
+  font-size: 15px;
   font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
+  line-height: $catalog-type-price-lh;
+}
+
+.catalog-price-strip--manager .catalog-price-strip__tile--primary .catalog-price-strip__value {
+  font-size: $catalog-type-price-size;
+  font-weight: $catalog-type-price-weight;
+  line-height: $catalog-type-price-lh;
 }
 
 @container (max-width: 260px) {
@@ -115,14 +128,22 @@
   }
 
   .catalog-price-strip__caption {
-    font-size: 12px;
+    font-size: $catalog-type-label-size;
   }
 
   .catalog-price-strip--manager .catalog-price-strip__value {
     font-size: 14px;
   }
 
+  .catalog-price-strip--manager .catalog-price-strip__tile--channel .catalog-price-strip__value {
+    font-size: 14px;
+  }
+
+  .catalog-price-strip--manager .catalog-price-strip__tile--primary .catalog-price-strip__value {
+    font-size: 16px;
+  }
+
   .catalog-price-strip--client .catalog-price-strip__tile--primary .catalog-price-strip__value {
-    font-size: 15px;
+    font-size: $catalog-type-price-size;
   }
 }
