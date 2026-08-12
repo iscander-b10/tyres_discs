@@ -26,14 +26,14 @@ export const formatWebsitePriceDisplay = (item) => {
   return '—';
 };
 
-/** Short accessible names for price cells (card + modal). */
+/** Row labels for price cells (card + modal + basket). */
 export const CATALOG_PRICE_LABELS = {
-  b2b: 'B2B',
-  website: 'Интернет',
-  selling: 'Магазин',
+  b2b: 'B2B Цена',
+  website: 'Интернет цена',
+  selling: 'Цена',
 };
 
-/** Hover tooltip titles for channel price cells. */
+/** Hover tooltip titles for channel price cells (basket totals, etc.). */
 export const CATALOG_PRICE_TOOLTIPS = {
   b2b: 'B2B цена',
   website: 'Интернет цена',

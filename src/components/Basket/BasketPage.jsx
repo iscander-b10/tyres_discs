@@ -246,9 +246,6 @@ function BasketPage({ isClientMode = false, onContinueSelection, isActive = true
                                 </span>
                               </div>
                             </HoverTooltip>
-                            <span className="basket-line__sum-unit">
-                              {formatMoney(websiteUnit)} × {item.quantity}
-                            </span>
                           </div>
                         ) : null}
 
@@ -266,11 +263,6 @@ function BasketPage({ isClientMode = false, onContinueSelection, isActive = true
                             <span className="basket-line__sum-total">
                               {formatMoney(lineTotal)}
                             </span>
-                            {unit > 0 ? (
-                              <span className="basket-line__sum-unit">
-                                {formatMoney(unit)} × {item.quantity}
-                              </span>
-                            ) : null}
                           </div>
                         </div>
                       </div>
