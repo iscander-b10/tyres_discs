@@ -77,13 +77,13 @@ const lightTokens = {
   colorLink: '#273036',
   colorText: '#273036',
   colorTextSecondary: '#595d60',
-  colorTextTertiary: '#8a8f93',
+  colorTextTertiary: '#9ca0a4',
   colorTextLightSolid: '#ffffff',
-  colorBorder: '#e6e8ea',
-  colorBorderSecondary: '#f0f1f2',
+  colorBorder: '#dfe3e6',
+  colorBorderSecondary: '#f1f1f1',
   colorBgContainer: '#ffffff',
   colorBgElevated: '#ffffff',
-  colorBgLayout: '#f4f5f6',
+  colorBgLayout: '#f6f7f8',
   /* Tooltip / spotlight overlays — project surface, not inverted Ant default */
   colorBgSpotlight: '#ffffff',
   colorError: '#e43141',
@@ -91,7 +91,7 @@ const lightTokens = {
   borderRadius: 8,
   controlHeight: 40,
   fontSize: 14,
-  colorPrimaryHover: '#45494c',
+  colorPrimaryHover: '#34373d',
   controlOutline: 'rgba(89, 93, 96, 0.18)',
 };
 
@@ -104,13 +104,13 @@ const darkTokens = {
   colorTextTertiary: '#7e858c',
   /* Light CTA fill → dark label text (WCAG AA) */
   colorTextLightSolid: '#1a1d20',
-  colorBorder: '#3a4046',
-  colorBorderSecondary: '#2c3136',
-  colorBgContainer: '#22262a',
-  colorBgElevated: '#2a2f34',
-  colorBgLayout: '#16191c',
+  colorBorder: '#353b42',
+  colorBorderSecondary: '#2a2f35',
+  colorBgContainer: '#1e2328',
+  colorBgElevated: '#262b31',
+  colorBgLayout: '#14171a',
   /* Elevated surface for tooltips (matches --color-surface-muted) */
-  colorBgSpotlight: '#2a2f34',
+  colorBgSpotlight: '#262b31',
   colorError: '#e54552',
   colorSuccess: '#3db954',
   borderRadius: 8,
@@ -141,7 +141,7 @@ export function getAntdTheme(appearance) {
       /* Client/manager mode — fixed system burgundy in both appearances */
       Switch: {
         colorPrimary: '#e43141',
-        colorPrimaryHover: '#c92938',
+        colorPrimaryHover: '#c82731',
       },
     },
   };

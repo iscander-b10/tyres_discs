@@ -303,17 +303,17 @@
 }
 
 .basket-line__name {
-  font-size: 17px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 600;
   color: $color-text;
-  line-height: 1.3;
+  line-height: 1.2;
   text-wrap: balance;
   transition: color 0.15s ease;
 }
 
 .basket-line__size,
 .basket-line__supplier {
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.35;
   color: $color-text-muted;
 }
@@ -412,9 +412,9 @@
     min-height: 28px;
     min-width: 82px;
     padding: 1px;
-    border-color: color-mix(in srgb, #273036 8%, transparent);
-    border-radius: 6px;
-    background: color-mix(in srgb, #273036 3.5%, #fafafb);
+    border-color: color-mix(in srgb, #{$color-text} 8%, transparent);
+    border-radius: $radius-sm;
+    background: color-mix(in srgb, #{$color-text} 3.5%, #{$color-price-store-bg});
   }
 
   .cart-qty__btn {
@@ -425,7 +425,7 @@
     border-radius: 4px !important;
 
     &:hover:not(:disabled) {
-      background: color-mix(in srgb, #273036 6%, #fafafb) !important;
+      background: color-mix(in srgb, #{$color-text} 6%, #{$color-price-store-bg}) !important;
     }
   }
 
@@ -438,12 +438,12 @@
 
 [data-theme='dark'] .basket-line__store {
   .cart-qty {
-    border-color: color-mix(in srgb, #eef0f1 10%, transparent);
-    background: color-mix(in srgb, #eef0f1 5%, #1a1d21);
+    border-color: color-mix(in srgb, #{$color-text} 10%, transparent);
+    background: color-mix(in srgb, #{$color-text} 5%, #{$color-price-store-bg});
   }
 
   .cart-qty__btn:hover:not(:disabled) {
-    background: color-mix(in srgb, #eef0f1 8%, #1a1d21) !important;
+    background: color-mix(in srgb, #{$color-text} 8%, #{$color-price-store-bg}) !important;
   }
 }
 
@@ -463,7 +463,7 @@
 .basket-line__sum-total {
   font-family: $font-sans;
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: $color-text;
   line-height: 1.2;

@@ -1,31 +1,34 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
 
-/* Light — trust-first retail (source of truth) */
+/*
+  Light — ShinService retail white (source of truth).
+  Mapped from their design tokens (--colors-grey-*, --colors-brand-*, --colors-black-main).
+*/
 :root {
-  --color-bg: #f4f5f6;
-  --color-bg-sunken: #eef0f1;
+  --color-bg: #f6f7f8;
+  --color-bg-sunken: #eaecee;
   --color-surface: #ffffff;
-  --color-surface-muted: #fafafa;
+  --color-surface-muted: #f6f7f8;
   /* Store price tile: Website + same cool-gray step as Website−B2B (not surface/white) */
-  --color-price-store-bg: #fafafb;
+  --color-price-store-bg: #f1f1f1;
   --color-text: #273036;
   --color-text-muted: #595d60;
-  --color-text-subtle: #8a8f93;
-  --color-border: #e6e8ea;
-  --color-border-strong: #d8dce0;
-  --color-border-soft: #f0f1f2;
+  --color-text-subtle: #9ca0a4;
+  --color-border: #dfe3e6;
+  --color-border-strong: #d4d7da;
+  --color-border-soft: #f1f1f1;
   --color-accent: #e43141;
-  --color-accent-hover: #c92938;
+  --color-accent-hover: #c82731;
   --color-accent-muted: rgba(228, 49, 65, 0.06);
   --color-accent-border: rgba(228, 49, 65, 0.25);
   --color-cta: #595d60;
-  --color-cta-hover: #45494c;
+  --color-cta-hover: #34373d;
   --color-cta-on: #ffffff;
   --color-cta-muted: rgba(89, 93, 96, 0.1);
   --color-cta-muted-hover: rgba(89, 93, 96, 0.16);
   --color-cta-selected: rgba(89, 93, 96, 0.12);
   --color-cta-outline: rgba(89, 93, 96, 0.18);
-  --color-cta-border: rgba(89, 93, 96, 0.25);
+  --color-cta-border: rgba(89, 93, 96, 0.22);
   --color-checkbox: #03cd2f;
   --color-checkbox-hover: #02b829;
   --color-stock: #2f9e44;
@@ -33,14 +36,15 @@
   --color-overlay: rgba(39, 48, 54, 0.55);
   --color-overlay-strong: rgba(39, 48, 54, 0.72);
   --color-on-accent: #ffffff;
-  --color-switch-track: #d9d9d9;
-  --color-switch-track-hover: #c4c4c4;
+  --color-switch-track: #d4d7da;
+  --color-switch-track-hover: #9ca0a4;
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
-  --shadow-card: 0 2px 10px rgba(39, 48, 54, 0.06);
-  --shadow-elevated: 0 8px 24px rgba(39, 48, 54, 0.1);
-  --shadow-header: 0 1px 0 rgba(39, 48, 54, 0.06);
+  /* Soft cool-tinted elevation (ShinService retail, not flat) */
+  --shadow-card: 0 1px 2px rgba(39, 48, 54, 0.04), 0 2px 10px rgba(39, 48, 54, 0.06);
+  --shadow-elevated: 0 2px 6px rgba(39, 48, 54, 0.05), 0 8px 24px rgba(39, 48, 54, 0.1);
+  --shadow-header: 0 1px 0 rgba(39, 48, 54, 0.06), 0 4px 12px rgba(22, 31, 48, 0.04);
   --font-sans: 'Montserrat', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --z-header: 100;
   --z-filter-bar: 90;
@@ -50,20 +54,22 @@
   color-scheme: light;
 }
 
-/* Dark — same cool-gray retail family, role-mapped (not neon / purple SaaS) */
+/*
+  Dark — same cool-gray retail roles as light (not 1:1 invert, not neon/purple SaaS).
+*/
 [data-theme='dark'] {
-  --color-bg: #16191c;
-  --color-bg-sunken: #121517;
-  --color-surface: #22262a;
-  --color-surface-muted: #2a2f34;
+  --color-bg: #14171a;
+  --color-bg-sunken: #0f1214;
+  --color-surface: #1e2328;
+  --color-surface-muted: #262b31;
   /* Store price tile: Website + same cool-gray step as Website−B2B */
-  --color-price-store-bg: #1a1d21;
+  --color-price-store-bg: #181c20;
   --color-text: #eef0f1;
   --color-text-muted: #a8adb2;
   --color-text-subtle: #7e858c;
-  --color-border: #3a4046;
-  --color-border-strong: #4a5158;
-  --color-border-soft: #2c3136;
+  --color-border: #353b42;
+  --color-border-strong: #454c54;
+  --color-border-soft: #2a2f35;
   --color-accent: #e54552;
   --color-accent-hover: #f05f6b;
   --color-accent-muted: rgba(229, 69, 82, 0.14);
@@ -84,11 +90,11 @@
   --color-overlay: rgba(8, 10, 12, 0.72);
   --color-overlay-strong: rgba(8, 10, 12, 0.82);
   --color-on-accent: #ffffff;
-  --color-switch-track: #4a5158;
+  --color-switch-track: #454c54;
   --color-switch-track-hover: #5a626a;
-  --shadow-card: 0 2px 10px rgba(0, 0, 0, 0.28);
-  --shadow-elevated: 0 10px 28px rgba(0, 0, 0, 0.4);
-  --shadow-header: 0 1px 0 rgba(0, 0, 0, 0.35);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.22), 0 2px 12px rgba(0, 0, 0, 0.32);
+  --shadow-elevated: 0 4px 10px rgba(0, 0, 0, 0.28), 0 12px 32px rgba(0, 0, 0, 0.42);
+  --shadow-header: 0 1px 0 rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.28);
   color-scheme: dark;
 }
 

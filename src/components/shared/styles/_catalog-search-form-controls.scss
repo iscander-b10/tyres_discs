@@ -69,13 +69,14 @@ $catalog-text: $color-text;
       .ant-select-selection-item,
       .ant-select-selection-placeholder {
         color: $catalog-text !important;
-        font-weight: 600;
-        font-size: 13px;
+        font-weight: 500;
+        font-size: 14px;
         line-height: $selector-inner-height !important;
       }
 
       .ant-select-selection-placeholder {
-        font-weight: 500;
+        font-weight: 400;
+        color: $color-text-subtle !important;
       }
 
       .ant-select-selection-search-input {
@@ -365,7 +366,7 @@ $catalog-text: $color-text;
       padding: 0;
       line-height: $height - 2px;
       color: $catalog-text;
-      font-size: 13px;
+      font-size: 14px;
       background: transparent;
     }
 
@@ -607,15 +608,11 @@ $catalog-text: $color-text;
   max-width: 100%;
   margin: 0;
   padding: 10px 14px;
-  background: $color-surface-muted;
-  border: 1px solid $color-cta-border;
+  background: $color-surface;
+  border: 1px solid $color-border;
   border-radius: $radius-lg;
-  box-shadow: 0 4px 12px rgba(39, 48, 54, 0.06);
+  box-shadow: $shadow-elevated;
   flex-shrink: 0;
-
-  [data-theme='dark'] & {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
-  }
 }
 
 // Toolbar groups, compact form-items, size/range clusters.
@@ -1012,7 +1009,7 @@ $catalog-text: $color-text;
       background: linear-gradient(
         to right,
         transparent,
-        $color-surface-muted 28%
+        $color-surface 28%
       );
     }
   }

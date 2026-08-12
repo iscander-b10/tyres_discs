@@ -80,8 +80,8 @@
 
 .catalog-price-strip__value {
   min-width: 0;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 600;
   line-height: 1.2;
   letter-spacing: -0.01em;
   color: $color-text;
@@ -91,10 +91,10 @@
 }
 
 .catalog-price-strip--client .catalog-price-strip__tile--primary .catalog-price-strip__value {
-  font-size: inherit;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: normal;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 
 @container (max-width: 260px) {
@@ -119,10 +119,10 @@
   }
 
   .catalog-price-strip--manager .catalog-price-strip__value {
-    font-size: 13px;
+    font-size: 14px;
   }
 
   .catalog-price-strip--client .catalog-price-strip__tile--primary .catalog-price-strip__value {
-    font-size: inherit;
+    font-size: 15px;
   }
 }

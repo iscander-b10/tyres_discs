@@ -42,7 +42,7 @@
   gap: 10px;
   background-color: $color-surface;
   border-radius: $radius-lg;
-  box-shadow: none;
+  box-shadow: $shadow-card;
   padding: 8px 12px;
   border: 1px solid $color-border;
   cursor: grab;
@@ -60,7 +60,7 @@
 .client-mode-switch.ant-switch {
   /* Fixed system burgundy (#e43141) — same in light and dark */
   --ant-color-primary: #e43141;
-  --ant-color-primary-hover: #c92938;
+  --ant-color-primary-hover: #c82731;
   background: $color-switch-track !important;
   cursor: pointer;
 
@@ -73,7 +73,7 @@
   }
 
   &.ant-switch-checked:hover:not(.ant-switch-disabled) {
-    background: #c92938 !important;
+    background: #c82731 !important;
   }
 
   &.ant-switch-checked .ant-switch-handle::before {
