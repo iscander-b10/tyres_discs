@@ -20,12 +20,24 @@ function HoverTooltip({ children, ...tooltipProps }) {
     <span onClick={close}>{children}</span>
   );
 
+  const hasTitle =
+    tooltipProps.title !== undefined &&
+    tooltipProps.title !== null &&
+    tooltipProps.title !== false &&
+    tooltipProps.title !== '';
+
   return (
     <Tooltip
       {...tooltipProps}
       trigger="hover"
-      open={open}
-      onOpenChange={setOpen}
+      open={hasTitle ? open : false}
+      onOpenChange={(nextOpen) => {
+        if (nextOpen && !hasTitle) {
+          setOpen(false);
+          return;
+        }
+        setOpen(nextOpen);
+      }}
     >
       {child}
     </Tooltip>

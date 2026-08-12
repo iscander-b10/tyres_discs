@@ -56,23 +56,28 @@
   --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-display: 'Montserrat', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-  /* Catalog card type roles (size / weight / line-height) */
-  --catalog-type-title-size: 15px;
+  /*
+    Catalog type roles — ONE scale for Card / PriceStrip / Modal / Basket line.
+    Rule: all price VALUES share --catalog-type-price-*; all price LABELS share
+    --catalog-type-label-*; stock/supplier labels→label, values→value. Hierarchy
+    by color/tile only, never by price font-size.
+  */
+  --catalog-type-title-size: 17px;
   --catalog-type-title-weight: 600;
   --catalog-type-title-lh: 1.35;
-  --catalog-type-size-size: 15px;
+  --catalog-type-size-size: 16px;
   --catalog-type-size-weight: 500;
   --catalog-type-size-lh: 1.35;
-  --catalog-type-label-size: 12px;
+  --catalog-type-label-size: 14px;
   --catalog-type-label-weight: 400;
   --catalog-type-label-lh: 1.4;
-  --catalog-type-value-size: 14px;
+  --catalog-type-value-size: 16px;
   --catalog-type-value-weight: 600;
   --catalog-type-value-lh: 1.35;
   --catalog-type-price-size: 17px;
   --catalog-type-price-weight: 600;
-  --catalog-type-price-lh: 1.25;
-  --catalog-type-code-size: 12px;
+  --catalog-type-price-lh: 1.3;
+  --catalog-type-code-size: 13px;
   --catalog-type-code-weight: 500;
   --catalog-type-code-lh: 1.35;
 

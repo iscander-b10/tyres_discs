@@ -4,15 +4,12 @@ import { CloseOutlined } from '@ant-design/icons';
 import { useCart } from '../../cart/CartContext';
 import {
   getUnitSellingPrice,
-  getUnitWebsitePrice,
   parseStock,
 } from '../../cart/cartUtils';
-import { CATALOG_PRICE_TOOLTIPS, formatPriceDisplay } from '../shared/catalogCopy';
+import { formatPriceDisplay } from '../shared/catalogCopy';
 import CartQtyControls from '../shared/CartQtyControls/CartQtyControls';
 import CatalogItemModalWindow from '../shared/CatalogItemModalWindow/CatalogItemModalWindow';
 import CatalogPriceStrip from '../shared/CatalogPriceStrip/CatalogPriceStrip';
-import HoverTooltip from '../shared/HoverTooltip';
-import { ReactComponent as WebsiteIcon } from '../../icons/Website.svg';
 import { resolvePhotoUrl } from '../../utils/fetchSupplier';
 import './BasketPage.scss';
 
@@ -128,9 +125,6 @@ function BasketPage({ isClientMode = false, onContinueSelection, isActive = true
             {items.map((item) => {
               const unit = getUnitSellingPrice(item);
               const lineTotal = unit * (item.quantity || 0);
-              const websiteUnit = !isClientMode ? getUnitWebsitePrice(item) : 0;
-              const websiteTotal =
-                websiteUnit > 0 ? websiteUnit * (item.quantity || 0) : 0;
               const photoSrc = resolvePhotoUrl(item.photoUrl, item.supplier);
               const maxStock = parseStock(item.maxStock ?? item.amount);
 
@@ -222,33 +216,6 @@ function BasketPage({ isClientMode = false, onContinueSelection, isActive = true
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="basket-line__sums">
-                        {websiteTotal > 0 ? (
-                          <div className="basket-line__sum basket-line__sum--website">
-                            <HoverTooltip
-                              title={CATALOG_PRICE_TOOLTIPS.website}
-                              placement="top"
-                            >
-                              <div
-                                className="basket-line__website-total"
-                                aria-label={`${CATALOG_PRICE_TOOLTIPS.website}: ${formatMoney(websiteTotal)}`}
-                              >
-                                <span
-                                  className="basket-line__website-total-icon"
-                                  aria-hidden="true"
-                                >
-                                  <WebsiteIcon
-                                    className="basket-line__website-total-svg"
-                                    focusable="false"
-                                  />
-                                </span>
-                                <span className="basket-line__sum-total">
-                                  {formatMoney(websiteTotal)}
-                                </span>
-                              </div>
-                            </HoverTooltip>
-                          </div>
-                        ) : null}
-
                         <div className="basket-line__store">
                           <div className="basket-line__qty">
                             <CartQtyControls

@@ -243,7 +243,7 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
                   className="form-item-spikes"
                   getValueProps={(value) => ({
                     value:
-                      value === true ? 'yes' : value === false ? 'no' : 'all',
+                      value === true ? 'yes' : value === false ? 'no' : undefined,
                   })}
                   getValueFromEvent={(value) => {
                     if (value === 'yes') return true;
@@ -253,10 +253,11 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
                 >
                   <Select
                     {...catalogSearchSelectProps}
+                    allowClear
+                    placeholder="Все"
                     aria-label="Шипы"
                     className="filter-select--spikes"
                     options={[
-                      { value: 'all', label: 'Все' },
                       { value: 'yes', label: 'Шипы' },
                       { value: 'no', label: 'Без шипов' },
                     ]}

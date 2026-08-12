@@ -21,24 +21,40 @@
     display: flex;
     flex-direction: column;
     flex: 1;
+    min-width: 0;
   }
 
   :where(.ant-card-meta) {
     flex: 1;
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    width: 100%;
   }
 
   :where(.ant-card-meta-detail) {
     flex: 1;
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  // Title slot holds brand line + size; do not use antd's single-line ellipsis here.
+  :where(.ant-card-meta-title) {
+    min-width: 0;
+    width: 100%;
+    overflow: visible;
+    white-space: normal;
+    text-overflow: clip;
   }
 
   :where(.ant-card-meta-description) {
     flex: 1;
     display: flex;
     flex-direction: column;
+    min-width: 0;
   }
 
   :where(.ant-card-cover) {
@@ -119,17 +135,25 @@
 
   .item-title-wrapper {
     min-width: 0;
+    width: 100%;
+    max-width: 100%;
     margin-bottom: 4px;
   }
 
   .item-title-text {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
     font-size: $catalog-type-title-size;
     font-weight: $catalog-type-title-weight;
     line-height: $catalog-type-title-lh;
     letter-spacing: -0.01em;
     color: $color-text;
-    text-wrap: balance;
-    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
   .item-size-text {
@@ -262,13 +286,13 @@
       }
     }
 
+    // Same type role as `.stock-value` / `.supplier-name`.
     .catalog-price-strip__value {
       display: inline-flex;
       align-items: center;
-      font-size: $catalog-type-price-size;
-      font-weight: $catalog-type-price-weight;
-      line-height: $catalog-type-price-lh;
-      letter-spacing: -0.015em;
+      font-size: $catalog-type-value-size;
+      font-weight: $catalog-type-value-weight;
+      line-height: $catalog-type-value-lh;
       color: $color-text;
       font-variant-numeric: tabular-nums;
     }

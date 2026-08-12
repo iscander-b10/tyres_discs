@@ -65,6 +65,12 @@
   border-radius: 0;
 }
 
+.catalog-price-strip--client .catalog-price-strip__value {
+  overflow-wrap: normal;
+  white-space: nowrap;
+}
+
+// All captions (B2B / Интернет / Магазин) — one label role.
 .catalog-price-strip__caption {
   flex-shrink: 0;
   font-size: $catalog-type-label-size;
@@ -73,11 +79,7 @@
   color: $color-text-muted;
 }
 
-.catalog-price-strip--client .catalog-price-strip__caption {
-  font-weight: $catalog-type-label-weight;
-  line-height: $catalog-type-label-lh;
-}
-
+// All price values — one price role (channel hierarchy via tile color only).
 .catalog-price-strip__value {
   min-width: 0;
   font-size: $catalog-type-price-size;
@@ -88,26 +90,6 @@
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
   text-align: right;
-}
-
-.catalog-price-strip--client .catalog-price-strip__tile--primary .catalog-price-strip__value {
-  font-size: $catalog-type-price-size;
-  font-weight: $catalog-type-price-weight;
-  line-height: $catalog-type-price-lh;
-  letter-spacing: -0.015em;
-}
-
-/* Primary selling price is the numeric hero — channel rows stay one step softer. */
-.catalog-price-strip--manager .catalog-price-strip__tile--channel .catalog-price-strip__value {
-  font-size: 15px;
-  font-weight: 600;
-  line-height: $catalog-type-price-lh;
-}
-
-.catalog-price-strip--manager .catalog-price-strip__tile--primary .catalog-price-strip__value {
-  font-size: $catalog-type-price-size;
-  font-weight: $catalog-type-price-weight;
-  line-height: $catalog-type-price-lh;
 }
 
 @container (max-width: 260px) {
@@ -125,25 +107,5 @@
     min-height: 28px;
     padding-block: $space-1;
     padding-inline: 0;
-  }
-
-  .catalog-price-strip__caption {
-    font-size: $catalog-type-label-size;
-  }
-
-  .catalog-price-strip--manager .catalog-price-strip__value {
-    font-size: 14px;
-  }
-
-  .catalog-price-strip--manager .catalog-price-strip__tile--channel .catalog-price-strip__value {
-    font-size: 14px;
-  }
-
-  .catalog-price-strip--manager .catalog-price-strip__tile--primary .catalog-price-strip__value {
-    font-size: 16px;
-  }
-
-  .catalog-price-strip--client .catalog-price-strip__tile--primary .catalog-price-strip__value {
-    font-size: $catalog-type-price-size;
   }
 }

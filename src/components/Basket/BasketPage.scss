@@ -265,7 +265,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  /* Manager: info → unit prices tight (same as info stack) */
+  /* Same step as info / price rows: size → supplier → B2B → web → store */
   gap: 4px;
 }
 
@@ -296,26 +296,37 @@
   }
 }
 
-/* Type scale: code (sm) → size/supplier (md) → name (lg) */
+/* Meta labels + price captions — one label role (size/color/weight). */
+.basket-line__code,
+.basket-line__size,
+.basket-line__supplier {
+  font-family: $font-sans;
+  font-size: $catalog-type-label-size !important;
+  font-weight: $catalog-type-label-weight !important;
+  line-height: $catalog-type-label-lh !important;
+  color: $color-text-muted !important;
+}
+
 .basket-line__code {
-  font-size: 13px;
-  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Match price-strip tile row height so vertical steps stay even. */
+.basket-line__size,
+.basket-line__supplier {
+  display: flex;
+  align-items: center;
+  min-height: 28px;
+  box-sizing: border-box;
 }
 
 .basket-line__name {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: $catalog-type-title-size;
+  font-weight: $catalog-type-title-weight;
   color: $color-text;
-  line-height: 1.2;
+  line-height: $catalog-type-title-lh;
   text-wrap: balance;
   transition: color 0.15s ease;
-}
-
-.basket-line__size,
-.basket-line__supplier {
-  font-size: 14px;
-  line-height: 1.35;
-  color: $color-text-muted;
 }
 
 .basket-line__remove {
@@ -377,7 +388,71 @@
 }
 
 .basket-line__price-strip {
-  width: 100%;
+  width: max-content;
+  max-width: 100%;
+
+  // Shared two-column grid: captions | values (one value column under another).
+  // Scope: basket only; catalog/modal keep full-width tiled PriceStrip.
+  &.catalog-price-strip--manager,
+  &.catalog-price-strip--client {
+    display: grid;
+    grid-template-columns: max-content max-content;
+    justify-content: start;
+    align-content: start;
+    column-gap: 40px;
+    row-gap: 4px; /* same as .basket-line__main / __info */
+    padding-block: 0;
+  }
+
+  .catalog-price-strip__tile {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
+    align-items: center;
+    box-sizing: border-box;
+    width: auto;
+    min-width: 0;
+    min-height: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    /* Subgrid uses the tile's own gap (base strip sets gap: 8px) — set it here. */
+    column-gap: 40px;
+    row-gap: 0;
+  }
+
+  // Dividers only after B2B and after Internet — not after store «Цена».
+  // Drawn on the subgridded row so the shared columns stay intact.
+  &.catalog-price-strip--manager .catalog-price-strip__tile--b2b,
+  &.catalog-price-strip--manager .catalog-price-strip__tile--website {
+    border-block-end: 1px solid $color-border-soft;
+  }
+
+  .catalog-price-strip__caption {
+    font-family: $font-sans;
+    font-size: $catalog-type-label-size;
+    font-weight: $catalog-type-label-weight;
+    line-height: $catalog-type-label-lh;
+    color: $color-text-muted;
+    white-space: nowrap;
+  }
+
+  // Same kegel as `.basket-line__name`; end-aligned in the shared value column.
+  &.catalog-price-strip--manager .catalog-price-strip__tile .catalog-price-strip__value,
+  &.catalog-price-strip--client .catalog-price-strip__tile .catalog-price-strip__value {
+    justify-self: end;
+    font-size: $catalog-type-title-size;
+    font-weight: $catalog-type-title-weight;
+    line-height: $catalog-type-title-lh;
+    letter-spacing: normal;
+    color: $color-text;
+    font-variant-numeric: tabular-nums;
+    text-align: end;
+    overflow-wrap: normal;
+    white-space: nowrap;
+  }
 }
 
 .basket-line__end {
@@ -395,7 +470,7 @@
   padding-top: 0;
 }
 
-/* Website total above; qty + store sum as one bottom row */
+/* Qty + store sum */
 .basket-line__sums {
   display: flex;
   flex-direction: column;
@@ -421,7 +496,7 @@
     width: 26px !important;
     min-width: 26px !important;
     height: 26px !important;
-    font-size: 11px !important;
+    font-size: 13px !important;
     border-radius: 4px !important;
 
     &:hover:not(:disabled) {
@@ -431,8 +506,9 @@
 
   .cart-qty__value {
     min-width: 1.4ch;
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 18px;
+    font-weight: $catalog-type-value-weight;
+    line-height: $catalog-type-value-lh;
   }
 }
 
@@ -462,68 +538,11 @@
 
 .basket-line__sum-total {
   font-family: $font-sans;
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: $color-text;
   line-height: 1.2;
-}
-
-/* Website kit total — same cool-gray chip family as CatalogPriceStrip website tile */
-.basket-line__website-total {
-  display: inline-flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: $space-1;
-  box-sizing: border-box;
-  min-height: 36px;
-  padding-block: $space-2;
-  padding-inline: $space-2;
-  border: 1px solid $color-border-soft;
-  border-radius: $radius-md;
-  background: $color-bg;
-  cursor: help;
-  transition-property: border-color, background-color;
-  transition-duration: 0.2s;
-  transition-timing-function: ease;
-
-  &:hover {
-    border-color: $color-border;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition-duration: 0.01ms;
-  }
-}
-
-.basket-line__website-total-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  font-size: 16px;
-  line-height: 1;
-  color: $color-text-subtle;
-}
-
-.basket-line__website-total-svg {
-  display: block;
-  width: 1em;
-  height: 1em;
-  color: inherit;
-}
-
-.basket-line__sum--website {
-  min-width: 0;
-
-  .basket-line__sum-total {
-    font-size: 12px;
-    font-weight: 600;
-    line-height: 1.2;
-    letter-spacing: -0.01em;
-    color: $color-text;
-  }
 }
 
 .basket-summary {
@@ -548,12 +567,15 @@
   justify-content: space-between;
   gap: $space-3;
   margin-bottom: $space-2;
-  font-size: 14px;
+  font-size: $catalog-type-value-size;
+  font-weight: $catalog-type-value-weight;
+  line-height: $catalog-type-value-lh;
   color: $color-text;
   font-variant-numeric: tabular-nums;
 
   &--muted {
     color: $color-text-muted;
+    font-weight: $catalog-type-label-weight;
   }
 }
 
