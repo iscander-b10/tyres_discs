@@ -2,8 +2,8 @@
 
 .floating-sidebar {
   position: fixed;
-  left: 16px;
-  bottom: 16px;
+  left: 0;
+  bottom: 0;
   z-index: $z-sidebar;
   pointer-events: none;
 

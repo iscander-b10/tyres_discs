@@ -2,19 +2,11 @@ import React from 'react';
 import { ShoppingCartOutlined } from '@ant-design/icons';
 import { ReactComponent as PhoneIcon } from '../../icons/Phone.svg';
 import { ReactComponent as UserIcon } from '../../icons/User.svg';
+import { SITE_NAV_ITEMS, SITE_PHONE } from '../../config/site';
 import { useCart } from '../../cart/CartContext';
 import HoverTooltip from '../shared/HoverTooltip';
 import ThemeSwitch from '../shared/ThemeSwitch/ThemeSwitch';
 import './SiteHeader.scss';
-
-const NAV_ITEMS = [
-  { key: 'tires', label: 'Шины' },
-  { key: 'disks', label: 'Диски' },
-  { key: 'sensors', label: 'Датчики давления', disabled: true },
-  { key: 'fitting', label: 'Примерка дисков', disabled: true },
-  { key: 'service', label: 'Шиномонтаж', disabled: true },
-  { key: 'storage', label: 'Хранение шин', disabled: true },
-];
 
 function SiteHeader({
   appearance = 'light',
@@ -50,9 +42,9 @@ function SiteHeader({
                 onAppearanceChange={onAppearanceChange}
               />
 
-              <a className="site-header__phone" href="tel:+78002508850">
+              <a className="site-header__phone" href={SITE_PHONE.href}>
                 <PhoneIcon className="site-header__phone-icon" aria-hidden />
-                <span>8 800 250 88 50</span>
+                <span>{SITE_PHONE.display}</span>
               </a>
             </div>
 
@@ -91,7 +83,7 @@ function SiteHeader({
 
         <nav className="site-header__nav" aria-label="Категории каталога">
           <div className="site-header__nav-list">
-            {NAV_ITEMS.map((item) => {
+            {SITE_NAV_ITEMS.map((item) => {
               const isActive = !item.disabled && item.key === activeKey;
               const button = (
                 <button

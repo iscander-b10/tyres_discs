@@ -6,7 +6,7 @@ import HoverTooltip from '../shared/HoverTooltip';
 import './SideBar.scss';
 
 const POSITION_STORAGE_KEY = 'ivanor-sidebar-position';
-const EDGE_MARGIN = 16;
+const EDGE_MARGIN = 0;
 const DRAG_THRESHOLD_PX = 5;
 
 const INTERACTIVE_SELECTOR =

@@ -1,12 +1,15 @@
 @use './styles/tokens' as *;
 
 .app-layout {
+  display: flex;
+  flex-direction: column;
   min-height: 100dvh;
   background: $color-bg;
 }
 
 .app-content-layout {
   display: flex;
+  flex: 1 0 auto;
   background: $color-bg;
   overflow: visible;
 }

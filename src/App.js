@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Flex, Layout } from 'antd';
 import { CartProvider } from './cart/CartContext';
 import SiteHeader from './components/SiteHeader/SiteHeader';
+import SiteFooter from './components/SiteFooter/SiteFooter';
 import TiresSearchParameters from './components/TiresSearchParameters/TiresSearchParameters';
 import DiscsSearchParameters from './components/DiscsSearchParameters/DiscsSearchParameters';
 import BasketPage from './components/Basket/BasketPage';
@@ -109,6 +110,11 @@ function App({ appearance = 'light', onAppearanceChange }) {
             </Flex>
           </Layout.Content>
         </Layout>
+
+        <SiteFooter
+          onActiveKeyChange={handleActiveKeyChange}
+          onBrandClick={handleBrandClick}
+        />
 
         <SideBar
           clientMode={clientMode}
