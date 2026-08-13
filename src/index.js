@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
-import { ConfigProvider } from 'antd';
+import { App as AntdApp, ConfigProvider } from 'antd';
 import ruRU from 'antd/locale/ru_RU';
 import App from './App';
 import {
@@ -44,7 +44,16 @@ function Root() {
         },
       }}
     >
-      <App appearance={appearance} onAppearanceChange={handleAppearanceChange} />
+      <AntdApp
+        component={false}
+        notification={{
+          placement: 'topRight',
+          top: 24,
+          maxCount: 3,
+        }}
+      >
+        <App appearance={appearance} onAppearanceChange={handleAppearanceChange} />
+      </AntdApp>
     </ConfigProvider>
   );
 }

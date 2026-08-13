@@ -16,18 +16,29 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+  transition-property: background-color, color, transform;
+  transition-duration: 0.2s, 0.2s, 0.15s;
+  transition-timing-function: ease, ease, ease;
   margin: 0 !important;
   padding: 0 !important;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 
   &:hover {
     background: $color-cta-muted !important;
     color: $color-text !important;
-    transform: scale(1.08);
+
+    @media (prefers-reduced-motion: no-preference) {
+      transform: scale(1.08);
+    }
   }
 
   &:active {
-    transform: scale(0.95);
+    @media (prefers-reduced-motion: no-preference) {
+      transform: scale(0.96);
+    }
   }
 
   &.ant-btn-dangerous {
@@ -48,18 +59,19 @@
   }
 }
 
-.load-data-error {
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 0;
-  z-index: 1100;
-  min-width: 280px;
-  max-width: min(420px, 90vw);
-  box-shadow: $shadow-elevated;
+/* Контейнер notification монтируется в body — выше сайдбара ($z-sidebar: 1200). */
+.ant-notification {
+  z-index: 1300;
+}
 
-  .ant-alert-description {
-    max-height: 160px;
-    overflow-y: auto;
-    word-break: break-word;
+.load-data-toast-list {
+  margin: 0;
+}
+
+.load-data-toast-line {
+  margin: 0 0 0.35em;
+
+  &:last-child {
+    margin-bottom: 0;
   }
 }

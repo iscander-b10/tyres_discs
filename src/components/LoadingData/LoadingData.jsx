@@ -1,27 +1,115 @@
 import React from 'react';
-import { Alert, Button } from 'antd';
+import { App, Button } from 'antd';
 import { CloudDownloadOutlined } from '@ant-design/icons';
 import indexedDBService from '../../services/indexedDBService';
-import { loadAllSuppliersData } from '../../services/suppliers/supplierOrchestrator';
+import {
+  getSupplierLabel,
+  loadAllSuppliersData,
+  PART_DISCS,
+  PART_TYRES,
+} from '../../services/suppliers/supplierOrchestrator';
 import { usesCorsProxy } from '../../utils/fetchSupplier';
 import HoverTooltip from '../shared/HoverTooltip';
 import './LoadingData.scss';
 
-const LoadingData = ({ onDataLoaded }) => {
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState(null);
+const SUCCESS_DURATION_SEC = 5;
+const ERROR_DURATION_SEC = 0; // до закрытия вручную (ошибки не должны исчезать сами)
 
-  const getErrorMessage = (e) => {
-    if (!e) return 'Неизвестная ошибка';
-    if (typeof e === 'string') return e;
-    if (e instanceof Error) return e.message || 'Неизвестная ошибка';
-    if (typeof e === 'object' && typeof e.message === 'string' && e.message) return e.message;
-    try {
-      return JSON.stringify(e);
-    } catch {
-      return String(e);
+function formatLoadedAt(date = new Date()) {
+  return date.toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function messageForFailedPart(supplierLabel, part) {
+  if (part === PART_TYRES) {
+    return `Не удалось загрузить данные шин поставщика ${supplierLabel}.`;
+  }
+  if (part === PART_DISCS) {
+    return `Не удалось загрузить данные дисков поставщика ${supplierLabel}.`;
+  }
+  return `Не удалось загрузить данные поставщика ${supplierLabel}.`;
+}
+
+function collectClientLoadErrors(results) {
+  const messages = [];
+
+  results.forEach((result) => {
+    if (result.status === 'rejected') {
+      const label = result.reason?.supplierLabel || getSupplierLabel(result.key);
+      const parts = result.reason?.failedParts;
+
+      if (Array.isArray(parts) && parts.length > 0) {
+        parts.forEach((part) => {
+          messages.push(messageForFailedPart(label, part));
+        });
+      } else {
+        messages.push(`Не удалось загрузить данные поставщика ${label}.`);
+      }
+
+      console.error(`Ошибка загрузки (${result.key}):`, result.reason);
+      return;
     }
-  };
+
+    const failedParts = result.value?.failedParts;
+    if (!Array.isArray(failedParts) || failedParts.length === 0) return;
+
+    const label = result.value.label || getSupplierLabel(result.key);
+    failedParts.forEach((part) => {
+      messages.push(messageForFailedPart(label, part));
+    });
+  });
+
+  return messages;
+}
+
+function notifySuccess(notification) {
+  const when = formatLoadedAt();
+  notification.success({
+    key: 'catalog-load-success',
+    message: 'Все поставщики успешно загружены',
+    description: `Данные от ${when}`,
+    placement: 'topRight',
+    duration: SUCCESS_DURATION_SEC,
+  });
+}
+
+function notifyLoadErrors(notification, messages) {
+  notification.error({
+    key: 'catalog-load-errors',
+    message: 'Ошибка загрузки',
+    description: (
+      <div className="load-data-toast-list">
+        {messages.map((text) => (
+          <p key={text} className="load-data-toast-line">
+            {text}
+          </p>
+        ))}
+      </div>
+    ),
+    placement: 'topRight',
+    duration: ERROR_DURATION_SEC,
+  });
+}
+
+function notifySaveError(notification) {
+  notification.error({
+    key: 'catalog-save-errors',
+    message: 'Ошибка сохранения',
+    description: 'Не удалось сохранить загруженные данные. Попробуйте ещё раз.',
+    placement: 'topRight',
+    duration: ERROR_DURATION_SEC,
+  });
+}
+
+const LoadingData = ({ onDataLoaded }) => {
+  const { notification } = App.useApp();
+  const [loading, setLoading] = React.useState(false);
+  const [hasError, setHasError] = React.useState(false);
 
   const collectSaveTasks = (supplierData) => {
     const tasks = [];
@@ -45,7 +133,10 @@ const LoadingData = ({ onDataLoaded }) => {
 
   const handleLoadShinService = async () => {
     setLoading(true);
-    setError(null);
+    setHasError(false);
+    notification.destroy('catalog-load-success');
+    notification.destroy('catalog-load-errors');
+    notification.destroy('catalog-save-errors');
 
     try {
       if (usesCorsProxy()) {
@@ -67,37 +158,30 @@ const LoadingData = ({ onDataLoaded }) => {
             console.error(`${saveTasks[idx].label} — ошибка сохранения:`, r.reason);
           }
         });
-        const saveErrors = saveResults
-          .map((r, idx) =>
-            r.status === 'rejected' ? `${saveTasks[idx].label}: ${getErrorMessage(r.reason)}` : null
-          )
-          .filter(Boolean)
-          .join('; ');
-        if (saveErrors) {
-          hadSaveErrors = true;
-          setError(`Ошибка при сохранении: ${saveErrors}`);
+        hadSaveErrors = saveResults.some((r) => r.status === 'rejected');
+        if (hadSaveErrors) {
+          setHasError(true);
+          notifySaveError(notification);
         }
       }
 
-      const loadFailures = results
-        .filter((r) => r.status === 'rejected')
-        .map((r) => getErrorMessage(r.reason));
+      const clientErrors = collectClientLoadErrors(results);
+      const hasRejectedSupplier = results.some((r) => r.status === 'rejected');
 
-      if (loadFailures.length > 0) {
-        const prefix = usesCorsProxy()
-          ? 'Частичная загрузка (прокси)'
-          : 'Частичная загрузка';
-        setError((prev) =>
-          prev
-            ? `${prev}; ${prefix}: ${loadFailures.join(' | ')}`
-            : `${prefix}: ${loadFailures.join(' | ')}`
-        );
-      } else if (onDataLoaded && !hadSaveErrors) {
+      if (clientErrors.length > 0) {
+        setHasError(true);
+        notifyLoadErrors(notification, clientErrors);
+      } else if (!hadSaveErrors) {
+        notifySuccess(notification);
+      }
+
+      if (onDataLoaded && !hasRejectedSupplier && !hadSaveErrors) {
         onDataLoaded();
       }
     } catch (err) {
       console.error('Ошибка при загрузке данных:', err);
-      setError(getErrorMessage(err));
+      setHasError(true);
+      notifyLoadErrors(notification, ['Не удалось загрузить данные. Попробуйте ещё раз.']);
     } finally {
       setLoading(false);
     }
@@ -111,22 +195,12 @@ const LoadingData = ({ onDataLoaded }) => {
           icon={<CloudDownloadOutlined />}
           size="large"
           loading={loading}
-          danger={Boolean(error)}
+          danger={hasError}
           onClick={handleLoadShinService}
           shape="circle"
+          aria-label="Загрузить данные"
         />
       </HoverTooltip>
-      {error && (
-        <Alert
-          className="load-data-error"
-          type="error"
-          message="Ошибка загрузки"
-          description={error}
-          showIcon
-          closable
-          onClose={() => setError(null)}
-        />
-      )}
     </div>
   );
 };
