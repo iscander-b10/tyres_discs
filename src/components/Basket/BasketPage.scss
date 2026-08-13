@@ -418,6 +418,8 @@
     border: none;
     border-radius: 0;
     background: transparent;
+    /* No border/bg transition: channel tiles briefly flash $color-border on mode switch. */
+    transition: none;
     /* Subgrid uses the tile's own gap (base strip sets gap: 8px) — set it here. */
     column-gap: 40px;
     row-gap: 0;

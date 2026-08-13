@@ -40,16 +40,6 @@
   background: $color-surface-muted;
 }
 
-.catalog-price-strip__tile--channel {
-  transition-property: border-color, background-color;
-  transition-duration: 0.2s;
-  transition-timing-function: ease;
-
-  @media (prefers-reduced-motion: reduce) {
-    transition-duration: 0.01ms;
-  }
-}
-
 .catalog-price-strip__tile--primary {
   min-height: 40px;
 }
