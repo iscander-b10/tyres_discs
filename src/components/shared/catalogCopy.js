@@ -33,6 +33,13 @@ export const CATALOG_PRICE_LABELS = {
   selling: 'Цена',
 };
 
+/** Compact equal captions for basket channel table. */
+export const CATALOG_PRICE_LABELS_TABLE = {
+  b2b: 'B2B',
+  website: 'Интернет',
+  selling: 'Магазин',
+};
+
 /** Hover tooltip titles for channel price cells (basket totals, etc.). */
 export const CATALOG_PRICE_TOOLTIPS = {
   b2b: 'B2B цена',
@@ -41,16 +48,21 @@ export const CATALOG_PRICE_TOOLTIPS = {
 
 /**
  * Display-only price cells for card/modal strips.
- * Manager: always 3 stable cells — B2B | Website | store (invalid → «—»). Client: store only.
+ * Manager: always 3 stable cells — B2B | Website | store (invalid → «—»).
+ * Client: store only.
  */
-export const getCatalogPriceStripItems = (item, { isClientMode = false } = {}) => {
+export const getCatalogPriceStripItems = (
+  item,
+  { isClientMode = false, tableLabels = false } = {}
+) => {
   const sellingValue = formatPriceDisplay(item?.sellingPrice ?? item?.price);
+  const labels = tableLabels ? CATALOG_PRICE_LABELS_TABLE : CATALOG_PRICE_LABELS;
 
   if (isClientMode) {
     return [
       {
         key: 'selling',
-        label: 'Цена',
+        label: labels.selling,
         value: sellingValue,
         primary: true,
       },
@@ -60,19 +72,19 @@ export const getCatalogPriceStripItems = (item, { isClientMode = false } = {}) =
   return [
     {
       key: 'b2b',
-      label: CATALOG_PRICE_LABELS.b2b,
+      label: labels.b2b,
       value: formatPriceDisplay(item?.price),
       primary: false,
     },
     {
       key: 'website',
-      label: CATALOG_PRICE_LABELS.website,
+      label: labels.website,
       value: formatWebsitePriceDisplay(item),
       primary: false,
     },
     {
       key: 'selling',
-      label: CATALOG_PRICE_LABELS.selling,
+      label: labels.selling,
       value: sellingValue,
       primary: true,
     },

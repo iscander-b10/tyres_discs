@@ -7,10 +7,15 @@ import {
   getUnitWebsitePrice,
   parseStock,
 } from '../../cart/cartUtils';
-import { formatPriceDisplay } from '../shared/catalogCopy';
+import { ReactComponent as WebsiteIcon } from '../../icons/Website.svg';
+import {
+  CATALOG_PRICE_TOOLTIPS,
+  formatPriceDisplay,
+} from '../shared/catalogCopy';
 import CartQtyControls from '../shared/CartQtyControls/CartQtyControls';
 import CatalogItemModalWindow from '../shared/CatalogItemModalWindow/CatalogItemModalWindow';
 import CatalogPriceStrip from '../shared/CatalogPriceStrip/CatalogPriceStrip';
+import HoverTooltip from '../shared/HoverTooltip';
 import { resolvePhotoUrl } from '../../utils/fetchSupplier';
 import './BasketPage.scss';
 
@@ -184,19 +189,19 @@ function BasketPage({ isClientMode = false, onContinueSelection, isActive = true
                         className="basket-line__info"
                         onClick={() => setModalItem(item)}
                       >
-                        {item.code ? (
-                          <Text className="basket-line__code" type="secondary">
-                            Код: {item.code}
-                          </Text>
-                        ) : null}
                         <Text className="basket-line__name">{item.title}</Text>
                         {item.sizeTitle ? (
-                          <Text className="basket-line__size" type="secondary">
+                          <Text className="basket-line__meta basket-line__size" type="secondary">
                             {item.sizeTitle}
                           </Text>
                         ) : null}
+                        {item.code ? (
+                          <Text className="basket-line__meta basket-line__code" type="secondary">
+                            Код: {item.code}
+                          </Text>
+                        ) : null}
                         {!isClientMode && item.supplier ? (
-                          <Text className="basket-line__supplier" type="secondary">
+                          <Text className="basket-line__meta basket-line__supplier" type="secondary">
                             {item.supplier}
                           </Text>
                         ) : null}
@@ -210,6 +215,7 @@ function BasketPage({ isClientMode = false, onContinueSelection, isActive = true
                         >
                           <CatalogPriceStrip
                             item={item}
+                            /* Client → store unit only; manager → B2B / Internet / store */
                             isClientMode={isClientMode}
                             className="basket-line__price-strip"
                           />
@@ -225,7 +231,32 @@ function BasketPage({ isClientMode = false, onContinueSelection, isActive = true
                         className={`basket-line__sums${
                           showWebsiteTotal ? ' basket-line__sums--with-web' : ''
                         }`}
+                        role="group"
+                        aria-label={
+                          showWebsiteTotal
+                            ? `${CATALOG_PRICE_TOOLTIPS.website}: ${websiteMoney}, Магазин: ${storeMoney}`
+                            : `Магазин: ${storeMoney}`
+                        }
                       >
+                        {showWebsiteTotal ? (
+                          <HoverTooltip
+                            title={CATALOG_PRICE_TOOLTIPS.website}
+                            placement="top"
+                          >
+                            <span
+                              className="basket-line__sum-web"
+                              aria-hidden="true"
+                            >
+                              <WebsiteIcon
+                                className="basket-line__sum-web-icon"
+                                focusable="false"
+                              />
+                              <span className="basket-line__sum-web-value">
+                                {websiteMoney}
+                              </span>
+                            </span>
+                          </HoverTooltip>
+                        ) : null}
                         <div className="basket-line__store">
                           <div className="basket-line__qty">
                             <CartQtyControls
@@ -236,29 +267,12 @@ function BasketPage({ isClientMode = false, onContinueSelection, isActive = true
                               size="small"
                             />
                           </div>
-                          <div
-                            className="basket-line__sum basket-line__sum--store"
-                            role="group"
-                            aria-label={
-                              showWebsiteTotal
-                                ? `Магазин: ${storeMoney}, Интернет цена: ${websiteMoney}`
-                                : `Магазин: ${storeMoney}`
-                            }
+                          <span
+                            className="basket-line__sum-total"
+                            aria-hidden="true"
                           >
-                            <span className="basket-line__sum-total" aria-hidden="true">
-                              {storeMoney}
-                            </span>
-                            {showWebsiteTotal ? (
-                              <span className="basket-line__sum-web" aria-hidden="true">
-                                <span className="basket-line__sum-web-label">
-                                  Интернет цена
-                                </span>
-                                <span className="basket-line__sum-web-value">
-                                  {websiteMoney}
-                                </span>
-                              </span>
-                            ) : null}
-                          </div>
+                            {storeMoney}
+                          </span>
                         </div>
                       </div>
                     </div>

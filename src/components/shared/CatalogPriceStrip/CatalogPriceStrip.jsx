@@ -30,17 +30,23 @@ const PriceTile = ({ cell }) => {
 
 /**
  * Compact price presentation for catalog card, modal, and basket.
- * Manager: three stacked rows — label left, price right.
- * Client: «Цена» + our selling price.
+ * Manager (default): three stacked rows — B2B / Internet / store.
+ * Client: store price only.
+ * showChannelTable: equal B2B / Internet / store rows (optional override).
  */
 function CatalogPriceStrip({
   item,
   isClientMode = false,
+  showChannelTable = false,
   className = '',
 }) {
   const cells = useMemo(
-    () => getCatalogPriceStripItems(item, { isClientMode }),
-    [item, isClientMode]
+    () =>
+      getCatalogPriceStripItems(item, {
+        isClientMode: isClientMode && !showChannelTable,
+        tableLabels: Boolean(showChannelTable),
+      }),
+    [item, isClientMode, showChannelTable]
   );
 
   if (!item || cells.length === 0) return null;
@@ -48,14 +54,16 @@ function CatalogPriceStrip({
   const b2bCell = cells.find((cell) => cell.key === 'b2b');
   const websiteCell = cells.find((cell) => cell.key === 'website');
   const storeCell = cells.find((cell) => cell.key === 'selling');
-  const modeClass = isClientMode
-    ? 'catalog-price-strip--client'
-    : 'catalog-price-strip--manager';
+  const modeClass =
+    showChannelTable || !isClientMode
+      ? 'catalog-price-strip--manager'
+      : 'catalog-price-strip--client';
   const rootClassName = ['catalog-price-strip', modeClass, className]
     .filter(Boolean)
     .join(' ');
 
-  if (isClientMode && storeCell) {
+  // Store only: client mode (catalog, modal, basket).
+  if (isClientMode && !showChannelTable && storeCell) {
     return (
       <div
         className={rootClassName}
@@ -67,11 +75,41 @@ function CatalogPriceStrip({
     );
   }
 
+  const channelAria = [b2bCell, websiteCell, storeCell]
+    .filter(Boolean)
+    .map((cell) => `${cell.label}: ${cell.value}`)
+    .join(', ');
+
   return (
-    <div className={rootClassName} role="group" aria-label="Цены">
-      {b2bCell ? <PriceTile cell={b2bCell} /> : null}
-      {websiteCell ? <PriceTile cell={websiteCell} /> : null}
-      {storeCell ? <PriceTile cell={storeCell} /> : null}
+    <div
+      className={rootClassName}
+      role="group"
+      aria-label={channelAria || 'Цены'}
+    >
+      {b2bCell ? (
+        <PriceTile
+          cell={{
+            ...b2bCell,
+            primary: showChannelTable ? false : b2bCell.primary,
+          }}
+        />
+      ) : null}
+      {websiteCell ? (
+        <PriceTile
+          cell={{
+            ...websiteCell,
+            primary: showChannelTable ? false : websiteCell.primary,
+          }}
+        />
+      ) : null}
+      {storeCell ? (
+        <PriceTile
+          cell={{
+            ...storeCell,
+            primary: showChannelTable ? false : storeCell.primary,
+          }}
+        />
+      ) : null}
     </div>
   );
 }

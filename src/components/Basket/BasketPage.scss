@@ -181,7 +181,16 @@
 .basket-line__check {
   display: flex;
   align-items: flex-start;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
   padding-top: 4px;
+  box-sizing: border-box;
+}
+
+.basket-page--client .basket-line__check {
+  padding-top: 0;
+  align-items: center;
 }
 
 .basket-line__media {
@@ -263,14 +272,14 @@
 
 .basket-line__main {
   min-width: 0;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
-  /* Same step as info / price rows: size → supplier → B2B → web → store */
-  gap: 4px;
+  gap: $space-3;
 }
 
 .basket-page--client .basket-line__main {
-  min-height: 100%;
+  gap: $space-3;
 }
 
 .basket-line__info {
@@ -282,9 +291,13 @@
   text-align: left;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: $space-1;
   cursor: pointer;
   border-radius: $radius-sm;
+
+  .ant-typography {
+    margin: 0 !important;
+  }
 
   &:focus-visible {
     outline: 2px solid $color-accent;
@@ -296,10 +309,14 @@
   }
 }
 
-/* Meta labels + price captions — one label role (size/color/weight). */
+/* Meta: one secondary role — same size/weight/lh/color; omit empty (no reserved holes). */
+.basket-line__meta,
 .basket-line__code,
 .basket-line__size,
 .basket-line__supplier {
+  display: block;
+  margin: 0;
+  min-height: 0;
   font-family: $font-sans;
   font-size: $catalog-type-label-size !important;
   font-weight: $catalog-type-label-weight !important;
@@ -311,22 +328,21 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Match price-strip tile row height so vertical steps stay even. */
-.basket-line__size,
-.basket-line__supplier {
-  display: flex;
-  align-items: center;
-  min-height: 28px;
-  box-sizing: border-box;
-}
-
 .basket-line__name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
   font-size: $catalog-type-title-size;
   font-weight: $catalog-type-title-weight;
   color: $color-text;
   line-height: $catalog-type-title-lh;
   text-wrap: balance;
   transition: color 0.15s ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
 
 .basket-line__remove {
@@ -357,9 +373,7 @@
   align-items: flex-end;
   justify-content: flex-start;
   gap: $space-4;
-}
-
-.basket-page--client .basket-line__bottom {
+  /* Pin unit prices to bottom of main — level with qty ‖ store total */
   margin-top: auto;
 }
 
@@ -387,6 +401,11 @@
   }
 }
 
+.basket-page--client .basket-line__prices-hit {
+  min-width: min(100%, 240px);
+  max-width: 300px;
+}
+
 .basket-line__price-strip {
   width: max-content;
   max-width: 100%;
@@ -396,11 +415,11 @@
   &.catalog-price-strip--manager,
   &.catalog-price-strip--client {
     display: grid;
-    grid-template-columns: max-content max-content;
+    grid-template-columns: max-content minmax(11ch, max-content);
     justify-content: start;
     align-content: start;
-    column-gap: 40px;
-    row-gap: 4px; /* same as .basket-line__main / __info */
+    column-gap: $space-5;
+    row-gap: 0;
     padding-block: 0;
   }
 
@@ -412,21 +431,20 @@
     box-sizing: border-box;
     width: auto;
     min-width: 0;
-    min-height: 28px;
-    height: 28px;
-    padding: 0;
+    min-height: 0;
+    height: auto;
+    padding-block: $space-1;
+    padding-inline: 0;
     border: none;
     border-radius: 0;
     background: transparent;
     /* No border/bg transition: channel tiles briefly flash $color-border on mode switch. */
     transition: none;
-    /* Subgrid uses the tile's own gap (base strip sets gap: 8px) — set it here. */
-    column-gap: 40px;
+    column-gap: $space-5;
     row-gap: 0;
   }
 
-  // Dividers only after B2B and after Internet — not after store «Цена».
-  // Drawn on the subgridded row so the shared columns stay intact.
+  // Thin dividers between channel rows — not after the last (store).
   &.catalog-price-strip--manager .catalog-price-strip__tile--b2b,
   &.catalog-price-strip--manager .catalog-price-strip__tile--website {
     border-block-end: 1px solid $color-border-soft;
@@ -441,10 +459,12 @@
     white-space: nowrap;
   }
 
-  // Same kegel as `.basket-line__name`; end-aligned in the shared value column.
+  // Equal channel values — end-aligned tabular column.
+  // Manager keeps title-scale; client quiet table overrides below.
   &.catalog-price-strip--manager .catalog-price-strip__tile .catalog-price-strip__value,
   &.catalog-price-strip--client .catalog-price-strip__tile .catalog-price-strip__value {
     justify-self: end;
+    min-width: 11ch;
     font-size: $catalog-type-title-size;
     font-weight: $catalog-type-title-weight;
     line-height: $catalog-type-title-lh;
@@ -454,6 +474,29 @@
     text-align: end;
     overflow-wrap: normal;
     white-space: nowrap;
+  }
+}
+
+/* Client line: quieter equal price table (no primary emphasis). */
+.basket-page--client .basket-line__price-strip {
+  &.catalog-price-strip--manager,
+  &.catalog-price-strip--client {
+    width: 100%;
+    grid-template-columns: max-content minmax(12ch, 1fr);
+    column-gap: $space-4;
+  }
+
+  .catalog-price-strip__tile {
+    column-gap: $space-4;
+    min-height: 28px;
+  }
+
+  &.catalog-price-strip--manager .catalog-price-strip__tile .catalog-price-strip__value,
+  &.catalog-price-strip--client .catalog-price-strip__tile .catalog-price-strip__value {
+    min-width: 12ch;
+    font-size: $catalog-type-value-size;
+    font-weight: $catalog-type-value-weight;
+    line-height: $catalog-type-value-lh;
   }
 }
 
@@ -472,22 +515,22 @@
   padding-top: 0;
 }
 
-/* Qty + store sum (+ optional muted internet total under store) */
+/* Web chip (optional) above store-row: qty ‖ store total */
 .basket-line__sums {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: $space-2;
+  gap: $space-1;
 }
 
 .basket-line__store {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: $space-3;
 
   .cart-qty {
-    min-height: 28px;
-    min-width: 82px;
+    min-height: 36px;
+    min-width: 96px;
     padding: 1px;
     border-color: color-mix(in srgb, #{$color-text} 8%, transparent);
     border-radius: $radius-sm;
@@ -495,14 +538,19 @@
   }
 
   .cart-qty__btn {
-    width: 26px !important;
-    min-width: 26px !important;
-    height: 26px !important;
+    width: 34px !important;
+    min-width: 34px !important;
+    height: 34px !important;
     font-size: 13px !important;
     border-radius: 4px !important;
 
     &:hover:not(:disabled) {
       background: color-mix(in srgb, #{$color-text} 6%, #{$color-price-store-bg}) !important;
+    }
+
+    &:focus-visible {
+      outline: 2px solid $color-accent;
+      outline-offset: 2px;
     }
   }
 
@@ -511,6 +559,19 @@
     font-size: 18px;
     font-weight: $catalog-type-value-weight;
     line-height: $catalog-type-value-lh;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.basket-page--client .basket-line__store {
+  .cart-qty {
+    min-height: 44px;
+  }
+
+  .cart-qty__btn {
+    width: 40px !important;
+    min-width: 40px !important;
+    height: 40px !important;
   }
 }
 
@@ -527,50 +588,54 @@
 
 .basket-line__qty {
   flex-shrink: 0;
-  /* Optically align with primary store total, not the muted web row */
-  margin-top: 2px;
-}
-
-.basket-line__sum {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-  min-width: 110px;
-  font-family: $font-sans;
 }
 
 .basket-line__sum-total {
+  flex-shrink: 0;
+  min-width: 7ch;
   font-family: $font-sans;
   font-size: 22px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: $color-text;
   line-height: 1.2;
+  text-align: end;
 }
 
 .basket-line__sum-web {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  align-items: baseline;
-  column-gap: $space-1;
-  row-gap: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-1;
   max-width: 14rem;
+  padding: 2px $space-2;
+  border: 1px solid color-mix(in srgb, #{$color-text} 6%, transparent);
+  border-radius: $radius-sm;
+  background: color-mix(in srgb, #{$color-text} 2.5%, #{$color-price-store-bg});
   font-family: $font-sans;
   font-size: 13px;
   font-weight: 500;
   line-height: 1.25;
   color: $color-text-muted;
+  cursor: default;
 }
 
-.basket-line__sum-web-label {
-  white-space: nowrap;
+.basket-line__sum-web-icon {
+  display: block;
+  flex-shrink: 0;
+  width: 1em;
+  height: 1em;
+  color: currentColor;
 }
 
 .basket-line__sum-web-value {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+[data-theme='dark'] .basket-line__sum-web {
+  border-color: color-mix(in srgb, #{$color-text} 10%, transparent);
+  background: color-mix(in srgb, #{$color-text} 4%, #{$color-price-store-bg});
 }
 
 .basket-summary {
@@ -707,10 +772,16 @@
 
   .basket-page--client .basket-line__body {
     min-height: 96px;
+    row-gap: $space-3;
   }
 
   .basket-line__main {
+    min-height: 0; /* stack content; do not stretch empty space under photo */
     padding-inline-end: 44px; /* clear × when columns stack */
+  }
+
+  .basket-page--client .basket-line__main {
+    gap: $space-3;
   }
 
   .basket-line__prices-hit {
@@ -721,8 +792,23 @@
     width: 100%;
   }
 
+  .basket-page--client .basket-line__prices-hit {
+    min-width: 0;
+    max-width: none;
+  }
+
+  .basket-page--client .basket-line__price-strip {
+    &.catalog-price-strip--manager,
+    &.catalog-price-strip--client {
+      width: 100%;
+      max-width: none;
+      grid-template-columns: max-content minmax(12ch, 1fr);
+    }
+  }
+
   .basket-line__bottom {
     width: 100%;
+    margin-top: 0; /* unit prices stay under meta, not pulled into empty space */
   }
 
   .basket-line__end {
@@ -743,6 +829,13 @@
     background: color-mix(in srgb, #{$color-text} 2.5%, #{$color-price-store-bg});
   }
 
+  /* Container already highlights the block — avoid double chip chrome */
+  .basket-line__sums--with-web .basket-line__sum-web {
+    padding-inline: 0;
+    border: none;
+    background: transparent;
+  }
+
   [data-theme='dark'] .basket-line__sums--with-web {
     border-color: color-mix(in srgb, #{$color-text} 10%, transparent);
     background: color-mix(in srgb, #{$color-text} 4%, #{$color-price-store-bg});
@@ -751,9 +844,18 @@
   .basket-line__store {
     width: 100%;
     justify-content: space-between;
+    align-items: center;
   }
 
   .basket-page--client .basket-line__end {
-    margin-top: auto;
+    margin-top: 0;
+  }
+
+  .basket-page--client .basket-line__store {
+    gap: $space-3;
+  }
+
+  .basket-page--client .basket-line__sum-total {
+    font-size: 20px;
   }
 }

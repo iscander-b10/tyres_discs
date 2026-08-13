@@ -269,6 +269,53 @@ $close-size: 40px;
 
 .product-modal__prices {
   margin-block-start: 0;
+
+  /* Same list rhythm as `.product-modal__meta-fields` — label | value + hairline dividers */
+  &.catalog-price-strip--manager,
+  &.catalog-price-strip--client {
+    gap: 0;
+    padding-block: 0;
+    border-block: 1px solid $color-border-soft;
+  }
+
+  .catalog-price-strip__tile {
+    align-items: baseline;
+    gap: $space-2;
+    min-height: 0;
+    height: auto;
+    padding-block: 8px;
+    padding-inline: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    border-block-end: 1px solid $color-border-soft;
+  }
+
+  .catalog-price-strip__tile:last-child {
+    border-block-end: 0;
+  }
+
+  .catalog-price-strip__caption {
+    flex: 0 1 auto;
+    font-size: $catalog-type-label-size;
+    font-weight: $catalog-type-label-weight;
+    line-height: $catalog-type-label-lh;
+    color: $color-text-muted;
+  }
+
+  .catalog-price-strip__value {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: $catalog-type-value-size;
+    font-weight: $catalog-type-value-weight;
+    line-height: $catalog-type-value-lh;
+    letter-spacing: -0.01em;
+    color: $color-text;
+    text-align: end;
+    text-wrap: pretty;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
 }
 
 .product-modal__cart-control {
