@@ -6,6 +6,8 @@ import indexedDBService from '../../services/indexedDBService';
 import CatalogItemModalWindow from '../shared/CatalogItemModalWindow/CatalogItemModalWindow';
 import CatalogItemCard from '../shared/CatalogItemCard/CatalogItemCard';
 import PaginatedCardsList from '../shared/PaginatedCardsList/PaginatedCardsList';
+import CatalogShowcase from '../shared/CatalogShowcase';
+import CatalogSearchEmptyHint from '../shared/CatalogShowcase/CatalogSearchEmptyHint';
 import HoverTooltip from '../shared/HoverTooltip';
 import SupplierFilterSelect from '../shared/SupplierFilterSelect';
 import {
@@ -197,6 +199,32 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
     setSearchResults(null);
     loadAvailableParameters();
   };
+
+  const renderCatalogCard = (disc, { isClientMode: clientMode }) => (
+    <CatalogItemCard
+      key={disc.id}
+      item={disc}
+      isClientMode={clientMode}
+      cardClassName="item-card"
+      ModalComponent={CatalogItemModalWindow}
+      modalItemPropName="item"
+    />
+  );
+
+  const handleShowcaseChipClick = (chip) => {
+    const nextValues = {
+      ...form.getFieldsValue(),
+      diameter: chip.diameter,
+    };
+    form.setFieldsValue({ diameter: chip.diameter });
+    handleSearch(nextValues);
+  };
+
+  const showShowcase = searchResults === null && !loadingSearch;
+  const showSearchEmpty =
+    Array.isArray(searchResults) && searchResults.length === 0 && !loadingSearch;
+  const showSearchResults =
+    Array.isArray(searchResults) && searchResults.length > 0;
 
   return (
     <div className="discs-search-parameters">
@@ -464,25 +492,36 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
         </div>
       </Form>
 
-      <PaginatedCardsList
-        items={searchResults}
-        error={errorSearch}
-        isClientMode={isClientMode}
-        searchResetKey={searchResetKey}
-        containerClassName="items-list-container"
-        gridClassName="items-grid"
-        emptyText="Диски не найдены. Попробуйте изменить параметры поиска."
-        renderCard={(disc, { isClientMode: clientMode }) => (
-          <CatalogItemCard
-            key={disc.id}
-            item={disc}
-            isClientMode={clientMode}
-            cardClassName="item-card"
-            ModalComponent={CatalogItemModalWindow}
-            modalItemPropName="item"
-          />
-        )}
-      />
+      {showShowcase ? (
+        <CatalogShowcase
+          kind="discs"
+          isClientMode={isClientMode}
+          catalogDataVersion={catalogDataVersion}
+          renderCard={renderCatalogCard}
+          onChipClick={handleShowcaseChipClick}
+        />
+      ) : null}
+
+      {showSearchEmpty ? (
+        <CatalogSearchEmptyHint
+          kind="discs"
+          emptyText="Диски не найдены. Попробуйте изменить параметры поиска."
+          onChipClick={handleShowcaseChipClick}
+        />
+      ) : null}
+
+      {showSearchResults || errorSearch ? (
+        <PaginatedCardsList
+          items={searchResults}
+          error={errorSearch}
+          isClientMode={isClientMode}
+          searchResetKey={searchResetKey}
+          containerClassName="items-list-container"
+          gridClassName="items-grid"
+          emptyText="Диски не найдены. Попробуйте изменить параметры поиска."
+          renderCard={renderCatalogCard}
+        />
+      ) : null}
     </div>
   );
 });

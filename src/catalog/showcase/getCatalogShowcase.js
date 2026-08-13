@@ -1,0 +1,80 @@
+import indexedDBService from '../../services/indexedDBService';
+import { SHOWCASE_CONFIG } from './showcaseConfig';
+import { buildTireShowcase } from './buildTireShowcase';
+import { buildDiscShowcase } from './buildDiscShowcase';
+
+const cache = {
+  tires: { version: null, payload: null, promise: null },
+  discs: { version: null, payload: null, promise: null },
+};
+
+export const invalidateCatalogShowcaseCache = () => {
+  cache.tires = { version: null, payload: null, promise: null };
+  cache.discs = { version: null, payload: null, promise: null };
+};
+
+const loadTirePayload = async () => {
+  const cfg = SHOWCASE_CONFIG.tires;
+  return indexedDBService.collectTireShowcaseCandidates({
+    candidateLimit: cfg.candidateLimit,
+    minAmount: cfg.minAmount,
+  });
+};
+
+const loadDiscPayload = async () => {
+  // Для дисков достаточно знать, пуст ли каталог (полки карточек не строим).
+  return indexedDBService.collectDiscShowcaseCandidates({
+    candidateLimit: 1,
+    minAmount: 0,
+  });
+};
+
+/**
+ * Загружает кандидатов из IDB (с cache по catalogDataVersion) и строит витрину.
+ * Showcase state отдельно от searchResults.
+ */
+export const getCatalogShowcase = async ({
+  kind,
+  catalogDataVersion = 0,
+  now = new Date(),
+} = {}) => {
+  const bucketKey = kind === 'discs' ? 'discs' : 'tires';
+  const bucket = cache[bucketKey];
+
+  if (bucket.version !== catalogDataVersion) {
+    bucket.version = catalogDataVersion;
+    bucket.payload = null;
+    bucket.promise = null;
+  }
+
+  if (!bucket.promise) {
+    const versionAtStart = catalogDataVersion;
+    bucket.promise = (async () => {
+      const payload =
+        bucketKey === 'tires' ? await loadTirePayload() : await loadDiscPayload();
+      if (bucket.version === versionAtStart) {
+        bucket.payload = payload;
+      }
+      return payload;
+    })().catch((error) => {
+      if (bucket.version === versionAtStart) {
+        bucket.promise = null;
+      }
+      throw error;
+    });
+  }
+
+  const payload = await bucket.promise;
+
+  if (bucketKey === 'tires') {
+    return buildTireShowcase({
+      candidates: payload.candidates,
+      isEmpty: payload.isEmpty,
+      now,
+    });
+  }
+
+  return buildDiscShowcase({
+    isEmpty: payload.isEmpty,
+  });
+};

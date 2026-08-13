@@ -110,6 +110,81 @@ const addUniqueValue = (set, value) => {
   }
 };
 
+/**
+ * Общий сбор кандидатов витрины из object store (ранний лимит).
+ */
+const collectShowcaseCandidatesFromStore = (
+  store,
+  {
+    candidateLimit = 480,
+    minAmount = 1,
+  } = {}
+) =>
+  new Promise((resolve, reject) => {
+    const countRequest = store.count();
+    countRequest.onerror = () => reject(countRequest.error);
+
+    countRequest.onsuccess = () => {
+      const total = countRequest.result || 0;
+      if (total === 0) {
+        resolve({
+          isEmpty: true,
+          candidates: [],
+        });
+        return;
+      }
+
+      const candidates = [];
+      const candidateSupplierCounts = new Map();
+      let settled = false;
+      const maxPerSupplierCandidates = Math.max(64, Math.ceil(candidateLimit / 4));
+
+      const finish = (payload) => {
+        if (settled) return;
+        settled = true;
+        resolve(payload);
+      };
+
+      const considerItem = (item) => {
+        if (candidates.length >= candidateLimit) return;
+
+        const amount = Number(item?.amount);
+        if (Number.isNaN(amount) || amount < minAmount) return;
+
+        const supplier = item?.supplier;
+        if (supplier) {
+          const supplierCount = candidateSupplierCounts.get(supplier) || 0;
+          // Не забиваем пул одним поставщиком
+          if (supplierCount >= maxPerSupplierCandidates && candidateSupplierCounts.size >= 2) {
+            return;
+          }
+          candidateSupplierCounts.set(supplier, supplierCount + 1);
+        }
+
+        candidates.push(item);
+      };
+
+      const request = store.openCursor();
+
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) {
+          finish({ isEmpty: false, candidates });
+          return;
+        }
+
+        considerItem(cursor.value);
+        if (candidates.length >= candidateLimit) {
+          finish({ isEmpty: false, candidates });
+          return;
+        }
+        cursor.continue();
+      };
+
+      request.onerror = () => reject(request.error);
+    };
+  });
+
 class IndexedDBService {
   constructor() {
     this.dbName = 'TireDatabase';
@@ -537,6 +612,25 @@ class IndexedDBService {
 
       request.onerror = () => reject(request.error);
     });
+  }
+
+  /**
+   * Кандидаты для автовитрины шин: ранний лимит, без полного getAll в React.
+   * Собирает общий пул + корзины по поставщикам для manager-полок.
+   */
+  async collectTireShowcaseCandidates(options = {}) {
+    if (!this.db) await this.openDatabase();
+    const transaction = this.db.transaction(['tires'], 'readonly');
+    return collectShowcaseCandidatesFromStore(transaction.objectStore('tires'), options);
+  }
+
+  /**
+   * Кандидаты для автовитрины дисков: ранний лимит + корзины поставщиков.
+   */
+  async collectDiscShowcaseCandidates(options = {}) {
+    if (!this.discDb) await this.openDiscDatabase();
+    const transaction = this.discDb.transaction(['discs'], 'readonly');
+    return collectShowcaseCandidatesFromStore(transaction.objectStore('discs'), options);
   }
 
   async getAvailableDiscParameterOptions(filters = {}) {
