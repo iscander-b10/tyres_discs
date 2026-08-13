@@ -4,6 +4,7 @@ import { CloseOutlined } from '@ant-design/icons';
 import { useCart } from '../../cart/CartContext';
 import {
   getUnitSellingPrice,
+  getUnitWebsitePrice,
   parseStock,
 } from '../../cart/cartUtils';
 import { formatPriceDisplay } from '../shared/catalogCopy';
@@ -125,8 +126,13 @@ function BasketPage({ isClientMode = false, onContinueSelection, isActive = true
             {items.map((item) => {
               const unit = getUnitSellingPrice(item);
               const lineTotal = unit * (item.quantity || 0);
+              const websiteUnit = getUnitWebsitePrice(item);
+              const websiteLineTotal = websiteUnit * (item.quantity || 0);
+              const showWebsiteTotal = !isClientMode && websiteUnit > 0;
               const photoSrc = resolvePhotoUrl(item.photoUrl, item.supplier);
               const maxStock = parseStock(item.maxStock ?? item.amount);
+              const storeMoney = formatMoney(lineTotal);
+              const websiteMoney = formatMoney(websiteLineTotal);
 
               return (
                 <li key={item.key} className="basket-line">
@@ -215,7 +221,11 @@ function BasketPage({ isClientMode = false, onContinueSelection, isActive = true
                       className="basket-line__end"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <div className="basket-line__sums">
+                      <div
+                        className={`basket-line__sums${
+                          showWebsiteTotal ? ' basket-line__sums--with-web' : ''
+                        }`}
+                      >
                         <div className="basket-line__store">
                           <div className="basket-line__qty">
                             <CartQtyControls
@@ -226,10 +236,28 @@ function BasketPage({ isClientMode = false, onContinueSelection, isActive = true
                               size="small"
                             />
                           </div>
-                          <div className="basket-line__sum basket-line__sum--store">
-                            <span className="basket-line__sum-total">
-                              {formatMoney(lineTotal)}
+                          <div
+                            className="basket-line__sum basket-line__sum--store"
+                            role="group"
+                            aria-label={
+                              showWebsiteTotal
+                                ? `Магазин: ${storeMoney}, Интернет цена: ${websiteMoney}`
+                                : `Магазин: ${storeMoney}`
+                            }
+                          >
+                            <span className="basket-line__sum-total" aria-hidden="true">
+                              {storeMoney}
                             </span>
+                            {showWebsiteTotal ? (
+                              <span className="basket-line__sum-web" aria-hidden="true">
+                                <span className="basket-line__sum-web-label">
+                                  Интернет цена
+                                </span>
+                                <span className="basket-line__sum-web-value">
+                                  {websiteMoney}
+                                </span>
+                              </span>
+                            ) : null}
                           </div>
                         </div>
                       </div>

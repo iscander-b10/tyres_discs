@@ -472,7 +472,7 @@
   padding-top: 0;
 }
 
-/* Qty + store sum */
+/* Qty + store sum (+ optional muted internet total under store) */
 .basket-line__sums {
   display: flex;
   flex-direction: column;
@@ -482,7 +482,7 @@
 
 .basket-line__store {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: $space-3;
 
   .cart-qty {
@@ -527,6 +527,8 @@
 
 .basket-line__qty {
   flex-shrink: 0;
+  /* Optically align with primary store total, not the muted web row */
+  margin-top: 2px;
 }
 
 .basket-line__sum {
@@ -545,6 +547,30 @@
   font-variant-numeric: tabular-nums;
   color: $color-text;
   line-height: 1.2;
+}
+
+.basket-line__sum-web {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: baseline;
+  column-gap: $space-1;
+  row-gap: 0;
+  max-width: 14rem;
+  font-family: $font-sans;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.25;
+  color: $color-text-muted;
+}
+
+.basket-line__sum-web-label {
+  white-space: nowrap;
+}
+
+.basket-line__sum-web-value {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .basket-summary {
@@ -708,6 +734,18 @@
 
   .basket-line__sums {
     width: 100%;
+  }
+
+  .basket-line__sums--with-web {
+    padding: $space-2 $space-3;
+    border-radius: $radius-sm;
+    border: 1px solid color-mix(in srgb, #{$color-text} 6%, transparent);
+    background: color-mix(in srgb, #{$color-text} 2.5%, #{$color-price-store-bg});
+  }
+
+  [data-theme='dark'] .basket-line__sums--with-web {
+    border-color: color-mix(in srgb, #{$color-text} 10%, transparent);
+    background: color-mix(in srgb, #{$color-text} 4%, #{$color-price-store-bg});
   }
 
   .basket-line__store {
