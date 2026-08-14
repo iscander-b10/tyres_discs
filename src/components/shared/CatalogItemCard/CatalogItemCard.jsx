@@ -6,6 +6,7 @@ import { resolvePhotoUrl } from '../../../utils/fetchSupplier';
 import HoverTooltip from '../HoverTooltip';
 import AddToCartControl from '../AddToCartControl/AddToCartControl';
 import CatalogPriceStrip from '../CatalogPriceStrip/CatalogPriceStrip';
+import CatalogItemPromoBadges from '../CatalogItemPromoBadges/CatalogItemPromoBadges';
 import './CatalogItemCard.scss';
 
 const { Meta } = Card;
@@ -94,7 +95,9 @@ const CatalogItemCard = ({
                 ) : null}
               </Flex>
             ) : null}
-            <Flex className="item-image-overlays" />
+            <div className="item-image-overlays">
+              <CatalogItemPromoBadges item={item} variant="card" />
+            </div>
           </Flex>
         }
       >

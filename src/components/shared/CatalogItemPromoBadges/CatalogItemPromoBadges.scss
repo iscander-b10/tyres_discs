@@ -1,0 +1,38 @@
+@use '../../../styles/tokens' as *;
+
+$modal-close-size: 40px;
+
+.catalog-promo-badges {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.catalog-promo-badges__badge {
+  position: absolute;
+  display: block;
+  width: clamp(48px, 22%, 72px);
+  line-height: 0;
+  pointer-events: auto;
+  cursor: help;
+  filter: drop-shadow(0 1px 2px oklch(0 0 0 / 0.28));
+}
+
+.catalog-promo-badges__icon {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.catalog-promo-badges__gift {
+  top: $space-2;
+  inset-inline-end: $space-2;
+}
+
+/* Mobile modal: close control sits over the photo — keep gift clear of it. */
+.catalog-promo-badges--modal .catalog-promo-badges__gift {
+  @media (max-width: 720px) {
+    top: calc(#{$modal-close-size} + #{$space-2} + #{$space-1});
+  }
+}

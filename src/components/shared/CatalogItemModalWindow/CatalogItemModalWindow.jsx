@@ -5,6 +5,7 @@ import { CloseOutlined } from '@ant-design/icons';
 import { resolvePhotoUrl } from '../../../utils/fetchSupplier';
 import AddToCartControl from '../AddToCartControl/AddToCartControl';
 import CatalogPriceStrip from '../CatalogPriceStrip/CatalogPriceStrip';
+import CatalogItemPromoBadges from '../CatalogItemPromoBadges/CatalogItemPromoBadges';
 import {
   formatCatalogSizeDisplay,
   resolveCatalogLoadIndex,
@@ -150,6 +151,7 @@ const CatalogItemModalWindow = ({ isOpen, onClose, item, isClientMode = false })
                   e.target.src = 'https://via.placeholder.com/800x600?text=No+Image';
                 }}
               />
+              <CatalogItemPromoBadges item={item} variant="modal" />
             </div>
           </div>
 
