@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo, useRef, memo } from 'react';
 import { Form, Select, Button, Radio, Checkbox } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
 import { ReactComponent as SunIcon } from '../../icons/Sun.svg';
 import { ReactComponent as SnowIcon } from '../../icons/Snow.svg';
 import { ReactComponent as ResetIcon } from '../../icons/Reset.svg';
+import { ReactComponent as SearchIcon } from '../../icons/Search.svg';
 import indexedDBService from '../../services/indexedDBService';
 import CatalogItemModalWindow from '../shared/CatalogItemModalWindow/CatalogItemModalWindow';
 import CatalogItemCard from '../shared/CatalogItemCard/CatalogItemCard';
@@ -398,7 +398,7 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
                   type="primary"
                   htmlType="submit"
                   className="filter-action-btn filter-action-btn--search"
-                  icon={<SearchOutlined aria-hidden />}
+                  icon={<SearchIcon aria-hidden />}
                   loading={loadingSearch}
                   aria-label="Найти"
                 />

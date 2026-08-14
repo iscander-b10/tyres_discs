@@ -1,8 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { CloseCircleFilled, LoadingOutlined } from '@ant-design/icons';
-import { Alert, Dropdown, Empty, Flex, Input, Pagination } from 'antd';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { Alert, Button, Dropdown, Empty, Flex, Input, Pagination } from 'antd';
+import { ReactComponent as SearchIcon } from '../../../icons/Search.svg';
+import { ReactComponent as ClearIcon } from '../../../icons/Clear.svg';
+import { ReactComponent as LoadingIcon } from '../../../icons/Loading.svg';
 import { ReactComponent as SortIcon } from '../../../icons/Sotring.svg';
-import { ReactComponent as ItemsPerPageIcon } from '../../../icons/Items_Per_Page_Selector.svg';
+import { ReactComponent as PageSizeIcon } from '../../../icons/PageSize.svg';
 import HoverTooltip from '../HoverTooltip';
 import './PaginatedCardsList.scss';
 
@@ -81,6 +83,8 @@ const PaginatedCardsList = ({
   gridClassName,
   searchResetKey = 0,
 }) => {
+  const searchId = useId();
+  const statusId = useId();
   const [currentPage, setCurrentPage] = useState(1);
   const [sortMode, setSortMode] = useState(SORT_MODES.DEFAULT);
   const [itemsPerPage, setItemsPerPage] = useState(() => readStoredItemsPerPage(itemsPerPageProp));
@@ -176,6 +180,12 @@ const PaginatedCardsList = ({
     applySearchImmediately('');
   };
 
+  const handleSearchKeyDown = (event) => {
+    if (event.key !== 'Escape' || searchQuery === '') return;
+    event.preventDefault();
+    handleSearchClear();
+  };
+
   const handleItemsPerPageChange = (key) => {
     const next = Number(key);
     if (!isValidPageSize(next) || next === itemsPerPage) return;
@@ -210,42 +220,73 @@ const PaginatedCardsList = ({
 
   const hasSourceItems = safeItems.length > 0;
   const hasVisibleItems = totalItems > 0;
+  const hasAppliedQuery = Boolean(normalizedSearchQuery);
   const showSearchClear = searchQuery.trim() !== '' && !isSearchPending;
+  const isTitleFilterEmpty = hasSourceItems && !hasVisibleItems && hasAppliedQuery;
+  const filterStatusText = hasAppliedQuery ? `${totalItems} из ${safeItems.length}` : '';
 
-  const searchSuffix = isSearchPending ? (
-    <span className="list-toolbar__search-affix" aria-hidden="true">
-      <LoadingOutlined className="list-toolbar__search-loading-icon" spin />
+  const searchSuffix = (
+    <span className="list-toolbar__search-suffix">
+      {isSearchPending ? (
+        <span className="list-toolbar__search-loading" aria-hidden="true">
+          <LoadingIcon className="list-toolbar__search-loading-icon" />
+        </span>
+      ) : showSearchClear ? (
+        <button
+          type="button"
+          className="list-toolbar__search-clear"
+          aria-label="Очистить поиск"
+          onClick={handleSearchClear}
+          onMouseDown={(event) => event.preventDefault()}
+        >
+          <ClearIcon className="list-toolbar__search-clear-icon" aria-hidden />
+        </button>
+      ) : null}
     </span>
-  ) : showSearchClear ? (
-    <button
-      type="button"
-      className="list-toolbar__search-clear"
-      aria-label="Очистить поиск"
-      onClick={handleSearchClear}
-      onMouseDown={(event) => event.preventDefault()}
-    >
-      <CloseCircleFilled className="list-toolbar__search-clear-icon" aria-hidden />
-    </button>
-  ) : (
-    <span className="list-toolbar__search-affix" aria-hidden="true" />
   );
 
   return (
     <Flex className={containerClassName} vertical>
       {hasSourceItems && (
-        <Flex className="list-toolbar" align="flex-end" wrap="wrap">
+        <div
+          className={[
+            'list-toolbar',
+            hasAppliedQuery ? 'list-toolbar--has-query' : '',
+            isSearchPending ? 'list-toolbar--filtering' : '',
+            searchQuery.trim() ? 'list-toolbar--typing' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+        >
           <Input
+            id={searchId}
             className="list-toolbar__search"
             value={searchQuery}
             onChange={handleSearchChange}
-            placeholder="Поиск: По названию"
-            aria-label="Поиск по названию"
+            onKeyDown={handleSearchKeyDown}
+            placeholder="Бренд или модель"
+            aria-label="Поиск по бренду или модели"
+            autoComplete="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            inputMode="search"
             aria-busy={isSearchPending || undefined}
+            aria-describedby={filterStatusText ? statusId : undefined}
+            prefix={
+              <span className="list-toolbar__search-prefix" aria-hidden="true">
+                <SearchIcon className="list-toolbar__search-prefix-icon" />
+              </span>
+            }
             suffix={searchSuffix}
           />
-          <span className="list-toolbar__search-status" role="status" aria-live="polite">
-            {isSearchPending ? 'Фильтрация…' : ''}
-          </span>
+          <p
+            id={statusId}
+            className={`list-toolbar__status${filterStatusText ? '' : ' is-empty'}`}
+            role="status"
+            aria-live="polite"
+          >
+            {filterStatusText || null}
+          </p>
           <div className="list-toolbar__actions">
             <HoverTooltip title="Сортировка" placement="bottom">
               <span className="list-toolbar__icon-wrap">
@@ -260,7 +301,7 @@ const PaginatedCardsList = ({
                 >
                   <button
                     type="button"
-                    className="list-toolbar__icon-btn"
+                    className="list-toolbar__icon-btn list-toolbar__icon-btn--group-start"
                     aria-label="Сортировка"
                     aria-haspopup="menu"
                   >
@@ -282,17 +323,17 @@ const PaginatedCardsList = ({
                 >
                   <button
                     type="button"
-                    className="list-toolbar__icon-btn"
+                    className="list-toolbar__icon-btn list-toolbar__icon-btn--group-end"
                     aria-label="Количество товаров на странице"
                     aria-haspopup="menu"
                   >
-                    <ItemsPerPageIcon className="list-toolbar__icon" aria-hidden />
+                    <PageSizeIcon className="list-toolbar__icon" aria-hidden />
                   </button>
                 </Dropdown>
               </span>
             </HoverTooltip>
           </div>
-        </Flex>
+        </div>
       )}
       {hasVisibleItems ? (
         <>
@@ -312,6 +353,17 @@ const PaginatedCardsList = ({
             </Flex>
           )}
         </>
+      ) : isTitleFilterEmpty ? (
+        <div className="list-filter-empty" role="status">
+          <p className="list-filter-empty__text">Ничего не подходит</p>
+          <Button
+            type="default"
+            className="list-filter-empty__clear"
+            onClick={handleSearchClear}
+          >
+            Очистить поиск
+          </Button>
+        </div>
       ) : (
         <Flex className="empty-state" justify="center" align="center">
           <Empty description={emptyText} />

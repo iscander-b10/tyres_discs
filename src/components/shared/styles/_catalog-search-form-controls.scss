@@ -1046,6 +1046,12 @@ $catalog-text: $color-text;
       line-height: 1;
     }
 
+    svg {
+      display: block;
+      width: 16px;
+      height: 16px;
+    }
+
     &:focus {
       outline: none;
     }

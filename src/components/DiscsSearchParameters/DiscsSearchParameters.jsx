@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, memo } from 'react';
 import { Form, Select, Button, Checkbox } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
 import { ReactComponent as ResetIcon } from '../../icons/Reset.svg';
+import { ReactComponent as SearchIcon } from '../../icons/Search.svg';
 import indexedDBService from '../../services/indexedDBService';
 import CatalogItemModalWindow from '../shared/CatalogItemModalWindow/CatalogItemModalWindow';
 import CatalogItemCard from '../shared/CatalogItemCard/CatalogItemCard';
@@ -473,7 +473,7 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
                   type="primary"
                   htmlType="submit"
                   className="filter-action-btn filter-action-btn--search"
-                  icon={<SearchOutlined aria-hidden />}
+                  icon={<SearchIcon aria-hidden />}
                   loading={loadingSearch}
                   aria-label="Найти"
                 />
