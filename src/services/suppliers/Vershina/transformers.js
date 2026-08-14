@@ -12,6 +12,13 @@ const normalizeBrand = (brand) => {
   return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
 };
 
+const normalizeModel = (model) => String(model ?? '')
+  .trim()
+  .split(/\s+/)
+  .filter(Boolean)
+  .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+  .join(' ');
+
 const parseDiameter = (diameter, commercial) => {
   const base = `R${diameter}`;
   return commercial === 'Да' ? `${base}C` : base;
@@ -32,7 +39,7 @@ export const transformTyres = (rawData) => {
     const margin = getMargin(normalizedBrand);
     const sellingPrice = calculateSellingPrice(tyre.price_opt, margin);
     const rim = parseDiameter(tyre.diameter, tyre.commercial);
-    const newTitle = `${normalizedBrand} ${tyre.model} ${tyre.load_speed_index}`;
+    const newTitle = `${normalizedBrand} ${normalizeModel(tyre.model)} ${tyre.load_speed_index}`;
     const sizeTitle = `${tyre.width}/${tyre.height}${rim}`; 
     return {
       id: `vershina_${tyre.cae}`,
