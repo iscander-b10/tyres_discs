@@ -1,26 +1,28 @@
 {
   "files": {
-    "main.css": "/tyres_discs/static/css/main.a62649d2.css",
-    "main.js": "/tyres_discs/static/js/main.2db54ad4.js",
-    "static/media/Moon.png": "/tyres_discs/static/media/Moon.d9a2cab5695eb1fc7d1a.png",
-    "static/media/Sun_Theme.png": "/tyres_discs/static/media/Sun_Theme.25890a0159593acd5204.png",
+    "main.css": "/tyres_discs/static/css/main.528a64ae.css",
+    "main.js": "/tyres_discs/static/js/main.aff8ecc4.js",
     "static/media/runflat.jpg": "/tyres_discs/static/media/runflat.9dbf3e8e9472eaa9cf38.jpg",
+    "static/media/TireFittingGift.svg": "/tyres_discs/static/media/TireFittingGift.cdb0eae0934d47e98c42788a2ba60650.svg",
     "static/media/Website.svg": "/tyres_discs/static/media/Website.05dcf5157a148bdf01d5fba89f0b83ab.svg",
     "static/media/Van.svg": "/tyres_discs/static/media/Van.fb3c186c21472977980a45f4abc502ea.svg",
     "static/media/Sun.svg": "/tyres_discs/static/media/Sun.37c635522bc567756cc82ab6e64c7836.svg",
     "static/media/Snow.svg": "/tyres_discs/static/media/Snow.609a207228f929a2316012f83c8d957f.svg",
-    "static/media/Items_Per_Page_Selector.svg": "/tyres_discs/static/media/Items_Per_Page_Selector.a7fd54811c399d11611ea04acf7246f4.svg",
     "static/media/User.svg": "/tyres_discs/static/media/User.f3bcf0057d1eb236ca44148975902ea2.svg",
     "static/media/Phone.svg": "/tyres_discs/static/media/Phone.27d291f239aee94dc543de492f66c304.svg",
+    "static/media/PageSize.svg": "/tyres_discs/static/media/PageSize.8e8a9895125b8dc4a97f72e7d38ff061.svg",
     "index.html": "/tyres_discs/index.html",
     "static/media/Reset.svg": "/tyres_discs/static/media/Reset.dde83b0666421fdbe6990fe09d335483.svg",
     "static/media/Telegram.svg": "/tyres_discs/static/media/Telegram.9aad611fb7bea7ff83abf3350369ed5b.svg",
-    "static/media/Sotring.svg": "/tyres_discs/static/media/Sotring.48470abfaed2a7676cfeeaddf86698c0.svg",
-    "main.a62649d2.css.map": "/tyres_discs/static/css/main.a62649d2.css.map",
-    "main.2db54ad4.js.map": "/tyres_discs/static/js/main.2db54ad4.js.map"
+    "static/media/Search.svg": "/tyres_discs/static/media/Search.afe61078d91821bfd43492b855dde211.svg",
+    "static/media/Clear.svg": "/tyres_discs/static/media/Clear.7d420cdb038cab2599815eb490fbc28b.svg",
+    "static/media/Loading.svg": "/tyres_discs/static/media/Loading.5e1bd84c7ec01191e9e74ad84aacce94.svg",
+    "static/media/Sotring.svg": "/tyres_discs/static/media/Sotring.b2274f35f506d0d6f2f2bc29446a6bf9.svg",
+    "main.528a64ae.css.map": "/tyres_discs/static/css/main.528a64ae.css.map",
+    "main.aff8ecc4.js.map": "/tyres_discs/static/js/main.aff8ecc4.js.map"
   },
   "entrypoints": [
-    "static/css/main.a62649d2.css",
-    "static/js/main.2db54ad4.js"
+    "static/css/main.528a64ae.css",
+    "static/js/main.aff8ecc4.js"
   ]
 }
