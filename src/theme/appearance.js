@@ -1,7 +1,11 @@
 import { theme as antdTheme } from 'antd';
 
 export const THEME_STORAGE_KEY = 'ivanor-appearance';
-export const THEME_TRANSITION_MS = 320;
+/**
+ * ThemeSwitch pending-lock only (Galahhad scene `--transition: 0.5s`).
+ * Page theme itself snaps instantly — no global color morph.
+ */
+export const THEME_TRANSITION_MS = 500;
 
 export function getInitialAppearance() {
   try {
@@ -29,35 +33,14 @@ export function applyAppearance(appearance) {
   }
 }
 
-function prefersReducedMotion() {
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
-
 /**
- * Smoothly applies a theme change: View Transitions when available,
- * otherwise a short CSS color crossfade via `.theme-transitioning`.
+ * Applies theme DOM update instantly (hard snap).
+ * No View Transitions / no `.theme-transitioning` color morph — those caused
+ * border/icon/divider glitches while Ant Design tokens updated in the same frame.
  */
 export function runAppearanceTransition(updateDom) {
-  if (prefersReducedMotion()) {
-    updateDom();
-    return Promise.resolve();
-  }
-
-  if (typeof document.startViewTransition === 'function') {
-    const transition = document.startViewTransition(updateDom);
-    return transition.finished.catch(() => {});
-  }
-
-  const root = document.documentElement;
-  root.classList.add('theme-transitioning');
   updateDom();
-
-  return new Promise((resolve) => {
-    window.setTimeout(() => {
-      root.classList.remove('theme-transitioning');
-      resolve();
-    }, THEME_TRANSITION_MS);
-  });
+  return Promise.resolve();
 }
 
 const sharedComponentTokens = {

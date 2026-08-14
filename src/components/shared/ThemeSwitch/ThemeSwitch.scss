@@ -1,15 +1,30 @@
 @use '../../../styles/tokens' as *;
 
-.theme-switch {
-  --theme-switch-w: 52px;
-  --theme-switch-h: 28px;
-  --theme-switch-pad: 3px;
-  --theme-switch-thumb: 22px;
-  --theme-switch-travel: calc(
-    var(--theme-switch-w) - var(--theme-switch-thumb) - (var(--theme-switch-pad) * 2)
-  );
+/* From Uiverse.io by Galahhad — scene vars & geometry preserved.
+   Scale via --toggle-size (font-size), not transform. */
 
-  /* Hit area ≥40px desktop; visual control stays compact */
+.theme-switch {
+  --toggle-size: 11px;
+  --container-width: 5.625em;
+  --container-height: 2.5em;
+  --container-radius: 6.25em;
+  --container-light-bg: #3d7eae;
+  --container-night-bg: #1d1f2c;
+  --circle-container-diameter: 3.375em;
+  --sun-moon-diameter: 2.125em;
+  --sun-bg: #ecca2f;
+  --moon-bg: #c4c9d1;
+  --spot-color: #959db1;
+  --circle-container-offset: calc(
+    (var(--circle-container-diameter) - var(--container-height)) / 2 * -1
+  );
+  --stars-color: #fff;
+  --clouds-color: #f3fdff;
+  --back-clouds-color: #aacadf;
+  --transition: 0.5s cubic-bezier(0, -0.02, 0.4, 1.25);
+  --circle-transition: 0.3s cubic-bezier(0, -0.02, 0.35, 1.17);
+
+  /* Hit area ≥40px desktop; visual track stays compact (~62×28) */
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -24,13 +39,19 @@
   border-radius: 999px;
   -webkit-tap-highlight-color: transparent;
 
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 40px;
+    height: 40px;
+    transform: translate(-50%, -50%);
+  }
+
   &:focus-visible {
     outline: 2px solid $color-accent;
     outline-offset: 2px;
-  }
-
-  &:active:not(:disabled) .theme-switch__thumb {
-    transform: scale(0.96);
   }
 
   &.is-pending {
@@ -43,140 +64,233 @@
   }
 }
 
-.theme-switch__track {
-  position: relative;
-  display: block;
-  width: var(--theme-switch-w);
-  height: var(--theme-switch-h);
-  padding: var(--theme-switch-pad);
-  border-radius: 999px;
+/* Reset + em-scale only on the scene — never on the <button> hit area */
+.theme-switch__container,
+.theme-switch__container *,
+.theme-switch__container *::before,
+.theme-switch__container *::after {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-size: var(--toggle-size);
+}
+
+.theme-switch__container {
+  display: block;
+  width: var(--container-width);
+  height: var(--container-height);
+  background-color: var(--container-light-bg);
+  border-radius: var(--container-radius);
   overflow: hidden;
-  transition:
-    background 0.32s cubic-bezier(0.2, 0, 0, 1),
-    box-shadow 0.32s cubic-bezier(0.2, 0, 0, 1);
-}
-
-.theme-switch.is-light .theme-switch__track {
-  /* Sunrise / amber — matches Sun_Theme.png warmth */
-  background: linear-gradient(135deg, #f8d27a 0%, #f0a03a 45%, #e07828 100%);
+  cursor: pointer;
+  /* Outer edge adapted to header surface (no white Uiverse halo);
+     inset “recessed” depth stays on ::before */
   box-shadow:
-    inset 0 1px 2px rgb(120 60 10 / 0.22),
-    inset 0 -1px 1px rgb(255 255 255 / 0.28);
-}
-
-.theme-switch.is-dark .theme-switch__track {
-  /* Night indigo / slate — matches Moon.png cool blues */
-  background: linear-gradient(135deg, #1a2744 0%, #243656 48%, #0f172a 100%);
-  box-shadow:
-    inset 0 1px 2px rgb(0 0 0 / 0.45),
-    inset 0 -1px 1px rgb(148 180 220 / 0.12);
-}
-
-.theme-switch:hover:not(:disabled).is-light .theme-switch__track {
-  background: linear-gradient(135deg, #ffd98a 0%, #f5ab45 45%, #e88530 100%);
-}
-
-.theme-switch:hover:not(:disabled).is-dark .theme-switch__track {
-  background: linear-gradient(135deg, #223356 0%, #2c4268 48%, #152038 100%);
-}
-
-.theme-switch__thumb {
-  position: absolute;
-  top: var(--theme-switch-pad);
-  left: var(--theme-switch-pad);
-  width: var(--theme-switch-thumb);
-  height: var(--theme-switch-thumb);
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  background: linear-gradient(160deg, #fff8ef 0%, #ffe4b8 100%);
-  box-shadow:
-    0 1px 3px rgb(0 0 0 / 0.22),
-    0 0 0 1px rgb(255 255 255 / 0.35);
-  transform: translateX(0) scale(1);
-  transition:
-    transform 0.32s cubic-bezier(0.2, 0, 0, 1),
-    background 0.32s cubic-bezier(0.2, 0, 0, 1),
-    box-shadow 0.32s cubic-bezier(0.2, 0, 0, 1);
-}
-
-.theme-switch.is-dark .theme-switch__thumb {
-  transform: translateX(var(--theme-switch-travel)) scale(1);
-  background: linear-gradient(160deg, #eef3fb 0%, #c9d6ea 100%);
-  box-shadow:
-    0 1px 3px rgb(0 0 0 / 0.35),
-    0 0 0 1px rgb(255 255 255 / 0.18);
-}
-
-.theme-switch:active:not(:disabled).is-dark .theme-switch__thumb {
-  transform: translateX(var(--theme-switch-travel)) scale(0.96);
-}
-
-.theme-switch__icons {
+    0em -0.062em 0.062em rgb(0 0 0 / 0.25),
+    0em 0.062em 0.125em color-mix(in srgb, $color-text 12%, transparent);
+  transition-property: background-color, box-shadow;
+  transition-duration: 0.5s;
+  transition-timing-function: cubic-bezier(0, -0.02, 0.4, 1.25);
   position: relative;
-  width: 18px;
-  height: 18px;
 }
 
-.theme-switch__icon {
+.theme-switch__container::before {
+  content: '';
   position: absolute;
+  z-index: 1;
   inset: 0;
+  box-shadow:
+    0em 0.05em 0.187em rgb(0 0 0 / 0.25) inset,
+    0em 0.05em 0.187em rgb(0 0 0 / 0.25) inset;
+  border-radius: var(--container-radius);
+  pointer-events: none;
+}
+
+.theme-switch__circle-container {
+  width: var(--circle-container-diameter);
+  height: var(--circle-container-diameter);
+  background-color: rgb(255 255 255 / 0.1);
+  position: absolute;
+  left: var(--circle-container-offset);
+  top: var(--circle-container-offset);
+  border-radius: var(--container-radius);
+  box-shadow:
+    inset 0 0 0 3.375em rgb(255 255 255 / 0.1),
+    inset 0 0 0 3.375em rgb(255 255 255 / 0.1),
+    0 0 0 0.625em rgb(255 255 255 / 0.1),
+    0 0 0 1.25em rgb(255 255 255 / 0.1);
+  display: flex;
+  transition-property: left;
+  transition-duration: 0.3s;
+  transition-timing-function: cubic-bezier(0, -0.02, 0.35, 1.17);
+  pointer-events: none;
+}
+
+.theme-switch__sun-moon-container {
+  pointer-events: auto;
+  position: relative;
+  z-index: 2;
+  width: var(--sun-moon-diameter);
+  height: var(--sun-moon-diameter);
+  margin: auto;
+  border-radius: var(--container-radius);
+  background-color: var(--sun-bg);
+  box-shadow:
+    0.062em 0.062em 0.062em 0em rgb(254 255 239 / 0.61) inset,
+    0em -0.062em 0.062em 0em #a1872a inset;
+  filter: drop-shadow(0.062em 0.125em 0.125em rgb(0 0 0 / 0.25))
+    drop-shadow(0em 0.062em 0.125em rgb(0 0 0 / 0.25));
+  overflow: hidden;
+  transition-property: background-color, box-shadow;
+  transition-duration: 0.5s;
+  transition-timing-function: cubic-bezier(0, -0.02, 0.4, 1.25);
+}
+
+.theme-switch__moon {
+  /* span inside <button>: must be block so width/height + % translate work */
+  display: block;
+  transform: translateX(100%);
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  pointer-events: none;
-  user-select: none;
-  transition:
-    opacity 0.28s cubic-bezier(0.2, 0, 0, 1),
-    transform 0.28s cubic-bezier(0.2, 0, 0, 1),
-    filter 0.28s cubic-bezier(0.2, 0, 0, 1);
+  background-color: var(--moon-bg);
+  border-radius: inherit;
+  box-shadow:
+    0.062em 0.062em 0.062em 0em rgb(254 255 239 / 0.61) inset,
+    0em -0.062em 0.062em 0em #969696 inset;
+  transition-property: transform;
+  transition-duration: 0.5s;
+  transition-timing-function: cubic-bezier(0, -0.02, 0.4, 1.25);
+  position: relative;
 }
 
-.theme-switch__icon--sun {
-  opacity: 1;
-  transform: scale(1);
-  filter: blur(0);
+.theme-switch__spot {
+  position: absolute;
+  top: 0.75em;
+  left: 0.312em;
+  width: 0.75em;
+  height: 0.75em;
+  border-radius: var(--container-radius);
+  background-color: var(--spot-color);
+  box-shadow: 0em 0.0312em 0.062em rgb(0 0 0 / 0.25) inset;
 }
 
-.theme-switch__icon--moon {
-  opacity: 0;
-  transform: scale(0.25);
-  filter: blur(4px);
+.theme-switch__spot:nth-of-type(2) {
+  width: 0.375em;
+  height: 0.375em;
+  top: 0.937em;
+  left: 1.375em;
 }
 
-.theme-switch.is-dark .theme-switch__icon--sun {
-  opacity: 0;
-  transform: scale(0.25);
-  filter: blur(4px);
+.theme-switch__spot:nth-last-of-type(3) {
+  width: 0.25em;
+  height: 0.25em;
+  top: 0.312em;
+  left: 0.812em;
 }
 
-.theme-switch.is-dark .theme-switch__icon--moon {
-  opacity: 1;
-  transform: scale(1);
-  filter: blur(0);
+.theme-switch__clouds {
+  width: 1.25em;
+  height: 1.25em;
+  background-color: var(--clouds-color);
+  border-radius: var(--container-radius);
+  position: absolute;
+  bottom: -0.625em;
+  left: 0.312em;
+  box-shadow:
+    0.937em 0.312em var(--clouds-color),
+    -0.312em -0.312em var(--back-clouds-color),
+    1.437em 0.375em var(--clouds-color),
+    0.5em -0.125em var(--back-clouds-color),
+    2.187em 0 var(--clouds-color),
+    1.25em -0.062em var(--back-clouds-color),
+    2.937em 0.312em var(--clouds-color),
+    2em -0.312em var(--back-clouds-color),
+    3.625em -0.062em var(--clouds-color),
+    2.625em 0em var(--back-clouds-color),
+    4.5em -0.312em var(--clouds-color),
+    3.375em -0.437em var(--back-clouds-color),
+    4.625em -1.75em 0 0.437em var(--clouds-color),
+    4em -0.625em var(--back-clouds-color),
+    4.125em -2.125em 0 0.437em var(--back-clouds-color);
+  transition-property: bottom;
+  transition-duration: 0.5s;
+  transition-timing-function: cubic-bezier(0, -0.02, 0.4, 1.25);
+}
+
+.theme-switch__stars-container {
+  position: absolute;
+  color: var(--stars-color);
+  top: -100%;
+  left: 0.312em;
+  width: 2.75em;
+  height: auto;
+  transition-property: top, transform;
+  transition-duration: 0.5s;
+  transition-timing-function: cubic-bezier(0, -0.02, 0.4, 1.25);
+
+  svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+}
+
+/* Dark = original :checked */
+.theme-switch.is-dark .theme-switch__container {
+  background-color: var(--container-night-bg);
+}
+
+.theme-switch.is-dark .theme-switch__circle-container {
+  left: calc(
+    100% - var(--circle-container-offset) - var(--circle-container-diameter)
+  );
+}
+
+.theme-switch:not(:disabled) .theme-switch__circle-container:hover {
+  left: calc(var(--circle-container-offset) + 0.187em);
+}
+
+.theme-switch.is-dark:not(:disabled) .theme-switch__circle-container:hover {
+  left: calc(
+    100% - var(--circle-container-offset) - var(--circle-container-diameter) -
+      0.187em
+  );
+}
+
+.theme-switch.is-dark .theme-switch__moon {
+  transform: translate(0);
+}
+
+.theme-switch.is-dark .theme-switch__clouds {
+  bottom: -4.062em;
+}
+
+.theme-switch.is-dark .theme-switch__stars-container {
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .theme-switch__track,
-  .theme-switch__thumb,
-  .theme-switch__icon {
+  .theme-switch__container,
+  .theme-switch__circle-container,
+  .theme-switch__sun-moon-container,
+  .theme-switch__moon,
+  .theme-switch__clouds,
+  .theme-switch__stars-container {
     transition-duration: 0.01ms;
+    transition-delay: 0s;
   }
 }
 
 @media (max-width: 768px) {
   .theme-switch {
-    --theme-switch-w: 48px;
-    --theme-switch-h: 26px;
-    --theme-switch-thumb: 20px;
+    --toggle-size: 10px;
     min-width: 44px;
     min-height: 44px;
-  }
 
-  .theme-switch__icons {
-    width: 14px;
-    height: 14px;
+    &::before {
+      width: 44px;
+      height: 44px;
+    }
   }
 }
