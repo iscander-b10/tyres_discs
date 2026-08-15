@@ -151,22 +151,35 @@
   }
 
   .item-size-text {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
     font-size: $catalog-type-size-size;
     font-weight: $catalog-type-size-weight;
     line-height: $catalog-type-size-lh;
     font-variant-numeric: tabular-nums;
-    max-width: 100%;
     color: $color-text-muted;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
   .item-color-text {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
     margin-top: 2px;
     font-size: $catalog-type-label-size;
     font-weight: $catalog-type-label-weight;
     line-height: $catalog-type-label-lh;
-    max-width: 100%;
     color: $color-text-muted;
-    text-wrap: pretty;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
   .item-details {

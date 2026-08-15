@@ -117,10 +117,19 @@ const CatalogItemCard = ({
                 {item.title}
               </Text>
               {sizeDisplay ? (
-                <Text className="item-size-text">{sizeDisplay}</Text>
+                <Text
+                  className="item-size-text"
+                  ellipsis={{ tooltip: sizeDisplay }}
+                >
+                  {sizeDisplay}
+                </Text>
               ) : null}
               {item.color ? (
-                <Text className="item-color-text" type="secondary">
+                <Text
+                  className="item-color-text"
+                  type="secondary"
+                  ellipsis={{ tooltip: item.color }}
+                >
                   {item.color}
                 </Text>
               ) : null}
