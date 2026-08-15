@@ -39,7 +39,8 @@ const parseTyreSize = (sizeStr) => {
 };
 
 const parseTitle = (str) => {
-  const sizePattern = /\d+(?:\/\d+)?R\d+(?:C)?/i;
+  // В Наименовании суффикс cargo бывает латиницей (C) или кириллицей (С)
+  const sizePattern = /\d+(?:\/\d+)?R\d+(?:[CcСс])?/;
   const match = str.match(sizePattern);
   let result;
   if (match) {
@@ -47,13 +48,16 @@ const parseTitle = (str) => {
   } else {
     result = str;
   }
-  
+
   result = result.replace(/\s*(?:шип\.|нешипуемая)\s*/gi, ' ');
-  
   result = result.trim().replace(/\s+/g, ' ');
-  
+
+  // Cargo: поставщик пишет отдельный маркер "c"/"с" в начале Наименования;
+  // признак уже есть в diameter (R16C) — из title убираем только standalone-токен.
+  result = result.replace(/^[CcСс](?=\s|$)\s*/, '').trim();
+
   return result;
-}
+};
 
 const parseSeason = (season) => season.includes('Да') ? 's' : 'w';
 
