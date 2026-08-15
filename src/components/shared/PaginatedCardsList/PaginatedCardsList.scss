@@ -4,16 +4,39 @@
 .items-list-container {
   flex: 1;
   min-width: 0;
+  /* Header + content pad + sticky form + gaps + list toolbar (below fold chrome). */
+  --paginated-list-chrome: 17.5rem;
+}
+
+.paginated-list-results {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Fill remaining viewport so pagination sits at the bottom when the page is short. */
+.paginated-list-results--paged {
+  min-height: calc(100dvh - var(--paginated-list-chrome));
+}
+
+.paginated-list-results__grid {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  /* Prefer content height; do not stretch sticky sibling via flex alignment. */
+  align-self: stretch;
+  /* Inter-group air before sticky pagination (≥ 2× items-grid gap of 12px). */
+  padding-bottom: $space-5;
 }
 
 .list-toolbar {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas:
-    'field actions'
-    'status .';
+  grid-template-areas: 'search-group actions';
   column-gap: $space-5;
-  row-gap: $space-1;
+  row-gap: $space-2;
   align-items: center;
   margin-bottom: $space-3;
   width: 100%;
@@ -23,16 +46,27 @@
   @include catalog.catalog-list-toolbar-controls();
 }
 
+.list-toolbar__search-group {
+  grid-area: search-group;
+  display: flex;
+  align-items: center;
+  column-gap: 6px;
+  row-gap: $space-1;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
 .list-toolbar--has-query .list-toolbar__search-prefix,
 .list-toolbar--typing .list-toolbar__search-prefix {
   color: $color-text-muted;
 }
 
 .list-toolbar__search {
-  grid-area: field;
+  flex: 0 1 auto;
   justify-self: start;
   width: min(20.5rem, 100%);
   max-width: 100%;
+  min-width: 0;
 
   &.ant-input-affix-wrapper {
     overflow: visible;
@@ -162,16 +196,16 @@
 }
 
 .list-toolbar__status {
-  grid-area: status;
-  justify-self: start;
-  max-width: min(20.5rem, 100%);
+  flex: 0 0 auto;
   margin: 0;
-  color: $color-text-muted;
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.3;
+  color: $color-text;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.25;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.005em;
+  text-wrap: balance;
+  white-space: nowrap;
 
   &.is-empty {
     position: absolute;
@@ -186,13 +220,19 @@
   }
 }
 
+.list-toolbar__status-count {
+  color: inherit;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
 .list-toolbar__actions {
   grid-area: actions;
   display: inline-flex;
   align-items: stretch;
   gap: 0;
   justify-self: end;
-  align-self: start;
+  align-self: center;
   flex-shrink: 0;
   height: 32px;
 }
@@ -380,14 +420,144 @@
 }
 
 .pagination-container {
-  margin-top: 28px;
+  position: sticky;
+  bottom: 0;
+  z-index: 40;
+  flex: 0 0 auto;
+  align-self: stretch;
+  margin-top: auto;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding-top: 20px;
-  border-top: 1px solid $color-border;
-  position: relative;
-  z-index: 1;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 48px;
+  max-height: calc(64px + env(safe-area-inset-bottom, 0px));
+  /* Space already on grid; keep bar padding modest so chrome stays compact. */
+  padding-top: $space-3;
+  padding-inline: $space-2;
+  padding-bottom: calc(#{$space-2} + env(safe-area-inset-bottom, 0px));
+  /* Keep focus rings of page controls visible (no clip). */
+  overflow: visible;
+  background: $color-surface;
+  border: 1px solid $color-border;
+  /* Match sticky tire/disc search form shell (`catalog-search-form-shell`). */
+  border-radius: $radius-lg;
+  box-shadow: none;
+  transition-property: box-shadow, background-color, border-radius;
+  transition-duration: 160ms;
+  transition-timing-function: ease-out;
+
+  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    background: color-mix(in srgb, #{$color-surface} 92%, transparent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  &.is-stuck {
+    /* Soft lift — does not visually crush the card row above. */
+    box-shadow: 0 -4px 12px color-mix(in srgb, #{$color-text} 5%, transparent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+
+  .ant-pagination {
+    margin: 0;
+    line-height: 1;
+    color: $color-text !important;
+    font-family: $font-sans;
+    font-size: 13px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ant-pagination-item,
+  .ant-pagination-prev,
+  .ant-pagination-next,
+  .ant-pagination-jump-prev,
+  .ant-pagination-jump-next {
+    margin-block: 0;
+  }
+
+  .ant-pagination-item {
+    background: transparent !important;
+    border-color: transparent !important;
+
+    a {
+      color: $color-text !important;
+    }
+
+    &:hover {
+      background: $color-cta-muted !important;
+      border-color: transparent !important;
+
+      a {
+        color: $color-text !important;
+      }
+    }
+
+    &-active {
+      background: $color-cta-selected !important;
+      border-color: $color-cta-border !important;
+      font-weight: 600;
+
+      a {
+        color: $color-text !important;
+      }
+
+      &:hover {
+        background: $color-cta-selected !important;
+        border-color: $color-cta-border !important;
+      }
+    }
+  }
+
+  .ant-pagination-prev .ant-pagination-item-link,
+  .ant-pagination-next .ant-pagination-item-link {
+    color: $color-text !important;
+    background: transparent !important;
+    border-color: transparent !important;
+  }
+
+  .ant-pagination-prev:not(.ant-pagination-disabled):hover .ant-pagination-item-link,
+  .ant-pagination-next:not(.ant-pagination-disabled):hover .ant-pagination-item-link {
+    color: $color-text !important;
+    background: $color-cta-muted !important;
+    border-color: transparent !important;
+  }
+
+  .ant-pagination-disabled .ant-pagination-item-link,
+  .ant-pagination-disabled:hover .ant-pagination-item-link {
+    color: $color-text-subtle !important;
+    background: transparent !important;
+  }
+
+  .ant-pagination-jump-prev .ant-pagination-item-container .ant-pagination-item-ellipsis,
+  .ant-pagination-jump-next .ant-pagination-item-container .ant-pagination-item-ellipsis {
+    color: $color-text-muted !important;
+  }
+
+  /* Focus rings sit above the sticky surface, not under neighboring items. */
+  .ant-pagination-item:focus-visible,
+  .ant-pagination-item a:focus-visible,
+  .ant-pagination-prev:focus-visible,
+  .ant-pagination-next:focus-visible,
+  .ant-pagination-jump-prev:focus-visible,
+  .ant-pagination-jump-next:focus-visible {
+    outline: 2px solid $color-cta;
+    outline-offset: 2px;
+  }
+}
+
+.pagination-container__sentinel {
+  flex: 0 0 auto;
+  width: 100%;
+  height: 1px;
+  margin: 0;
+  pointer-events: none;
+  visibility: hidden;
 }
 
 .error-alert.ant-alert-error {
@@ -417,23 +587,45 @@
 }
 
 @media (max-width: 768px) {
-  .list-toolbar {
-    grid-template-areas:
-      'field field'
-      'status actions';
+  .items-list-container {
+    /* Wrapped header + taller sticky form + mobile content bottom pad. */
+    --paginated-list-chrome: 22rem;
   }
 
-  .list-toolbar__search,
-  .list-toolbar__status {
+  .list-toolbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: 'search-group actions';
+  }
+
+  .list-toolbar__search-group {
+    /* Keep status under the field, still aligned to the search block. */
+    flex-wrap: wrap;
+  }
+
+  .list-toolbar__search {
+    flex: 1 1 100%;
     max-width: none;
     width: 100%;
   }
 
+  .list-toolbar__status {
+    max-width: 100%;
+    white-space: normal;
+  }
+
   .list-toolbar__actions {
-    align-self: center;
+    align-self: start;
   }
 
   .list-toolbar__search.ant-input-affix-wrapper .ant-input {
     font-size: 16px;
+  }
+
+  .pagination-container {
+    min-height: 52px;
+    max-height: calc(64px + env(safe-area-inset-bottom, 0px));
+    padding-top: $space-3;
+    padding-inline: $space-2;
+    padding-bottom: calc(#{$space-3} + env(safe-area-inset-bottom, 0px));
   }
 }

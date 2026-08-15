@@ -36,6 +36,45 @@ const PAGE_SIZE_MENU_ITEMS = PAGE_SIZE_OPTIONS.map((size) => ({
 
 const isValidPageSize = (value) => PAGE_SIZE_OPTIONS.includes(value);
 
+/** Russian plural: 1 позиция, 2 позиции, 5 позиций. */
+const positionsWord = (count) => {
+  const n = Math.abs(Number(count)) % 100;
+  const last = n % 10;
+  if (n > 10 && n < 20) return 'позиций';
+  if (last === 1) return 'позиция';
+  if (last >= 2 && last <= 4) return 'позиции';
+  return 'позиций';
+};
+
+const StatusCount = ({ value }) => (
+  <span className="list-toolbar__status-count">{value}</span>
+);
+
+const buildListStatus = (matchedCount, sourceCount, hasQuery) => {
+  if (hasQuery) {
+    return {
+      content: (
+        <>
+          Найдено <StatusCount value={matchedCount} /> из <StatusCount value={sourceCount} />
+        </>
+      ),
+      ariaLabel: `Найдено ${matchedCount} из ${sourceCount} ${positionsWord(sourceCount)}`,
+    };
+  }
+
+  const word = positionsWord(matchedCount);
+  return {
+    content: (
+      <>
+        Найдено <StatusCount value={matchedCount} />
+        {'\u00A0'}
+        {word}
+      </>
+    ),
+    ariaLabel: `Найдено ${matchedCount} ${word}`,
+  };
+};
+
 const readStoredItemsPerPage = (fallback = DEFAULT_ITEMS_PER_PAGE) => {
   const safeFallback = isValidPageSize(fallback) ? fallback : DEFAULT_ITEMS_PER_PAGE;
 
@@ -90,7 +129,30 @@ const PaginatedCardsList = ({
   const [itemsPerPage, setItemsPerPage] = useState(() => readStoredItemsPerPage(itemsPerPageProp));
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [paginationStuck, setPaginationStuck] = useState(false);
   const debounceTimerRef = useRef(null);
+  const paginationStuckObserverRef = useRef(null);
+
+  const setPaginationSentinelNode = (node) => {
+    if (paginationStuckObserverRef.current) {
+      paginationStuckObserverRef.current.disconnect();
+      paginationStuckObserverRef.current = null;
+    }
+
+    if (!node) {
+      setPaginationStuck(false);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setPaginationStuck(!entry.isIntersecting);
+      },
+      { threshold: 0 }
+    );
+    observer.observe(node);
+    paginationStuckObserverRef.current = observer;
+  };
 
   const clearDebounceTimer = () => {
     if (debounceTimerRef.current == null) return;
@@ -111,6 +173,16 @@ const PaginatedCardsList = ({
   }, [searchResetKey]);
 
   useEffect(() => () => clearDebounceTimer(), []);
+
+  useEffect(
+    () => () => {
+      if (paginationStuckObserverRef.current) {
+        paginationStuckObserverRef.current.disconnect();
+        paginationStuckObserverRef.current = null;
+      }
+    },
+    []
+  );
 
   const normalizedSearchQuery = useMemo(
     () => debouncedQuery.trim().toLowerCase(),
@@ -223,7 +295,9 @@ const PaginatedCardsList = ({
   const hasAppliedQuery = Boolean(normalizedSearchQuery);
   const showSearchClear = searchQuery.trim() !== '' && !isSearchPending;
   const isTitleFilterEmpty = hasSourceItems && !hasVisibleItems && hasAppliedQuery;
-  const filterStatusText = hasAppliedQuery ? `${totalItems} из ${safeItems.length}` : '';
+  const listStatus = hasSourceItems
+    ? buildListStatus(totalItems, safeItems.length, hasAppliedQuery)
+    : null;
 
   const searchSuffix = (
     <span className="list-toolbar__search-suffix">
@@ -258,35 +332,38 @@ const PaginatedCardsList = ({
             .filter(Boolean)
             .join(' ')}
         >
-          <Input
-            id={searchId}
-            className="list-toolbar__search"
-            value={searchQuery}
-            onChange={handleSearchChange}
-            onKeyDown={handleSearchKeyDown}
-            placeholder="Поиск по названию"
-            aria-label="Поиск по названию"
-            autoComplete="off"
-            autoCapitalize="off"
-            spellCheck={false}
-            inputMode="search"
-            aria-busy={isSearchPending || undefined}
-            aria-describedby={filterStatusText ? statusId : undefined}
-            prefix={
-              <span className="list-toolbar__search-prefix" aria-hidden="true">
-                <SearchIcon className="list-toolbar__search-prefix-icon" />
-              </span>
-            }
-            suffix={searchSuffix}
-          />
-          <p
-            id={statusId}
-            className={`list-toolbar__status${filterStatusText ? '' : ' is-empty'}`}
-            role="status"
-            aria-live="polite"
-          >
-            {filterStatusText || null}
-          </p>
+          <div className="list-toolbar__search-group">
+            <Input
+              id={searchId}
+              className="list-toolbar__search"
+              value={searchQuery}
+              onChange={handleSearchChange}
+              onKeyDown={handleSearchKeyDown}
+              placeholder="Поиск по названию"
+              aria-label="Поиск по названию"
+              autoComplete="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              inputMode="search"
+              aria-busy={isSearchPending || undefined}
+              aria-describedby={listStatus ? statusId : undefined}
+              prefix={
+                <span className="list-toolbar__search-prefix" aria-hidden="true">
+                  <SearchIcon className="list-toolbar__search-prefix-icon" />
+                </span>
+              }
+              suffix={searchSuffix}
+            />
+            <p
+              id={statusId}
+              className={`list-toolbar__status${listStatus ? '' : ' is-empty'}`}
+              role="status"
+              aria-live="polite"
+              aria-label={listStatus?.ariaLabel}
+            >
+              {listStatus?.content ?? null}
+            </p>
+          </div>
           <div className="list-toolbar__actions">
             <HoverTooltip title="Сортировка" placement="bottom">
               <span className="list-toolbar__icon-wrap">
@@ -336,23 +413,45 @@ const PaginatedCardsList = ({
         </div>
       )}
       {hasVisibleItems ? (
-        <>
-          <Flex className={gridClassName}>
+        <div
+          className={[
+            'paginated-list-results',
+            totalPages > 1 ? 'paginated-list-results--paged' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+        >
+          <div className={`paginated-list-results__grid ${gridClassName}`}>
             {currentPageData.map((item) => renderCard(item, { isClientMode }))}
-          </Flex>
+          </div>
           {totalPages > 1 && (
-            <Flex className="pagination-container" justify="center">
-              <Pagination
-                current={currentPage}
-                total={totalItems}
-                pageSize={itemsPerPage}
-                onChange={handlePageChange}
-                showSizeChanger={false}
-                showTotal={(total, range) => `${range[0]}-${range[1]} из ${total}`}
+            <>
+              <nav
+                className={[
+                  'pagination-container',
+                  paginationStuck ? 'is-stuck' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                aria-label="Страницы"
+              >
+                <Pagination
+                  current={currentPage}
+                  total={totalItems}
+                  pageSize={itemsPerPage}
+                  onChange={handlePageChange}
+                  showSizeChanger={false}
+                  size="small"
+                />
+              </nav>
+              <div
+                ref={setPaginationSentinelNode}
+                className="pagination-container__sentinel"
+                aria-hidden="true"
               />
-            </Flex>
+            </>
           )}
-        </>
+        </div>
       ) : isTitleFilterEmpty ? (
         <div className="list-filter-empty" role="status">
           <p className="list-filter-empty__text">Нет совпадений</p>
