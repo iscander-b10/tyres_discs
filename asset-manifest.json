@@ -1,7 +1,7 @@
 {
   "files": {
-    "main.css": "/tyres_discs/static/css/main.c901280f.css",
-    "main.js": "/tyres_discs/static/js/main.a54044f5.js",
+    "main.css": "/tyres_discs/static/css/main.1ad1db8a.css",
+    "main.js": "/tyres_discs/static/js/main.e3010b86.js",
     "static/media/runflat.jpg": "/tyres_discs/static/media/runflat.9dbf3e8e9472eaa9cf38.jpg",
     "static/media/TireFittingGift.svg": "/tyres_discs/static/media/TireFittingGift.cdb0eae0934d47e98c42788a2ba60650.svg",
     "static/media/Website.svg": "/tyres_discs/static/media/Website.05dcf5157a148bdf01d5fba89f0b83ab.svg",
@@ -18,11 +18,11 @@
     "static/media/Clear.svg": "/tyres_discs/static/media/Clear.7d420cdb038cab2599815eb490fbc28b.svg",
     "static/media/Loading.svg": "/tyres_discs/static/media/Loading.5e1bd84c7ec01191e9e74ad84aacce94.svg",
     "static/media/Sotring.svg": "/tyres_discs/static/media/Sotring.b2274f35f506d0d6f2f2bc29446a6bf9.svg",
-    "main.c901280f.css.map": "/tyres_discs/static/css/main.c901280f.css.map",
-    "main.a54044f5.js.map": "/tyres_discs/static/js/main.a54044f5.js.map"
+    "main.1ad1db8a.css.map": "/tyres_discs/static/css/main.1ad1db8a.css.map",
+    "main.e3010b86.js.map": "/tyres_discs/static/js/main.e3010b86.js.map"
   },
   "entrypoints": [
-    "static/css/main.c901280f.css",
-    "static/js/main.a54044f5.js"
+    "static/css/main.1ad1db8a.css",
+    "static/js/main.e3010b86.js"
   ]
 }
