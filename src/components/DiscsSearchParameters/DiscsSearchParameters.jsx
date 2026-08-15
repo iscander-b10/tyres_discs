@@ -293,22 +293,6 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
                   ))}
                 </Select>
               </Form.Item>
-              <Form.Item name="pcd" className="form-item">
-                <Select
-                  {...catalogSearchSelectProps}
-                  allowClear
-                  placeholder="PCD"
-                  aria-label="PCD"
-                  loading={loadingOptions}
-                  className="filter-select--mount"
-                >
-                  {availablePcd.map((pcd) => (
-                    <Option key={pcd} value={pcd}>
-                      {pcd}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
               <Form.Item name="pn" className="form-item">
                 <Select
                   {...catalogSearchSelectProps}
@@ -321,6 +305,22 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
                   {availablePn.map((pn) => (
                     <Option key={pn} value={pn}>
                       {pn}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Form.Item name="pcd" className="form-item">
+                <Select
+                  {...catalogSearchSelectProps}
+                  allowClear
+                  placeholder="PCD"
+                  aria-label="PCD"
+                  loading={loadingOptions}
+                  className="filter-select--mount"
+                >
+                  {availablePcd.map((pcd) => (
+                    <Option key={pcd} value={pcd}>
+                      {pcd}
                     </Option>
                   ))}
                 </Select>
