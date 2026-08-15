@@ -7,6 +7,11 @@ import HoverTooltip from '../HoverTooltip';
 import AddToCartControl from '../AddToCartControl/AddToCartControl';
 import CatalogPriceStrip from '../CatalogPriceStrip/CatalogPriceStrip';
 import CatalogItemPromoBadges from '../CatalogItemPromoBadges/CatalogItemPromoBadges';
+import {
+  CATALOG_IMAGE_FALLBACK,
+  formatCatalogSizeDisplay,
+  formatCatalogStockDisplay,
+} from '../catalogCopy';
 import './CatalogItemCard.scss';
 
 const { Meta } = Card;
@@ -22,14 +27,17 @@ const CatalogItemCard = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const supplierName = item?.supplier || null;
-  const supplierTooltip = useMemo(
-    () => (supplierName ? `Поставщик: ${supplierName}` : null),
-    [supplierName]
-  );
+  const supplierTooltip = supplierName ? `Поставщик: ${supplierName}` : null;
 
   const photoSrc = useMemo(
     () => resolvePhotoUrl(item?.photoUrl, item?.supplier),
     [item?.photoUrl, item?.supplier]
+  );
+
+  const sizeDisplay = useMemo(() => formatCatalogSizeDisplay(item), [item]);
+  const stockDisplay = useMemo(
+    () => formatCatalogStockDisplay(item?.amount),
+    [item?.amount]
   );
 
   const handleImageClick = () => setIsModalOpen(true);
@@ -69,7 +77,7 @@ const CatalogItemCard = ({
               className="item-image"
               src={photoSrc}
               alt={item.title}
-              fallback="https://via.placeholder.com/300x200?text=No+Image"
+              fallback={CATALOG_IMAGE_FALLBACK}
               preview={false}
               referrerPolicy="no-referrer"
             />
@@ -95,9 +103,7 @@ const CatalogItemCard = ({
                 ) : null}
               </Flex>
             ) : null}
-            <div className="item-image-overlays">
-              <CatalogItemPromoBadges item={item} variant="card" />
-            </div>
+            <CatalogItemPromoBadges item={item} variant="card" />
           </Flex>
         }
       >
@@ -110,9 +116,9 @@ const CatalogItemCard = ({
               >
                 {item.title}
               </Text>
-              {item.sizeTitle && (
-                <Text className="item-size-text">{item.sizeTitle}</Text>
-              )}
+              {sizeDisplay ? (
+                <Text className="item-size-text">{sizeDisplay}</Text>
+              ) : null}
               {item.color ? (
                 <Text className="item-color-text" type="secondary">
                   {item.color}
@@ -142,7 +148,9 @@ const CatalogItemCard = ({
               <Flex className="item-stock" justify="space-between" align="center">
                 <Text className="detail-label">В наличии:</Text>
                 <Flex className="item-stock__value-row" align="center" gap={8}>
-                  <Text className="stock-value">{item.amount} шт.</Text>
+                  {stockDisplay ? (
+                    <Text className="stock-value">{stockDisplay}</Text>
+                  ) : null}
                   {isClientMode && supplierName ? (
                     <HoverTooltip title={supplierTooltip} placement="top">
                       <span

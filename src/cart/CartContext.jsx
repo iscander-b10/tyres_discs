@@ -32,12 +32,8 @@ const readStoredItems = () => {
   }
 };
 
-export function CartProvider({ children, onGoToBasket }) {
+export function CartProvider({ children }) {
   const [items, setItems] = useState(() => readStoredItems());
-
-  const goToBasket = useCallback(() => {
-    onGoToBasket?.();
-  }, [onGoToBasket]);
 
   useEffect(() => {
     try {
@@ -76,18 +72,6 @@ export function CartProvider({ children, onGoToBasket }) {
     return true;
   }, []);
 
-  const setQuantity = useCallback((key, qty) => {
-    setItems((prev) =>
-      prev.map((row) => {
-        if (row.key !== key) return row;
-        return {
-          ...row,
-          quantity: clampCartQty(qty, row.maxStock || row.amount),
-        };
-      })
-    );
-  }, []);
-
   const increment = useCallback((key) => {
     setItems((prev) =>
       prev.map((row) => {
@@ -122,15 +106,6 @@ export function CartProvider({ children, onGoToBasket }) {
     setItems([]);
   }, []);
 
-  const isInCart = useCallback(
-    (item) => {
-      const key = getCartItemKey(item);
-      if (!key) return false;
-      return items.some((row) => row.key === key);
-    },
-    [items]
-  );
-
   const getItem = useCallback(
     (itemOrKey) => {
       const key =
@@ -161,31 +136,24 @@ export function CartProvider({ children, onGoToBasket }) {
     () => ({
       items,
       addItem,
-      setQuantity,
       increment,
       decrement,
       removeItem,
       clear,
-      isInCart,
       getItem,
-      getCount: () => totalQuantity,
       totalQuantity,
       totals,
-      goToBasket,
     }),
     [
       items,
       addItem,
-      setQuantity,
       increment,
       decrement,
       removeItem,
       clear,
-      isInCart,
       getItem,
       totalQuantity,
       totals,
-      goToBasket,
     ]
   );
 

@@ -112,12 +112,18 @@ const addUniqueValue = (set, value) => {
 
 /**
  * Общий сбор кандидатов витрины из object store (ранний лимит).
+ *
+ * `isEmpty: true` — весь store пуст (каталог не загружен).
+ * Если store не пуст, но у `supplier` нет строк / in-stock кандидатов —
+ * `isEmpty: false` и `candidates: []`: полки пустые, чипы остаются.
+ * При переданном `supplier` обходим только индекс `supplier` (чужие не попадают в пул).
  */
 const collectShowcaseCandidatesFromStore = (
   store,
   {
     candidateLimit = 480,
     minAmount = 1,
+    supplier = null,
   } = {}
 ) =>
   new Promise((resolve, reject) => {
@@ -135,9 +141,7 @@ const collectShowcaseCandidatesFromStore = (
       }
 
       const candidates = [];
-      const candidateSupplierCounts = new Map();
       let settled = false;
-      const maxPerSupplierCandidates = Math.max(64, Math.ceil(candidateLimit / 4));
 
       const finish = (payload) => {
         if (settled) return;
@@ -148,23 +152,19 @@ const collectShowcaseCandidatesFromStore = (
       const considerItem = (item) => {
         if (candidates.length >= candidateLimit) return;
 
+        if (supplier && item?.supplier !== supplier) return;
+
         const amount = Number(item?.amount);
         if (Number.isNaN(amount) || amount < minAmount) return;
-
-        const supplier = item?.supplier;
-        if (supplier) {
-          const supplierCount = candidateSupplierCounts.get(supplier) || 0;
-          // Не забиваем пул одним поставщиком
-          if (supplierCount >= maxPerSupplierCandidates && candidateSupplierCounts.size >= 2) {
-            return;
-          }
-          candidateSupplierCounts.set(supplier, supplierCount + 1);
-        }
 
         candidates.push(item);
       };
 
-      const request = store.openCursor();
+      const useSupplierIndex =
+        Boolean(supplier) && store.indexNames.contains('supplier');
+      const request = useSupplierIndex
+        ? store.index('supplier').openCursor(IDBKeyRange.only(supplier))
+        : store.openCursor();
 
       request.onsuccess = () => {
         const cursor = request.result;
@@ -232,7 +232,6 @@ class IndexedDBService {
   }
 
   async saveTires(tires) {
-  try {
     if (!this.db) {
       await this.openDatabase();
     }
@@ -241,7 +240,6 @@ class IndexedDBService {
       return Promise.resolve();
     }
 
-    // Определяем поставщика из первой шины
     const supplier = tires[0]?.supplier;
     if (!supplier) {
       throw new Error('Не указан поставщик в данных шин');
@@ -250,11 +248,11 @@ class IndexedDBService {
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction(['tires'], 'readwrite');
       const store = transaction.objectStore('tires');
-      let addErrors = [];
-      
+      const addErrors = [];
+
       transaction.onerror = () =>
         reject(transaction.error || new Error('Ошибка транзакции IndexedDB при сохранении шин'));
-      
+
       transaction.oncomplete = () => {
         if (addErrors.length > 0) {
           reject(new Error(`Не удалось добавить ${addErrors.length} шин`));
@@ -262,44 +260,36 @@ class IndexedDBService {
           resolve();
         }
       };
-      
-      // Очищаем старые записи поставщика
+
       const clearRequest = store.index('supplier').openCursor(IDBKeyRange.only(supplier));
-      
+
       clearRequest.onsuccess = () => {
         const cursor = clearRequest.result;
         if (cursor) {
           cursor.delete();
           cursor.continue();
-        } else {
-          // Когда очистка завершена - добавляем новые шины
-          if (tires.length === 0) {
-            resolve();
-            return;
-          }
-          
-          tires.forEach(tire => {
-            // put вместо add: не падаем на дублях id, а перезаписываем
-            const addRequest = store.put(tire);
-            addRequest.onerror = (event) => {
-              // иначе любая ошибка request по умолчанию абортит всю транзакцию
-              event?.preventDefault?.();
-              event?.stopPropagation?.();
-              addErrors.push({
-                tire: tire.title || tire.id,
-                error: addRequest.error
-              });
-            };
-          });
+          return;
         }
+
+        tires.forEach((tire) => {
+          // put вместо add: не падаем на дублях id, а перезаписываем
+          const addRequest = store.put(tire);
+          addRequest.onerror = (event) => {
+            // иначе любая ошибка request по умолчанию абортит всю транзакцию
+            event?.preventDefault?.();
+            event?.stopPropagation?.();
+            addErrors.push({
+              tire: tire.title || tire.id,
+              error: addRequest.error,
+            });
+          };
+        });
       };
-      
-      clearRequest.onerror = () => reject(clearRequest.error || new Error('Ошибка IndexedDB при очистке шин поставщика'));
+
+      clearRequest.onerror = () =>
+        reject(clearRequest.error || new Error('Ошибка IndexedDB при очистке шин поставщика'));
     });
-  } catch (error) {
-    throw error;
   }
-}
 
   async searchTires(filters) {
   if (!this.db) await this.openDatabase();
@@ -491,7 +481,6 @@ class IndexedDBService {
   }
 
   async saveDiscs(discs) {
-  try {
     if (!this.discDb) {
       await this.openDiscDatabase();
     }
@@ -500,7 +489,6 @@ class IndexedDBService {
       return Promise.resolve();
     }
 
-    // Определяем поставщика из первого диска
     const supplier = discs[0]?.supplier;
     if (!supplier) {
       throw new Error('Не указан поставщик в данных дисков');
@@ -509,11 +497,11 @@ class IndexedDBService {
     return new Promise((resolve, reject) => {
       const transaction = this.discDb.transaction(['discs'], 'readwrite');
       const store = transaction.objectStore('discs');
-      let addErrors = [];
-      
+      const addErrors = [];
+
       transaction.onerror = () =>
         reject(transaction.error || new Error('Ошибка транзакции IndexedDB при сохранении дисков'));
-      
+
       transaction.oncomplete = () => {
         if (addErrors.length > 0) {
           reject(new Error(`Не удалось добавить ${addErrors.length} дисков`));
@@ -521,43 +509,35 @@ class IndexedDBService {
           resolve();
         }
       };
-      
-      // Очищаем старые записи поставщика
+
       const clearRequest = store.index('supplier').openCursor(IDBKeyRange.only(supplier));
-      
+
       clearRequest.onsuccess = () => {
         const cursor = clearRequest.result;
         if (cursor) {
           cursor.delete();
           cursor.continue();
-        } else {
-          // Когда очистка завершена - добавляем новые диски
-          if (discs.length === 0) {
-            resolve();
-            return;
-          }
-          
-          discs.forEach(disc => {
-            // put вместо add: не падаем на дублях id, а перезаписываем
-            const addRequest = store.put(disc);
-            addRequest.onerror = (event) => {
-              event?.preventDefault?.();
-              event?.stopPropagation?.();
-              addErrors.push({
-                disc: disc.title || disc.id,
-                error: addRequest.error
-              });
-            };
-          });
+          return;
         }
+
+        discs.forEach((disc) => {
+          // put вместо add: не падаем на дублях id, а перезаписываем
+          const addRequest = store.put(disc);
+          addRequest.onerror = (event) => {
+            event?.preventDefault?.();
+            event?.stopPropagation?.();
+            addErrors.push({
+              disc: disc.title || disc.id,
+              error: addRequest.error,
+            });
+          };
+        });
       };
-      
-      clearRequest.onerror = () => reject(clearRequest.error || new Error('Ошибка IndexedDB при очистке дисков поставщика'));
+
+      clearRequest.onerror = () =>
+        reject(clearRequest.error || new Error('Ошибка IndexedDB при очистке дисков поставщика'));
     });
-  } catch (error) {
-    throw error;
   }
-}
 
   async searchDiscs(filters) {
     if (!this.discDb) await this.openDiscDatabase();
@@ -616,7 +596,7 @@ class IndexedDBService {
 
   /**
    * Кандидаты для автовитрины шин: ранний лимит, без полного getAll в React.
-   * Собирает общий пул + корзины по поставщикам для manager-полок.
+   * Обычно ограничен `options.supplier` (полки только из Шинсервиса).
    */
   async collectTireShowcaseCandidates(options = {}) {
     if (!this.db) await this.openDatabase();
@@ -625,7 +605,8 @@ class IndexedDBService {
   }
 
   /**
-   * Кандидаты для автовитрины дисков: ранний лимит + корзины поставщиков.
+   * Кандидаты для автовитрины дисков: ранний лимит.
+   * Обычно ограничен `options.supplier` (полки только из Шинсервиса).
    */
   async collectDiscShowcaseCandidates(options = {}) {
     if (!this.discDb) await this.openDiscDatabase();

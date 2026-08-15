@@ -123,7 +123,7 @@ const PaginatedCardsList = ({
     setCurrentPage(1);
   }, [items, sortMode, debouncedQuery, itemsPerPage]);
 
-  const safeItems = useMemo(() => items ?? null, [items]);
+  const safeItems = items ?? null;
 
   const filteredItems = useMemo(() => {
     if (!safeItems) return null;

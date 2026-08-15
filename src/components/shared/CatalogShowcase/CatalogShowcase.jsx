@@ -1,38 +1,30 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Empty } from 'antd';
+import { useAppShell } from '../../../app/AppShellContext';
 import {
   getCatalogShowcase,
   SHOWCASE_CONFIG,
 } from '../../../catalog/showcase';
 import ShowcaseShelf from './ShowcaseShelf';
 import ShowcaseSizeChips from './ShowcaseSizeChips';
+import { getShowcaseStaticChips } from './showcaseChips';
 import './CatalogShowcase.scss';
-
-const getStaticChips = (kind) =>
-  kind === 'discs'
-    ? SHOWCASE_CONFIG.discs.popularDiameters
-    : SHOWCASE_CONFIG.tires.popularSizes;
-
-const getStaticChipsTitle = (kind) =>
-  kind === 'discs'
-    ? SHOWCASE_CONFIG.copy.popularDiameters
-    : SHOWCASE_CONFIG.copy.popularSizes;
 
 /**
  * Автовитрина каталога (idle / сброс фильтров).
  * Шины: хиты сезона + чипы размеров.
- * Диски: чипы диаметров.
+ * Диски: популярные модели + чипы диаметров.
  */
 const CatalogShowcase = ({
   kind = 'tires',
-  isClientMode = false,
-  catalogDataVersion = 0,
   renderCard,
   onChipClick,
 }) => {
+  const { clientMode: isClientMode, catalogDataVersion = 0 } = useAppShell();
   const [status, setStatus] = useState('loading');
   const [showcase, setShowcase] = useState(null);
   const requestIdRef = useRef(0);
+  const staticChips = getShowcaseStaticChips(kind);
 
   useEffect(() => {
     const requestId = ++requestIdRef.current;
@@ -54,9 +46,13 @@ const CatalogShowcase = ({
       });
   }, [kind, catalogDataVersion]);
 
-  const chips = showcase?.chips ?? getStaticChips(kind);
-  const chipsTitle = showcase?.chipsTitle ?? getStaticChipsTitle(kind);
+  const chips = showcase?.chips ?? staticChips.chips;
+  const chipsTitle = showcase?.chipsTitle ?? staticChips.chipsTitle;
   const shelves = showcase?.shelves ?? [];
+  const skeletonTitle =
+    kind === 'discs'
+      ? SHOWCASE_CONFIG.copy.popularModels
+      : SHOWCASE_CONFIG.copy.seasonHits;
 
   if (status === 'error') {
     return (
@@ -90,9 +86,9 @@ const CatalogShowcase = ({
       className={`catalog-showcase${status === 'loading' ? ' catalog-showcase--loading' : ''}`}
       aria-busy={status === 'loading' || undefined}
     >
-      {status === 'loading' && kind === 'tires' ? (
+      {status === 'loading' ? (
         <ShowcaseShelf
-          title={SHOWCASE_CONFIG.copy.seasonHits}
+          title={skeletonTitle}
           skeleton
           skeletonCount={6}
         />

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { ReactComponent as TireFittingGiftIcon } from '../../../icons/TireFittingGift.svg';
 import HoverTooltip from '../HoverTooltip';
 import {
@@ -13,7 +13,7 @@ import './CatalogItemPromoBadges.scss';
  * @param {'card' | 'modal'} variant
  */
 const CatalogItemPromoBadges = ({ item, variant = 'card' }) => {
-  const badges = useMemo(() => resolveIkonPromoBadges(item), [item]);
+  const badges = resolveIkonPromoBadges(item);
 
   if (!badges.showGift) return null;
 

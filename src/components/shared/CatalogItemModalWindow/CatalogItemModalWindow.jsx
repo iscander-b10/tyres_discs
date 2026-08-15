@@ -7,19 +7,14 @@ import AddToCartControl from '../AddToCartControl/AddToCartControl';
 import CatalogPriceStrip from '../CatalogPriceStrip/CatalogPriceStrip';
 import CatalogItemPromoBadges from '../CatalogItemPromoBadges/CatalogItemPromoBadges';
 import {
+  CATALOG_IMAGE_FALLBACK,
   formatCatalogSizeDisplay,
+  formatCatalogStockDisplay,
   resolveCatalogLoadIndex,
   resolveCatalogModel,
   resolveCatalogSpeedIndex,
 } from '../catalogCopy';
 import './CatalogItemModalWindow.scss';
-
-const formatStockDisplay = (amount) => {
-  if (amount == null || amount === '') return null;
-  const num = typeof amount === 'number' ? amount : Number(amount);
-  if (!Number.isFinite(num)) return `${amount} шт.`;
-  return `${num.toLocaleString('ru-RU')}\u00A0шт.`;
-};
 
 const CatalogItemModalWindow = ({ isOpen, onClose, item, isClientMode = false }) => {
   const dialogRef = useRef(null);
@@ -100,7 +95,7 @@ const CatalogItemModalWindow = ({ isOpen, onClose, item, isClientMode = false })
     }
     if (item.code) fields.push({ key: 'code', label: 'Код', value: item.code });
 
-    const stock = formatStockDisplay(item.amount);
+    const stock = formatCatalogStockDisplay(item.amount);
     if (stock) fields.push({ key: 'stock', label: 'В наличии', value: stock });
 
     if (!isClientMode && item.supplier) {
@@ -148,7 +143,7 @@ const CatalogItemModalWindow = ({ isOpen, onClose, item, isClientMode = false })
                 data-supplier={item.supplier || undefined}
                 referrerPolicy="no-referrer"
                 onError={(e) => {
-                  e.target.src = 'https://via.placeholder.com/800x600?text=No+Image';
+                  e.target.src = CATALOG_IMAGE_FALLBACK;
                 }}
               />
               <CatalogItemPromoBadges item={item} variant="modal" />

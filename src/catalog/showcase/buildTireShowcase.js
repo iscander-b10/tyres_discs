@@ -7,6 +7,35 @@ const clampCount = ({ min, max }, available) => {
 };
 
 /**
+ * Зимняя полка: и шипованные, и фрикционные (без фильтра по spikes).
+ * При наличии обоих типов — примерно поровну слотов, остаток добираем из другого пула.
+ */
+const pickWinterHits = (pool, limit) => {
+  const withSpikes = pool.filter((item) => item.spikes === true);
+  const withoutSpikes = pool.filter((item) => item.spikes !== true);
+
+  if (withSpikes.length === 0 || withoutSpikes.length === 0) {
+    return pickTopDiverse(pool, scoreCatalogItem, limit);
+  }
+
+  const spikesSlots = Math.ceil(limit / 2);
+  const frictionSlots = limit - spikesSlots;
+  const fromSpikes = pickTopDiverse(withSpikes, scoreCatalogItem, spikesSlots);
+  const fromFriction = pickTopDiverse(withoutSpikes, scoreCatalogItem, frictionSlots);
+  const mixed = [...fromSpikes, ...fromFriction];
+
+  if (mixed.length >= limit) return mixed.slice(0, limit);
+
+  const usedIds = new Set(mixed.map((item) => item.id).filter((id) => id != null));
+  const remainder = pickTopDiverse(
+    pool.filter((item) => item.id == null || !usedIds.has(item.id)),
+    scoreCatalogItem,
+    limit - mixed.length
+  );
+  return [...mixed, ...remainder];
+};
+
+/**
  * Чистые правила витрины шин (без JSX).
  * @param {{ candidates: object[], isEmpty: boolean, now?: Date }} input
  */
@@ -32,13 +61,13 @@ export const buildTireShowcase = ({
 
   const stocked = candidates.filter((item) => isStocked(item, cfg.minAmount));
   const seasonPool = stocked.filter((item) => item.season === season);
+  const pool = seasonPool.length > 0 ? seasonPool : stocked;
 
-  const seasonHitsLimit = clampCount(cfg.seasonHitsCount, seasonPool.length || stocked.length);
-  const seasonHits = pickTopDiverse(
-    seasonPool.length > 0 ? seasonPool : stocked,
-    scoreCatalogItem,
-    seasonHitsLimit
-  );
+  const seasonHitsLimit = clampCount(cfg.seasonHitsCount, pool.length);
+  const seasonHits =
+    season === 'w'
+      ? pickWinterHits(pool, seasonHitsLimit)
+      : pickTopDiverse(pool, scoreCatalogItem, seasonHitsLimit);
 
   const shelves = [];
 

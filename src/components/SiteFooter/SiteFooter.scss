@@ -105,6 +105,11 @@
   }
 }
 
+.site-footer__link-wrap {
+  display: inline-flex;
+  max-width: 100%;
+}
+
 .site-footer__contact-link {
   display: inline-flex;
   align-items: center;

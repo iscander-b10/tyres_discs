@@ -14,6 +14,7 @@ import {
   catalogSearchSelectProps,
   useCatalogSelectCloseOnMouseLeave,
 } from '../shared/catalogSearchSelectProps';
+import { useAppShell } from '../../app/AppShellContext';
 import './DiscsSearchParameters.scss';
 
 const { Option } = Select;
@@ -27,7 +28,8 @@ const optionIncludesNumeric = (options, value) =>
 const optionIncludesString = (options, value) =>
   Array.isArray(options) && options.some((option) => String(option) === String(value));
 
-const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) => {
+const DiscsSearchParameters = memo(() => {
+  const { clientMode: isClientMode, catalogDataVersion = 0 } = useAppShell();
   const [form] = Form.useForm();
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [errorSearch, setErrorSearch] = useState(null);
@@ -495,8 +497,6 @@ const DiscsSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
       {showShowcase ? (
         <CatalogShowcase
           kind="discs"
-          isClientMode={isClientMode}
-          catalogDataVersion={catalogDataVersion}
           renderCard={renderCatalogCard}
           onChipClick={handleShowcaseChipClick}
         />

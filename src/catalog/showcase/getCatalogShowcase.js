@@ -8,24 +8,21 @@ const cache = {
   discs: { version: null, payload: null, promise: null },
 };
 
-export const invalidateCatalogShowcaseCache = () => {
-  cache.tires = { version: null, payload: null, promise: null };
-  cache.discs = { version: null, payload: null, promise: null };
-};
-
 const loadTirePayload = async () => {
   const cfg = SHOWCASE_CONFIG.tires;
   return indexedDBService.collectTireShowcaseCandidates({
     candidateLimit: cfg.candidateLimit,
     minAmount: cfg.minAmount,
+    supplier: SHOWCASE_CONFIG.showcaseSupplier,
   });
 };
 
 const loadDiscPayload = async () => {
-  // Для дисков достаточно знать, пуст ли каталог (полки карточек не строим).
+  const cfg = SHOWCASE_CONFIG.discs;
   return indexedDBService.collectDiscShowcaseCandidates({
-    candidateLimit: 1,
-    minAmount: 0,
+    candidateLimit: cfg.candidateLimit,
+    minAmount: cfg.minAmount,
+    supplier: SHOWCASE_CONFIG.showcaseSupplier,
   });
 };
 
@@ -75,6 +72,7 @@ export const getCatalogShowcase = async ({
   }
 
   return buildDiscShowcase({
+    candidates: payload.candidates,
     isEmpty: payload.isEmpty,
   });
 };

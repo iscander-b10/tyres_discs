@@ -3,6 +3,7 @@ import { ShoppingCartOutlined } from '@ant-design/icons';
 import { ReactComponent as PhoneIcon } from '../../icons/Phone.svg';
 import { ReactComponent as UserIcon } from '../../icons/User.svg';
 import { SITE_NAV_ITEMS, SITE_PHONE } from '../../config/site';
+import { useAppShell } from '../../app/AppShellContext';
 import { useCart } from '../../cart/CartContext';
 import HoverTooltip from '../shared/HoverTooltip';
 import ThemeSwitch from '../shared/ThemeSwitch/ThemeSwitch';
@@ -11,11 +12,9 @@ import './SiteHeader.scss';
 function SiteHeader({
   appearance = 'light',
   onAppearanceChange,
-  activeKey,
-  onActiveKeyChange,
-  onBrandClick,
 }) {
-  const { totalQuantity, goToBasket } = useCart();
+  const { activeKey, setActiveKey, goToBasket, handleBrandClick } = useAppShell();
+  const { totalQuantity } = useCart();
   const cartActive = activeKey === 'basket';
   const badgeLabel =
     totalQuantity > 99 ? '99+' : totalQuantity > 0 ? String(totalQuantity) : null;
@@ -29,7 +28,7 @@ function SiteHeader({
             href="/"
             onClick={(e) => {
               e.preventDefault();
-              onBrandClick?.();
+              handleBrandClick();
             }}
           >
             <span className="site-brand__mark">IVANOR</span>
@@ -48,14 +47,19 @@ function SiteHeader({
               </a>
             </div>
 
-            <button
-              type="button"
-              className="site-header__icon-btn"
-              aria-label="Личный кабинет"
-            >
-              <UserIcon className="site-header__icon-btn-icon" aria-hidden />
-              <span className="site-header__icon-label">Войти</span>
-            </button>
+            <HoverTooltip title="Скоро">
+              <span className="site-header__icon-btn-wrap">
+                <button
+                  type="button"
+                  className="site-header__icon-btn is-disabled"
+                  aria-label="Личный кабинет"
+                  disabled
+                >
+                  <UserIcon className="site-header__icon-btn-icon" aria-hidden />
+                  <span className="site-header__icon-label">Войти</span>
+                </button>
+              </span>
+            </HoverTooltip>
 
             <button
               type="button"
@@ -98,7 +102,7 @@ function SiteHeader({
                   disabled={item.disabled}
                   aria-current={isActive ? 'page' : undefined}
                   onClick={() => {
-                    if (!item.disabled) onActiveKeyChange?.(item.key);
+                    if (!item.disabled) setActiveKey(item.key);
                   }}
                 >
                   {item.label}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Empty } from 'antd';
 import ShowcaseSizeChips from './ShowcaseSizeChips';
-import { SHOWCASE_CONFIG } from '../../../catalog/showcase';
+import { getShowcaseStaticChips } from './showcaseChips';
 import './CatalogShowcase.scss';
 
 /**
@@ -12,14 +12,7 @@ const CatalogSearchEmptyHint = ({
   emptyText,
   onChipClick,
 }) => {
-  const chips =
-    kind === 'discs'
-      ? SHOWCASE_CONFIG.discs.popularDiameters
-      : SHOWCASE_CONFIG.tires.popularSizes;
-  const chipsTitle =
-    kind === 'discs'
-      ? SHOWCASE_CONFIG.copy.tryDiameters
-      : SHOWCASE_CONFIG.copy.trySizes;
+  const { chips, chipsTitle } = getShowcaseStaticChips(kind, { tryHint: true });
 
   return (
     <div className="catalog-showcase catalog-showcase--search-empty">

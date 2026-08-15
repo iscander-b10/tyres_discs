@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Checkbox, Typography } from 'antd';
 import { CloseOutlined } from '@ant-design/icons';
+import { useAppShell } from '../../app/AppShellContext';
 import { useCart } from '../../cart/CartContext';
 import {
   getUnitSellingPrice,
@@ -26,7 +27,9 @@ const formatMoney = (value) => {
   return `${Math.round(value).toLocaleString('ru-RU')}\u00A0руб.`;
 };
 
-function BasketPage({ isClientMode = false, onContinueSelection, isActive = true }) {
+function BasketPage() {
+  const { clientMode: isClientMode, continueSelection, activeKey } = useAppShell();
+  const isActive = activeKey === 'basket';
   const { items, totals, increment, decrement, removeItem, clear } = useCart();
   const [modalItem, setModalItem] = useState(null);
 
@@ -80,7 +83,7 @@ function BasketPage({ isClientMode = false, onContinueSelection, isActive = true
           type="primary"
           className="basket-page__cta"
           size="large"
-          onClick={onContinueSelection}
+          onClick={continueSelection}
         >
           Продолжить подбор
         </Button>
@@ -304,7 +307,7 @@ function BasketPage({ isClientMode = false, onContinueSelection, isActive = true
             type="primary"
             block
             size="large"
-            onClick={onContinueSelection}
+            onClick={continueSelection}
           >
             Продолжить подбор
           </Button>

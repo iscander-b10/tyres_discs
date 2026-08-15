@@ -7,6 +7,8 @@ import {
   SITE_PRODUCT_NAV,
   SITE_SERVICE_NAV,
 } from '../../config/site';
+import { useAppShell } from '../../app/AppShellContext';
+import HoverTooltip from '../shared/HoverTooltip';
 import './SiteFooter.scss';
 
 function NavColumn({ label, items, onNavigate }) {
@@ -38,10 +40,8 @@ function NavColumn({ label, items, onNavigate }) {
   );
 }
 
-function SiteFooter({ onActiveKeyChange, onBrandClick }) {
-  const goTo = (key) => {
-    onActiveKeyChange?.(key);
-  };
+function SiteFooter() {
+  const { setActiveKey, handleBrandClick } = useAppShell();
 
   return (
     <footer className="site-footer">
@@ -53,7 +53,7 @@ function SiteFooter({ onActiveKeyChange, onBrandClick }) {
               href="/"
               onClick={(e) => {
                 e.preventDefault();
-                onBrandClick?.();
+                handleBrandClick();
               }}
             >
               <span className="site-footer__brand-mark">IVANOR</span>
@@ -63,12 +63,12 @@ function SiteFooter({ onActiveKeyChange, onBrandClick }) {
           <NavColumn
             label="Каталог товаров"
             items={SITE_PRODUCT_NAV}
-            onNavigate={goTo}
+            onNavigate={setActiveKey}
           />
           <NavColumn
             label="Каталог услуг"
             items={SITE_SERVICE_NAV}
-            onNavigate={goTo}
+            onNavigate={setActiveKey}
           />
 
           <div className="site-footer__col site-footer__col--contacts">
@@ -90,13 +90,18 @@ function SiteFooter({ onActiveKeyChange, onBrandClick }) {
             <h2 className="site-footer__heading">Клиентам</h2>
             <ul className="site-footer__list">
               <li className="site-footer__list-item">
-                <button
-                  type="button"
-                  className="site-footer__link"
-                  aria-label="Личный кабинет"
-                >
-                  Личный кабинет
-                </button>
+                <HoverTooltip title="Скоро">
+                  <span className="site-footer__link-wrap">
+                    <button
+                      type="button"
+                      className="site-footer__link is-disabled"
+                      aria-label="Личный кабинет"
+                      disabled
+                    >
+                      Личный кабинет
+                    </button>
+                  </span>
+                </HoverTooltip>
               </li>
             </ul>
           </nav>

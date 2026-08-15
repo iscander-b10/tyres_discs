@@ -119,13 +119,6 @@ export const loadSupplierData = async (supplierKey) => {
   try {
     const { rawTyres, rawDiscs, failedParts } = await fetchTyresAndDiscs(supplier);
 
-    if (rawTyres) {
-      console.log(`📦 Сырые данные шин от ${supplier.label}:`, rawTyres);
-    }
-    if (rawDiscs) {
-      console.log(`📦 Сырые данные дисков от ${supplier.label}:`, rawDiscs);
-    }
-
     const tyres = supplier.transformTyres && rawTyres ? supplier.transformTyres(rawTyres) : [];
     // Общий raw: объект с .rims (Форточки) или плоский массив строк (ШинаСу)
     const rawDiscsFallback =

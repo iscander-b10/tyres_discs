@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React from 'react';
 
 /**
  * Горизонтальная полка карточек (scroll-snap).
@@ -12,8 +12,6 @@ const ShowcaseShelf = ({
   skeleton = false,
   skeletonCount = 6,
 }) => {
-  const scrollerRef = useRef(null);
-
   if (!skeleton && (!Array.isArray(items) || items.length === 0)) {
     return null;
   }
@@ -27,7 +25,6 @@ const ShowcaseShelf = ({
       ) : null}
 
       <div
-        ref={scrollerRef}
         className="catalog-showcase__row"
         tabIndex={0}
         aria-label={title}

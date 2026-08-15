@@ -7,6 +7,11 @@
 /** @typedef {{ label: string, diameter: string }} DiscDiameterChip */
 
 export const SHOWCASE_CONFIG = {
+  /**
+   * Полки карточек («Хиты сезона» / «Популярные модели») только из этого поставщика.
+   * Совпадает с `item.supplier` в IDB (label Шинсервиса).
+   */
+  showcaseSupplier: 'Шинсервис',
   tires: {
     /** @type {TireSizeChip[]} */
     popularSizes: [
@@ -34,11 +39,14 @@ export const SHOWCASE_CONFIG = {
       { label: 'R19', diameter: 'R19' },
       { label: 'R20', diameter: 'R20' },
     ],
+    popularModelsCount: { min: 8, max: 12 },
+    /** Кандидаты из IDB (ранний лимит, не весь каталог). */
     candidateLimit: 480,
     minAmount: 1,
   },
   copy: {
     seasonHits: 'Хиты сезона',
+    popularModels: 'Популярные модели',
     popularSizes: 'Популярные размеры',
     popularDiameters: 'Популярные диаметры',
     catalogEmptyTitle: 'Каталог ещё не загружен',
@@ -48,8 +56,8 @@ export const SHOWCASE_CONFIG = {
   },
 };
 
-/** Лето: апр–сен (месяцы 3–8); зима: окт–мар. */
+/** Лето: мар–авг (месяцы 2–7); зима: сен–фев. */
 export const getCatalogSeasonFromDate = (date = new Date()) => {
   const month = date.getMonth();
-  return month >= 3 && month <= 8 ? 's' : 'w';
+  return month >= 2 && month <= 7 ? 's' : 'w';
 };

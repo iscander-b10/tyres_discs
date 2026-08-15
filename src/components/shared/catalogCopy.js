@@ -1,7 +1,6 @@
 /** Shared catalog UI copy — keep card and modal in sync. */
-export const NO_WEBSITE_PRICE_LABEL = 'Нет интернет цены';
 
-export const isValidPrice = (value) => {
+const isValidPrice = (value) => {
   if (value == null || value === '') return false;
   const num =
     typeof value === 'number' ? value : Number(String(value).replace(',', '.'));
@@ -19,7 +18,7 @@ export const formatPriceDisplay = (value) => {
  * Internet price: supplier websitePrice when present;
  * otherwise a dash mark — we cannot invent a price or markup here.
  */
-export const formatWebsitePriceDisplay = (item) => {
+const formatWebsitePriceDisplay = (item) => {
   if (isValidPrice(item?.websitePrice)) {
     return formatPriceDisplay(item.websitePrice);
   }
@@ -27,17 +26,10 @@ export const formatWebsitePriceDisplay = (item) => {
 };
 
 /** Row labels for price cells (card + modal + basket). */
-export const CATALOG_PRICE_LABELS = {
+const CATALOG_PRICE_LABELS = {
   b2b: 'B2B Цена',
   website: 'Интернет цена',
   selling: 'Цена',
-};
-
-/** Compact equal captions for basket channel table. */
-export const CATALOG_PRICE_LABELS_TABLE = {
-  b2b: 'B2B',
-  website: 'Интернет',
-  selling: 'Магазин',
 };
 
 /** Hover tooltip titles for channel price cells (basket totals, etc.). */
@@ -51,18 +43,14 @@ export const CATALOG_PRICE_TOOLTIPS = {
  * Manager: always 3 stable cells — B2B | Website | store (invalid → «—»).
  * Client: store only.
  */
-export const getCatalogPriceStripItems = (
-  item,
-  { isClientMode = false, tableLabels = false } = {}
-) => {
+export const getCatalogPriceStripItems = (item, { isClientMode = false } = {}) => {
   const sellingValue = formatPriceDisplay(item?.sellingPrice ?? item?.price);
-  const labels = tableLabels ? CATALOG_PRICE_LABELS_TABLE : CATALOG_PRICE_LABELS;
 
   if (isClientMode) {
     return [
       {
         key: 'selling',
-        label: labels.selling,
+        label: CATALOG_PRICE_LABELS.selling,
         value: sellingValue,
         primary: true,
       },
@@ -72,19 +60,19 @@ export const getCatalogPriceStripItems = (
   return [
     {
       key: 'b2b',
-      label: labels.b2b,
+      label: CATALOG_PRICE_LABELS.b2b,
       value: formatPriceDisplay(item?.price),
       primary: false,
     },
     {
       key: 'website',
-      label: labels.website,
+      label: CATALOG_PRICE_LABELS.website,
       value: formatWebsitePriceDisplay(item),
       primary: false,
     },
     {
       key: 'selling',
-      label: labels.selling,
+      label: CATALOG_PRICE_LABELS.selling,
       value: sellingValue,
       primary: true,
     },
@@ -112,17 +100,23 @@ const deriveIndicesFromTitle = (title) => {
   };
 };
 
-/** Width / profile / diameter, else sizeTitle. */
+/** Tyres: width/profile/diameter. Discs (no profile): full sizeTitle. */
 export const formatCatalogSizeDisplay = (item) => {
   if (!item) return null;
   const width = item.width;
   const profile = item.profile;
   const diameter = item.diameter;
-  if (hasText(width) && hasText(diameter)) {
-    if (hasText(profile)) return `${width}/${profile}${diameter}`;
-    return `${width}${diameter}`;
+  if (hasText(width) && hasText(profile) && hasText(diameter)) {
+    return `${width}/${profile}${diameter}`;
   }
   return pickText(item.sizeTitle);
+};
+
+export const formatCatalogStockDisplay = (amount) => {
+  if (amount == null || amount === '') return null;
+  const num = typeof amount === 'number' ? amount : Number(amount);
+  if (!Number.isFinite(num)) return `${amount} шт.`;
+  return `${num.toLocaleString('ru-RU')}\u00A0шт.`;
 };
 
 export const resolveCatalogModel = (item) => {
@@ -173,3 +167,6 @@ export const resolveCatalogSpeedIndex = (item) => {
 
   return deriveIndicesFromTitle(item.title).speedIndex;
 };
+
+export const CATALOG_IMAGE_FALLBACK =
+  'https://via.placeholder.com/800x600?text=No+Image';

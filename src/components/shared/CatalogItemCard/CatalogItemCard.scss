@@ -91,12 +91,6 @@
     outline-color: oklch(1 0 0 / 0.1);
   }
 
-  .item-image-overlays {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-  }
-
   .item-code-overlay {
     position: absolute;
     top: 8px;

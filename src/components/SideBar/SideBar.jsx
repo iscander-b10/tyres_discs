@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { Flex, Switch } from 'antd';
+import { useAppShell } from '../../app/AppShellContext';
 import LoadingData from '../LoadingData/LoadingData';
 import HoverTooltip from '../shared/HoverTooltip';
 import './SideBar.scss';
@@ -98,7 +99,8 @@ function isInteractiveTarget(target) {
   return Boolean(target?.closest?.(INTERACTIVE_SELECTOR));
 }
 
-function SideBar({ clientMode, setClientMode, onCatalogDataLoaded }) {
+function SideBar() {
+  const { clientMode, setClientMode, bumpCatalogDataVersion } = useAppShell();
   const asideRef = useRef(null);
   const controlsRef = useRef(null);
   const positionRef = useRef(null);
@@ -381,7 +383,7 @@ function SideBar({ clientMode, setClientMode, onCatalogDataLoaded }) {
         onClickCapture={onClickCapture}
       >
         <Flex className="control-button" align="center" justify="center" data-no-drag>
-          <LoadingData onDataLoaded={onCatalogDataLoaded} />
+          <LoadingData onDataLoaded={bumpCatalogDataVersion} />
         </Flex>
 
         <HoverTooltip title={targetModeLabel} placement="top">

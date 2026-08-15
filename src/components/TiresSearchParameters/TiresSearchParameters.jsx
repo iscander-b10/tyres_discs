@@ -16,6 +16,7 @@ import {
   catalogSearchSelectProps,
   useCatalogSelectCloseOnMouseLeave,
 } from '../shared/catalogSearchSelectProps';
+import { useAppShell } from '../../app/AppShellContext';
 import './TiresSearchParameters.scss';
 
 const { Option } = Select;
@@ -31,7 +32,8 @@ const optionIncludesNumeric = (options, value) =>
 const optionIncludesDiameter = (options, value) =>
   Array.isArray(options) && options.some((option) => String(option) === String(value));
 
-const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) => {
+const TiresSearchParameters = memo(() => {
+  const { clientMode: isClientMode, catalogDataVersion = 0 } = useAppShell();
   const [form] = Form.useForm();
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [errorSearch, setErrorSearch] = useState(null);
@@ -43,10 +45,10 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
   const [availableBrands, setAvailableBrands] = useState([]);
   const [availableSuppliers, setAvailableSuppliers] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
-  const [showSpikesFilter, setShowSpikesFilter] = useState(false);
   const loadRequestIdRef = useRef(0);
   const brandSelectCloseOnMouseLeave = useCatalogSelectCloseOnMouseLeave();
   const selectedSeason = Form.useWatch('season', form) ?? DEFAULT_SEASON;
+  const showSpikesFilter = selectedSeason === 'w';
 
   const widthOptions = useMemo(() => {
     if (!Array.isArray(availableWidths)) return [];
@@ -164,7 +166,6 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
 
     if (changedValues.season !== undefined) {
       const isWinter = changedValues.season === 'w';
-      setShowSpikesFilter(isWinter);
 
       // Keep size/brand/supplier/etc. — only sync spikes for winter UI.
       const spikesUpdate = {
@@ -192,7 +193,6 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
     setSearchResetKey((key) => key + 1);
     form.resetFields();
     setSearchResults(null);
-    setShowSpikesFilter(false);
     loadAvailableParameters({ season: DEFAULT_SEASON });
   };
 
@@ -277,7 +277,7 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
                   className="form-item-spikes"
                   getValueProps={(value) => ({
                     value:
-                      value === true ? 'yes' : value === false ? 'no' : undefined,
+                      value === true ? 'yes' : value === false ? 'no' : 'all',
                   })}
                   getValueFromEvent={(value) => {
                     if (value === 'yes') return true;
@@ -292,6 +292,7 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
                     aria-label="Шипы"
                     className="filter-select--spikes"
                     options={[
+                      { value: 'all', label: 'Все' },
                       { value: 'yes', label: 'Шипы' },
                       { value: 'no', label: 'Без шипов' },
                     ]}
@@ -420,8 +421,6 @@ const TiresSearchParameters = memo(({ isClientMode, catalogDataVersion = 0 }) =>
       {showShowcase ? (
         <CatalogShowcase
           kind="tires"
-          isClientMode={isClientMode}
-          catalogDataVersion={catalogDataVersion}
           renderCard={renderCatalogCard}
           onChipClick={handleShowcaseChipClick}
         />
