@@ -59,6 +59,10 @@
 }
 
 .catalog-showcase__shelf-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: $space-3;
   margin-bottom: $space-3;
   padding-inline: 2px;
 }
@@ -69,28 +73,169 @@
   font-size: $catalog-type-title-size;
   font-weight: $catalog-type-title-weight;
   line-height: $catalog-type-title-lh;
+  letter-spacing: -0.01em;
   text-wrap: balance;
 }
 
+.catalog-showcase__shelf-all {
+  appearance: none;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: $space-1 $space-3;
+  border: 1px solid transparent;
+  border-radius: $radius-md;
+  background: $color-surface-muted;
+  color: $color-text-muted;
+  font-family: $font-sans;
+  font-size: $catalog-type-label-size;
+  font-weight: $catalog-type-label-weight;
+  line-height: $catalog-type-label-lh;
+  white-space: nowrap;
+  cursor: pointer;
+  transition-property: background-color, color, border-color, transform;
+  transition-duration: 140ms;
+  transition-timing-function: ease-out;
+
+  &:hover {
+    background: $color-bg-sunken;
+    color: $color-text;
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-cta;
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &:active {
+      transform: none;
+    }
+  }
+}
+
+.catalog-showcase__viewport {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  min-width: 0;
+}
+
+.catalog-showcase__nav {
+  appearance: none;
+  flex: 0 0 auto;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  background: $color-surface;
+  box-shadow: $shadow-card;
+  color: $color-text;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition-property: background-color, border-color, box-shadow, color, opacity, transform;
+  transition-duration: 140ms;
+  transition-timing-function: ease-out;
+
+  &:hover:not(:disabled) {
+    background: $color-surface-muted;
+    border-color: $color-border-strong;
+    box-shadow: $shadow-elevated;
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.96);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-cta;
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+    box-shadow: none;
+  }
+
+  &[aria-hidden='true'] {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  /* Оптическое выравнивание шевронов Ant Design */
+  .anticon {
+    display: block;
+    line-height: 0;
+  }
+
+  &--prev .anticon {
+    transform: translateX(-0.5px);
+  }
+
+  &--next .anticon {
+    transform: translateX(0.5px);
+  }
+
+  @media (max-width: 720px) {
+    width: 36px;
+    height: 36px;
+  }
+
+  @media (max-width: 560px) {
+    /* Свайп + progress; стрелки не конкурируют с шириной карточек */
+    display: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &:active:not(:disabled) {
+      transform: none;
+    }
+  }
+}
+
 .catalog-showcase__row {
+  flex: 1 1 auto;
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(240px, 280px);
-  gap: $space-3;
+  grid-auto-columns: minmax(300px, 320px);
+  gap: $space-4;
+  min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
   padding-block: $space-1 $space-3;
-  padding-inline: 2px calc(16px + env(safe-area-inset-right, 0px));
+  padding-inline: 2px calc(28px + env(safe-area-inset-right, 0px));
   scroll-snap-type: x mandatory;
   scroll-padding-inline: 2px;
+  /* Smooth только через JS scrollTo — иначе snap + CSS smooth конфликтуют */
+  scroll-behavior: auto;
+  scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 
   /* Peek следующего слайда */
   mask-image: linear-gradient(
     to right,
     #000 0%,
-    #000 calc(100% - 28px),
+    #000 calc(100% - 36px),
     transparent 100%
   );
 
@@ -101,7 +246,10 @@
   }
 
   @media (max-width: 560px) {
-    grid-auto-columns: minmax(78vw, 260px);
+    /* Полная ширина ряда без стрелок — карточки ~82vw с peek */
+    grid-auto-columns: minmax(82vw, 280px);
+    gap: $space-3;
+    padding-inline: 2px calc(20px + env(safe-area-inset-right, 0px));
   }
 }
 
@@ -122,7 +270,7 @@
 }
 
 .catalog-showcase__skeleton-card {
-  height: 360px;
+  height: 380px;
   border-radius: $radius-lg;
   border: 1px solid $color-border;
   background: linear-gradient(
@@ -136,6 +284,106 @@
 
   @media (prefers-reduced-motion: no-preference) {
     animation: catalog-showcase-shimmer 1.2s ease-in-out infinite;
+  }
+}
+
+.catalog-showcase__progress {
+  display: flex;
+  justify-content: center;
+  margin-top: $space-1;
+  padding-inline: $space-4;
+}
+
+.catalog-showcase__progress-track {
+  position: relative;
+  box-sizing: border-box;
+  width: min(220px, 48%);
+  height: 16px;
+  padding-block: 6px;
+  cursor: pointer;
+  touch-action: none;
+  outline: none;
+
+  &::before {
+    content: '';
+    display: block;
+    height: 3px;
+    border-radius: 999px;
+    background: $color-border;
+  }
+
+  &:focus-visible {
+    border-radius: $radius-sm;
+
+    &::before {
+      outline: 2px solid $color-cta;
+      outline-offset: 3px;
+    }
+  }
+}
+
+.catalog-showcase__progress-thumb {
+  position: absolute;
+  top: 6px;
+  left: 0;
+  width: 14%;
+  height: 3px;
+  border-radius: 999px;
+  background: $color-accent;
+  pointer-events: none;
+  will-change: left, width;
+}
+
+.catalog-showcase__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* «Сейчас в сезоне»: чуть крупнее заголовок и слайды */
+.catalog-showcase__shelf--featured,
+.catalog-showcase__shelf--hits {
+  .catalog-showcase__shelf-title {
+    font-size: calc(#{$catalog-type-title-size} + 2px);
+    font-weight: 700;
+    letter-spacing: -0.015em;
+  }
+
+  .catalog-showcase__row {
+    grid-auto-columns: minmax(320px, 340px);
+    gap: $space-4;
+
+    @media (max-width: 560px) {
+      grid-auto-columns: minmax(85vw, 300px);
+    }
+  }
+
+  .catalog-showcase__skeleton-card {
+    height: 400px;
+  }
+
+  .item-image-frame {
+    height: clamp(240px, 20vw, 300px);
+  }
+
+  .item-card {
+    :where(.ant-card-body) {
+      padding: 14px;
+    }
+  }
+
+  .item-title-text {
+    font-size: calc(#{$catalog-type-title-size} + 1px);
+  }
+
+  .item-price-strip {
+    font-variant-numeric: tabular-nums;
   }
 }
 

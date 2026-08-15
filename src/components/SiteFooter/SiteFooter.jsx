@@ -61,12 +61,12 @@ function SiteFooter() {
           </div>
 
           <NavColumn
-            label="Каталог товаров"
+            label="Каталог"
             items={SITE_PRODUCT_NAV}
             onNavigate={setActiveKey}
           />
           <NavColumn
-            label="Каталог услуг"
+            label="Услуги"
             items={SITE_SERVICE_NAV}
             onNavigate={setActiveKey}
           />
@@ -86,8 +86,8 @@ function SiteFooter() {
             </ul>
           </div>
 
-          <nav className="site-footer__col" aria-label="Клиентам">
-            <h2 className="site-footer__heading">Клиентам</h2>
+          <nav className="site-footer__col" aria-label="Аккаунт">
+            <h2 className="site-footer__heading">Аккаунт</h2>
             <ul className="site-footer__list">
               <li className="site-footer__list-item">
                 <HoverTooltip title="Скоро">
@@ -108,7 +108,7 @@ function SiteFooter() {
         </div>
 
         <p className="site-footer__credit">
-          <span className="site-footer__credit-label">Разработка сайта</span>
+          <span className="site-footer__credit-label">Разработка</span>
           <a
             className="site-footer__credit-link"
             href={SITE_DEVELOPER_TELEGRAM.href}

@@ -27,12 +27,12 @@ function formatLoadedAt(date = new Date()) {
 
 function messageForFailedPart(supplierLabel, part) {
   if (part === PART_TYRES) {
-    return `Не удалось загрузить данные шин поставщика ${supplierLabel}.`;
+    return `Не загрузились шины: ${supplierLabel}.`;
   }
   if (part === PART_DISCS) {
-    return `Не удалось загрузить данные дисков поставщика ${supplierLabel}.`;
+    return `Не загрузились диски: ${supplierLabel}.`;
   }
-  return `Не удалось загрузить данные поставщика ${supplierLabel}.`;
+  return `Не загрузился поставщик: ${supplierLabel}.`;
 }
 
 function collectClientLoadErrors(results) {
@@ -48,7 +48,7 @@ function collectClientLoadErrors(results) {
           messages.push(messageForFailedPart(label, part));
         });
       } else {
-        messages.push(`Не удалось загрузить данные поставщика ${label}.`);
+        messages.push(`Не загрузился поставщик: ${label}.`);
       }
 
       console.error(`Ошибка загрузки (${result.key}):`, result.reason);
@@ -71,7 +71,7 @@ function notifySuccess(notification) {
   const when = formatLoadedAt();
   notification.success({
     key: 'catalog-load-success',
-    message: 'Все поставщики успешно загружены',
+    message: 'Поставщики загружены',
     description: `Данные от ${when}`,
     placement: 'topRight',
     duration: SUCCESS_DURATION_SEC,

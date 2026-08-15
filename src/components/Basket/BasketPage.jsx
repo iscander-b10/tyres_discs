@@ -76,8 +76,7 @@ function BasketPage() {
           Корзина пуста
         </Title>
         <Paragraph className="basket-page__lead">
-          Добавьте позиции из подбора шин или дисков — они появятся здесь со
-          всеми ценами для заказа в магазин.
+          Добавьте позиции из подбора шин или дисков.
         </Paragraph>
         <Button
           type="primary"
@@ -286,8 +285,8 @@ function BasketPage() {
           </ul>
         </div>
 
-        <aside className="basket-summary" aria-label="Детали подбора">
-          <h3 className="basket-summary__title">Детали подбора</h3>
+        <aside className="basket-summary" aria-label="К заказу">
+          <h3 className="basket-summary__title">К заказу</h3>
           <div className="basket-summary__row">
             <span>{qtyLabel}</span>
             <span>{formatMoney(totals.selling)}</span>

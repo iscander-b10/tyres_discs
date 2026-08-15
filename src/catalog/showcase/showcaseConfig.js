@@ -8,7 +8,7 @@
 
 export const SHOWCASE_CONFIG = {
   /**
-   * Полки карточек («Хиты сезона» / «Популярные модели») только из этого поставщика.
+   * Полки карточек («Сейчас в сезоне» / «Литые диски в наличии») только из этого поставщика.
    * Совпадает с `item.supplier` в IDB (label Шинсервиса).
    */
   showcaseSupplier: 'Шинсервис',
@@ -58,12 +58,12 @@ export const SHOWCASE_CONFIG = {
     minAmount: 1,
   },
   copy: {
-    seasonHits: 'Хиты сезона',
-    popularModels: 'Популярные модели',
-    popularSizes: 'Популярные размеры',
-    catalogEmptyTitle: 'Каталог ещё не загружен',
-    catalogEmptyHint: 'Загрузите данные поставщиков в боковой панели — после этого здесь появятся подборки.',
-    trySizes: 'Попробуйте популярные размеры',
+    seasonHits: 'Сейчас в сезоне',
+    popularModels: 'Литые диски в наличии',
+    popularSizes: 'Частые размеры',
+    catalogEmptyTitle: 'Каталог не загружен',
+    catalogEmptyHint: 'Загрузите поставщиков в боковой панели.',
+    trySizes: 'Другие размеры',
   },
 };
 

@@ -77,7 +77,7 @@ const PaginatedCardsList = ({
   error,
   isClientMode,
   renderCard,
-  emptyText = 'Ничего не найдено. Попробуйте изменить параметры поиска.',
+  emptyText = 'Ничего не найдено.',
   itemsPerPage: itemsPerPageProp = DEFAULT_ITEMS_PER_PAGE,
   containerClassName,
   gridClassName,
@@ -264,8 +264,8 @@ const PaginatedCardsList = ({
             value={searchQuery}
             onChange={handleSearchChange}
             onKeyDown={handleSearchKeyDown}
-            placeholder="Бренд или модель"
-            aria-label="Поиск по бренду или модели"
+            placeholder="Поиск по названию"
+            aria-label="Поиск по названию"
             autoComplete="off"
             autoCapitalize="off"
             spellCheck={false}
@@ -310,7 +310,7 @@ const PaginatedCardsList = ({
                 </Dropdown>
               </span>
             </HoverTooltip>
-            <HoverTooltip title="Товаров на странице" placement="bottom">
+            <HoverTooltip title="На странице" placement="bottom">
               <span className="list-toolbar__icon-wrap">
                 <Dropdown
                   menu={{
@@ -324,7 +324,7 @@ const PaginatedCardsList = ({
                   <button
                     type="button"
                     className="list-toolbar__icon-btn list-toolbar__icon-btn--group-end"
-                    aria-label="Количество товаров на странице"
+                    aria-label="На странице"
                     aria-haspopup="menu"
                   >
                     <PageSizeIcon className="list-toolbar__icon" aria-hidden />
@@ -355,7 +355,7 @@ const PaginatedCardsList = ({
         </>
       ) : isTitleFilterEmpty ? (
         <div className="list-filter-empty" role="status">
-          <p className="list-filter-empty__text">Ничего не подходит</p>
+          <p className="list-filter-empty__text">Нет совпадений</p>
           <Button
             type="default"
             className="list-filter-empty__clear"

@@ -27,7 +27,7 @@ const formatWebsitePriceDisplay = (item) => {
 
 /** Row labels for price cells (card + modal + basket). */
 const CATALOG_PRICE_LABELS = {
-  b2b: 'B2B Цена',
+  b2b: 'B2B',
   website: 'Интернет цена',
   selling: 'Цена',
 };

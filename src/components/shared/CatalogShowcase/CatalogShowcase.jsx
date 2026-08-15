@@ -12,8 +12,8 @@ import './CatalogShowcase.scss';
 
 /**
  * Автовитрина каталога (idle / сброс фильтров).
- * Шины: хиты сезона + чипы размеров.
- * Диски: популярные модели + чипы диаметров.
+ * Шины: полка сезона + чипы размеров.
+ * Диски: литые в наличии + чипы диаметров.
  */
 const CatalogShowcase = ({
   kind = 'tires',
@@ -57,7 +57,7 @@ const CatalogShowcase = ({
   if (status === 'error') {
     return (
       <div className="catalog-showcase catalog-showcase--empty" role="status">
-        <Empty description="Не удалось собрать витрину. Попробуйте обновить данные каталога." />
+        <Empty description="Не удалось собрать полки. Загрузите данные ещё раз." />
       </div>
     );
   }
@@ -91,6 +91,7 @@ const CatalogShowcase = ({
           title={skeletonTitle}
           skeleton
           skeletonCount={6}
+          variant="featured"
         />
       ) : (
         shelves.map((shelf) => (
@@ -100,6 +101,7 @@ const CatalogShowcase = ({
             items={shelf.items}
             renderCard={renderCard}
             isClientMode={isClientMode}
+            variant="featured"
           />
         ))
       )}

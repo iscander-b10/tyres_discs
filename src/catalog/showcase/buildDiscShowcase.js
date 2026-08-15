@@ -8,7 +8,7 @@ const clampCount = ({ min, max }, available) => {
 
 /**
  * Чистые правила витрины дисков (без JSX).
- * Зеркало «Хитов сезона» у шин — без фильтра сезона.
+ * Зеркало полки «Сейчас в сезоне» у шин — без фильтра сезона.
  * @param {{ candidates: object[], isEmpty: boolean }} input
  */
 export const buildDiscShowcase = ({
@@ -29,7 +29,7 @@ export const buildDiscShowcase = ({
   }
 
   const stocked = candidates.filter((item) => isStocked(item, cfg.minAmount));
-  // Только литые: штампы на витрину «Популярные модели» не выводим.
+  // Только литые: штампы на полку «Литые диски в наличии» не выводим.
   const castPool = stocked.filter((item) => item.diskType === 'Литой');
   const popularLimit = clampCount(cfg.popularModelsCount, castPool.length);
   const popularModels = pickTopDiverse(

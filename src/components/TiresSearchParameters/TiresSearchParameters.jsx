@@ -429,7 +429,7 @@ const TiresSearchParameters = memo(() => {
       {showSearchEmpty ? (
         <CatalogSearchEmptyHint
           kind="tires"
-          emptyText="Шины не найдены. Попробуйте изменить параметры поиска."
+          emptyText="Ничего не найдено. Сбросьте фильтры."
           onChipClick={handleShowcaseChipClick}
         />
       ) : null}
@@ -442,7 +442,7 @@ const TiresSearchParameters = memo(() => {
           searchResetKey={searchResetKey}
           containerClassName="items-list-container"
           gridClassName="items-grid"
-          emptyText="Шины не найдены. Попробуйте изменить параметры поиска."
+          emptyText="Ничего не найдено. Сбросьте фильтры."
           renderCard={renderCatalogCard}
         />
       ) : null}
