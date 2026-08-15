@@ -214,11 +214,18 @@ const DiscsSearchParameters = memo(() => {
   );
 
   const handleShowcaseChipClick = (chip) => {
+    const patch = {
+      diameter: chip.diameter,
+      pn: chip.pn,
+      pcd: chip.pcd,
+      cbFrom: chip.cbFrom ?? chip.cb,
+      cbTo: chip.cbTo ?? chip.cb,
+    };
     const nextValues = {
       ...form.getFieldsValue(),
-      diameter: chip.diameter,
+      ...patch,
     };
-    form.setFieldsValue({ diameter: chip.diameter });
+    form.setFieldsValue(patch);
     handleSearch(nextValues);
   };
 

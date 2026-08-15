@@ -1,7 +1,7 @@
 import React from 'react';
 
 /**
- * Чипы популярных размеров / диаметров.
+ * Чипы популярных размеров (шины / диски).
  * Клик вызывает существующий поиск через onChipClick(chip).
  */
 const ShowcaseSizeChips = ({
@@ -9,8 +9,14 @@ const ShowcaseSizeChips = ({
   chips = [],
   onChipClick,
   ariaLabel,
+  kind = 'tires',
 }) => {
   if (!Array.isArray(chips) || chips.length === 0) return null;
+
+  const chipClassName =
+    kind === 'discs'
+      ? 'catalog-showcase__chip catalog-showcase__chip--discs'
+      : 'catalog-showcase__chip';
 
   return (
     <section className="catalog-showcase__chips" aria-label={ariaLabel || title}>
@@ -20,7 +26,7 @@ const ShowcaseSizeChips = ({
           <button
             key={chip.label}
             type="button"
-            className="catalog-showcase__chip"
+            className={chipClassName}
             onClick={() => onChipClick?.(chip)}
           >
             {chip.label}

@@ -22,6 +22,7 @@ const CatalogSearchEmptyHint = ({
       <ShowcaseSizeChips
         title={chipsTitle}
         chips={chips}
+        kind={kind}
         onChipClick={onChipClick}
         ariaLabel={chipsTitle}
       />

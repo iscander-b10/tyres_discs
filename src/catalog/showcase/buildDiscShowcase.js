@@ -22,8 +22,8 @@ export const buildDiscShowcase = ({
     return {
       kind: 'discs',
       empty: true,
-      chips: cfg.popularDiameters,
-      chipsTitle: copy.popularDiameters,
+      chips: cfg.popularSizes,
+      chipsTitle: copy.popularSizes,
       shelves: [],
     };
   }
@@ -51,8 +51,8 @@ export const buildDiscShowcase = ({
   return {
     kind: 'discs',
     empty: false,
-    chips: cfg.popularDiameters,
-    chipsTitle: copy.popularDiameters,
+    chips: cfg.popularSizes,
+    chipsTitle: copy.popularSizes,
     shelves,
   };
 };

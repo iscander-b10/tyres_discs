@@ -171,9 +171,13 @@
 
 .catalog-showcase__chip {
   appearance: none;
+  box-sizing: border-box;
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
+  /* Longest tire label: "185/75 R16C" — equal bricks, centered text. */
+  min-width: calc(12ch + 2 * #{$space-4});
   min-height: 44px;
   padding: $space-2 $space-4;
   border: 1px solid $color-border;
@@ -184,6 +188,7 @@
   font-family: $font-sans;
   font-size: $catalog-type-size-size;
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
   line-height: $catalog-type-size-lh;
   white-space: nowrap;
   cursor: pointer;
@@ -191,6 +196,11 @@
   transition-property: background-color, border-color, box-shadow, transform, color;
   transition-duration: 140ms;
   transition-timing-function: ease-out;
+
+  /* Longest disc label: "R16 PCD 5x114.3 ЦО 60.1" (Cyrillic ЦО wider than ch). */
+  &--discs {
+    min-width: calc(28ch + 2 * #{$space-4});
+  }
 
   &:hover {
     background: $color-surface-muted;
