@@ -1,8 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Button, Form, Input } from 'antd';
-import { EyeInvisibleOutlined, EyeOutlined } from '@ant-design/icons';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Button, Form, Input, Modal } from 'antd';
+import { CloseOutlined, EyeInvisibleOutlined, EyeOutlined } from '@ant-design/icons';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { loginRedirectFrom } from '../../app/paths';
+import { useAppShell } from '../../app/AppShellContext';
+import {
+  canCloseLoginWithHistoryBack,
+  loginReturnPath,
+} from '../../app/paths';
 import { useAuth } from '../../auth/AuthContext';
 import './LoginPage.scss';
 
@@ -11,14 +15,31 @@ const ERROR_MESSAGE = 'Неверный логин или пароль';
 
 const getInputElement = (ref) => ref?.current?.input ?? ref?.current;
 
+function prefersReducedMotion() {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return false;
+  }
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
 function LoginPage() {
   const { isAuthenticated, signIn } = useAuth();
+  const { lastBackgroundPath } = useAppShell();
   const location = useLocation();
   const navigate = useNavigate();
-  const redirectTo = loginRedirectFrom(location);
+  const redirectTo = loginReturnPath(location, lastBackgroundPath);
   const [form] = Form.useForm();
   const [authError, setAuthError] = useState(false);
+  const [reducedMotion] = useState(prefersReducedMotion);
   const emailInputRef = useRef(null);
+
+  const closeLogin = useCallback(() => {
+    if (canCloseLoginWithHistoryBack(location)) {
+      navigate(-1);
+      return;
+    }
+    navigate(redirectTo, { replace: true });
+  }, [location, navigate, redirectTo]);
 
   useEffect(() => {
     if (isAuthenticated) return undefined;
@@ -57,90 +78,118 @@ function LoginPage() {
   };
 
   const describedBy = authError ? ERROR_ID : undefined;
+  const motionNames = reducedMotion
+    ? { transitionName: '', maskTransitionName: '' }
+    : {};
 
   return (
-    <section className="login-page" aria-labelledby="login-page-title">
-      <div className="login-page__card">
+    <Modal
+      open
+      centered
+      footer={null}
+      closable={false}
+      maskClosable
+      keyboard
+      width={420}
+      zIndex={1300}
+      rootClassName="login-page"
+      classNames={{
+        mask: 'login-page__mask',
+        content: 'login-page__dialog',
+        body: 'login-page__body',
+      }}
+      styles={{
+        mask: { background: 'var(--color-overlay)' },
+      }}
+      aria-labelledby="login-page-title"
+      onCancel={closeLogin}
+      {...motionNames}
+    >
+      <header className="login-page__header">
         <h1 id="login-page-title" className="login-page__title">
           Вход
         </h1>
+        <button type="button" className="login-page__close" onClick={closeLogin}>
+          Закрыть
+          <CloseOutlined className="login-page__close-icon" aria-hidden />
+        </button>
+      </header>
 
-        <Form
-          form={form}
-          name="login"
-          layout="vertical"
-          requiredMark={false}
-          colon={false}
-          className="login-page__form"
-          onFinish={handleFinish}
-          onValuesChange={handleValuesChange}
+      <Form
+        form={form}
+        name="login"
+        layout="vertical"
+        requiredMark={false}
+        colon={false}
+        className="login-page__form"
+        onFinish={handleFinish}
+        onValuesChange={handleValuesChange}
+      >
+        <Form.Item
+          name="email"
+          label="Email"
+          htmlFor="login-page-email"
+          rules={[
+            { required: true, message: 'Введите Email' },
+            { type: 'email', message: 'Введите Email в формате name@example.com' },
+          ]}
         >
-          <Form.Item
+          <Input
+            ref={emailInputRef}
+            id="login-page-email"
+            type="email"
             name="email"
-            label="Email"
-            htmlFor="login-page-email"
-            rules={[
-              { required: true, message: 'Введите Email' },
-              { type: 'email', message: 'Введите Email в формате name@example.com' },
-            ]}
-          >
-            <Input
-              ref={emailInputRef}
-              id="login-page-email"
-              type="email"
-              name="email"
-              size="large"
-              autoComplete="username"
-              placeholder="name@example.com"
-              spellCheck={false}
-              inputMode="email"
-              autoCapitalize="none"
-              autoCorrect="off"
-              aria-invalid={authError || undefined}
-              aria-describedby={describedBy}
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="password"
-            label="Пароль"
-            htmlFor="login-page-password"
-            rules={[{ required: true, message: 'Введите пароль' }]}
-          >
-            <Input.Password
-              id="login-page-password"
-              name="password"
-              size="large"
-              autoComplete="current-password"
-              placeholder="Введите пароль"
-              aria-invalid={authError || undefined}
-              aria-describedby={describedBy}
-              iconRender={(visible) =>
-                visible ? (
-                  <EyeOutlined aria-label="Скрыть пароль" />
-                ) : (
-                  <EyeInvisibleOutlined aria-label="Показать пароль" />
-                )
-              }
-            />
-          </Form.Item>
-
-          <p id={ERROR_ID} className="login-page__error" role="status">
-            {authError ? ERROR_MESSAGE : ''}
-          </p>
-
-          <Button
-            className="login-page__submit"
-            type="primary"
-            htmlType="submit"
             size="large"
-            block
-          >
-            Войти
-          </Button>
-        </Form>
-      </div>
-    </section>
+            autoComplete="username"
+            placeholder="name@example.com"
+            spellCheck={false}
+            inputMode="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            aria-invalid={authError || undefined}
+            aria-describedby={describedBy}
+          />
+        </Form.Item>
+
+        <Form.Item
+          name="password"
+          label="Пароль"
+          htmlFor="login-page-password"
+          rules={[{ required: true, message: 'Введите пароль' }]}
+        >
+          <Input.Password
+            id="login-page-password"
+            name="password"
+            size="large"
+            autoComplete="current-password"
+            placeholder="Введите пароль"
+            aria-invalid={authError || undefined}
+            aria-describedby={describedBy}
+            iconRender={(visible) =>
+              visible ? (
+                <EyeOutlined aria-label="Скрыть пароль" />
+              ) : (
+                <EyeInvisibleOutlined aria-label="Показать пароль" />
+              )
+            }
+          />
+        </Form.Item>
+
+        <p id={ERROR_ID} className="login-page__error" role="status">
+          {authError ? ERROR_MESSAGE : ''}
+        </p>
+
+        <Button
+          className="login-page__submit"
+          type="primary"
+          htmlType="submit"
+          size="large"
+          block
+        >
+          Войти
+        </Button>
+      </Form>
+    </Modal>
   );
 }
 

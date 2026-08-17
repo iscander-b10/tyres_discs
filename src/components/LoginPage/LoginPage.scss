@@ -1,28 +1,83 @@
 @use '../../styles/tokens' as *;
 
 .login-page {
-  display: flex;
-  justify-content: center;
-  padding-block: $space-6 $space-4;
+  .ant-modal-wrap {
+    padding: max(#{$space-4}, env(safe-area-inset-top, 0px))
+      max(#{$space-4}, env(safe-area-inset-right, 0px))
+      max(#{$space-4}, env(safe-area-inset-bottom, 0px))
+      max(#{$space-4}, env(safe-area-inset-left, 0px));
+  }
+
+  .ant-modal {
+    max-width: calc(100vw - 32px);
+    padding-bottom: 0;
+  }
 }
 
-.login-page__card {
-  width: min(420px, 100%);
+.login-page .login-page__dialog {
   padding: $space-5;
   background: $color-surface;
   border: 1px solid $color-border;
   border-radius: $radius-lg;
   box-shadow: $shadow-elevated;
+  overscroll-behavior: contain;
+}
+
+.login-page .login-page__body {
+  padding: 0;
+}
+
+.login-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-3;
+  margin-block-end: $space-5;
 }
 
 .login-page__title {
-  margin: 0 0 $space-5;
+  margin: 0;
   font-family: $font-sans;
   font-size: 20px;
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: -0.02em;
   color: $color-text;
+}
+
+.login-page__close {
+  display: inline-flex;
+  align-items: center;
+  gap: $space-1;
+  min-height: 40px;
+  padding: $space-1 $space-2;
+  margin-inline-end: -$space-2;
+  border: 0;
+  border-radius: $radius-sm;
+  background: transparent;
+  color: $color-accent;
+  font-family: $font-sans;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.2;
+  cursor: pointer;
+
+  &:hover {
+    color: $color-accent-hover;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-accent;
+    outline-offset: 2px;
+  }
+
+  &:not(:disabled):active {
+    transform: scale(0.96);
+  }
+}
+
+.login-page__close-icon {
+  font-size: 12px;
 }
 
 .login-page__form {
@@ -72,11 +127,18 @@
 
   .ant-input-affix-wrapper {
     padding-inline: 12px;
+    background: $color-surface;
+
+    .ant-input-suffix,
+    .ant-input-prefix {
+      background: transparent;
+    }
 
     input.ant-input {
       min-height: 46px;
       font-size: 16px;
       border: 0;
+      background: transparent !important;
       box-shadow: none;
       outline: none;
 
@@ -122,6 +184,20 @@
   .ant-input::placeholder,
   .ant-input-affix-wrapper input::placeholder {
     color: $color-text-subtle;
+  }
+
+  .ant-input:-webkit-autofill,
+  .ant-input:-webkit-autofill:hover,
+  .ant-input:-webkit-autofill:focus,
+  .ant-input:-webkit-autofill:active,
+  .ant-input-affix-wrapper input.ant-input:-webkit-autofill,
+  .ant-input-affix-wrapper input.ant-input:-webkit-autofill:hover,
+  .ant-input-affix-wrapper input.ant-input:-webkit-autofill:focus,
+  .ant-input-affix-wrapper input.ant-input:-webkit-autofill:active {
+    -webkit-text-fill-color: $color-text;
+    caret-color: $color-text;
+    box-shadow: 0 0 0 1000px $color-surface inset;
+    transition: background-color 99999s ease-out 0s;
   }
 
   .ant-form-item-has-error .ant-input,
@@ -233,14 +309,23 @@
   }
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  .login-page__close {
+    transition-property: color, transform;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .login-page__submit:not(:disabled):active {
+  .login-page__submit:not(:disabled):active,
+  .login-page__close:not(:disabled):active {
     transform: none;
   }
 }
 
 @media (max-width: 480px) {
-  .login-page__card {
+  .login-page .login-page__dialog {
     padding: $space-4;
   }
 

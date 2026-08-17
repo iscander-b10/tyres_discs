@@ -14,10 +14,49 @@ export function pageFromPathname(pathname) {
   return 'tyres';
 }
 
-export function loginRedirectFrom(location) {
+function isSitePath(pathname) {
+  return (
+    pathname === PATHS.tyres ||
+    pathname === PATHS.wheels ||
+    pathname === PATHS.basket
+  );
+}
+
+function pathnameFromHref(href) {
+  if (typeof href !== 'string') return '';
+  return href.split('?')[0];
+}
+
+export function loginReturnPath(location, fallbackPath = PATHS.tyres) {
   const from = location.state?.from;
   if (typeof from === 'string' && from.startsWith('/') && !from.startsWith(PATHS.login)) {
     return from;
   }
-  return PATHS.tyres;
+  return isSitePath(fallbackPath) ? fallbackPath : PATHS.tyres;
+}
+
+export function loginRedirectFrom(location) {
+  return loginReturnPath(location);
+}
+
+export function canCloseLoginWithHistoryBack(location) {
+  const from = location.state?.from;
+  return typeof from === 'string' && from.startsWith('/') && !from.startsWith(PATHS.login);
+}
+
+export function overlayBackgroundPage(location, lastBackgroundPath = PATHS.tyres) {
+  if (location.pathname !== PATHS.login) {
+    return pageFromPathname(location.pathname);
+  }
+
+  const fromPath = pathnameFromHref(location.state?.from);
+  if (isSitePath(fromPath)) {
+    return pageFromPathname(fromPath);
+  }
+
+  if (isSitePath(lastBackgroundPath)) {
+    return pageFromPathname(lastBackgroundPath);
+  }
+
+  return 'tyres';
 }

@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { ArrowUpOutlined } from '@ant-design/icons';
+import { PATHS } from '../../app/paths';
 import './ScrollToTop.scss';
 
 const SHOW_AFTER_PX = 320;
@@ -11,9 +12,15 @@ function prefersReducedMotion() {
 
 function ScrollToTop() {
   const { pathname } = useLocation();
+  const previousPathRef = useRef(pathname);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
+    const previousPath = previousPathRef.current;
+    previousPathRef.current = pathname;
+    if (pathname === PATHS.login || previousPath === PATHS.login) {
+      return;
+    }
     window.scrollTo(0, 0);
   }, [pathname]);
 

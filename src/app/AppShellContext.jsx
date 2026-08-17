@@ -34,10 +34,16 @@ export function AppShellProvider({ children }) {
   const [catalogDataVersion, setCatalogDataVersion] = useState(0);
   const [sessionResetKey, setSessionResetKey] = useState(0);
   const [lastCatalogPath, setLastCatalogPath] = useState(PATHS.tyres);
+  const [lastBackgroundPath, setLastBackgroundPath] = useState(PATHS.tyres);
 
   useEffect(() => {
     if (pathname === PATHS.tyres || pathname === PATHS.wheels) {
       setLastCatalogPath(pathname);
+      setLastBackgroundPath(pathname);
+      return;
+    }
+    if (pathname === PATHS.basket) {
+      setLastBackgroundPath(pathname);
     }
   }, [pathname]);
 
@@ -74,6 +80,7 @@ export function AppShellProvider({ children }) {
   const handleBrandClick = useCallback(() => {
     setSessionResetKey((key) => key + 1);
     setLastCatalogPath(PATHS.tyres);
+    setLastBackgroundPath(PATHS.tyres);
     navigate(PATHS.tyres);
   }, [navigate]);
 
@@ -92,6 +99,7 @@ export function AppShellProvider({ children }) {
       catalogDataVersion,
       bumpCatalogDataVersion,
       sessionResetKey,
+      lastBackgroundPath,
     }),
     [
       effectiveClientMode,
@@ -101,6 +109,7 @@ export function AppShellProvider({ children }) {
       catalogDataVersion,
       bumpCatalogDataVersion,
       sessionResetKey,
+      lastBackgroundPath,
     ]
   );
 

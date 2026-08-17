@@ -2,7 +2,7 @@ import React from 'react';
 import { Flex, Layout } from 'antd';
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { AppShellProvider, useAppShell } from './app/AppShellContext';
-import { PATHS, ROUTER_BASENAME, pageFromPathname } from './app/paths';
+import { PATHS, ROUTER_BASENAME, overlayBackgroundPage } from './app/paths';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import { CartProvider } from './cart/CartContext';
 import SiteHeader from './components/SiteHeader/SiteHeader';
@@ -16,53 +16,55 @@ import ScrollToTop from './components/ScrollToTop/ScrollToTop';
 import './App.scss';
 
 function AppFrame({ appearance = 'light', onAppearanceChange }) {
-  const { sessionResetKey } = useAppShell();
+  const { lastBackgroundPath, sessionResetKey } = useAppShell();
   const { isAuthenticated } = useAuth();
-  const { pathname } = useLocation();
-  const page = pageFromPathname(pathname);
-  const showCatalog = page !== 'login';
+  const location = useLocation();
+  const isLogin = location.pathname === PATHS.login;
+  const backgroundPage = overlayBackgroundPage(location, lastBackgroundPath);
 
   return (
-    <Layout className="app-layout">
-      <SiteHeader
-        appearance={appearance}
-        onAppearanceChange={onAppearanceChange}
-      />
+    <>
+      <Layout className="app-layout" inert={isLogin ? true : undefined}>
+        <SiteHeader
+          appearance={appearance}
+          onAppearanceChange={onAppearanceChange}
+        />
 
-      <Layout className="app-content-layout">
-        <Layout.Content className="app-content">
-          <Flex className="app-content-wrapper" vertical>
-            {page === 'login' ? <LoginPage /> : null}
-            <div
-              className="catalog-panel"
-              hidden={page !== 'tyres'}
-              inert={page !== 'tyres' ? true : undefined}
-            >
-              <TiresSearchParameters key={`tires-${sessionResetKey}`} />
-            </div>
-            <div
-              className="catalog-panel"
-              hidden={page !== 'wheels'}
-              inert={page !== 'wheels' ? true : undefined}
-            >
-              <DiscsSearchParameters key={`discs-${sessionResetKey}`} />
-            </div>
-            <div
-              className="catalog-panel"
-              hidden={page !== 'basket'}
-              inert={page !== 'basket' ? true : undefined}
-            >
-              <BasketPage />
-            </div>
-          </Flex>
-        </Layout.Content>
+        <Layout className="app-content-layout">
+          <Layout.Content className="app-content">
+            <Flex className="app-content-wrapper" vertical>
+              <div
+                className="catalog-panel"
+                hidden={backgroundPage !== 'tyres'}
+                inert={isLogin || backgroundPage !== 'tyres' ? true : undefined}
+              >
+                <TiresSearchParameters key={`tires-${sessionResetKey}`} />
+              </div>
+              <div
+                className="catalog-panel"
+                hidden={backgroundPage !== 'wheels'}
+                inert={isLogin || backgroundPage !== 'wheels' ? true : undefined}
+              >
+                <DiscsSearchParameters key={`discs-${sessionResetKey}`} />
+              </div>
+              <div
+                className="catalog-panel"
+                hidden={backgroundPage !== 'basket'}
+                inert={isLogin || backgroundPage !== 'basket' ? true : undefined}
+              >
+                <BasketPage />
+              </div>
+            </Flex>
+          </Layout.Content>
+        </Layout>
+
+        <SiteFooter />
+        {isAuthenticated ? <SideBar /> : null}
+        <ScrollToTop />
+        <Outlet />
       </Layout>
-
-      <SiteFooter />
-      {isAuthenticated && showCatalog ? <SideBar /> : null}
-      <ScrollToTop />
-      <Outlet />
-    </Layout>
+      {isLogin ? <LoginPage /> : null}
+    </>
   );
 }
 
