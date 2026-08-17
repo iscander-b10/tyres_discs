@@ -1,8 +1,13 @@
 /**
  * В dev относительные /api/... идут в setupProxy.js.
  * На GitHub Pages — через REACT_APP_CORS_PROXY (Yandex API Gateway), если задан.
+ *
+ * Старые пути шлюза (`/`, `/b2b`, `/z34`, `/vershina`) закрыты:
+ * открытая вкладка со старым JS больше не может грузить прайсы.
  */
 const CORS_PROXY = process.env.REACT_APP_CORS_PROXY?.trim() || '';
+/** Актуальный префикс API Gateway. Старые клиенты ходят без него и получают 403. */
+const CORS_PROXY_API_PREFIX = '/v2';
 /** Включить ?debug=1 в запросах к облачной функции (только для маршрутов с ?url=) */
 const CORS_PROXY_DEBUG = process.env.REACT_APP_CORS_PROXY_DEBUG === '1';
 
@@ -28,6 +33,10 @@ const SUPPLIER_ORIGINS = {
 
 export function usesCorsProxy() {
   return Boolean(CORS_PROXY);
+}
+
+function corsProxyBase() {
+  return `${CORS_PROXY.replace(/\/$/, '')}${CORS_PROXY_API_PREFIX}`;
 }
 
 /**
@@ -58,14 +67,12 @@ export function resolveSupplierFetchUrl(targetUrl) {
     const proxyPath = DIRECT_PROXY_MAP[hostname];
     // Убираем origin (протокол + хост), оставляем путь и query
     const remaining = targetUrl.replace(/^https?:\/\/[^/]+/, '');
-    const base = CORS_PROXY.replace(/\/$/, ''); // без конечного слеша
-    return `${base}${proxyPath}${remaining}`;
+    return `${corsProxyBase()}${proxyPath}${remaining}`;
   }
 
-  // Для всех остальных – старый способ через облачную функцию с ?url=
-  const proxyBase = CORS_PROXY.endsWith('/') ? CORS_PROXY : `${CORS_PROXY}/`;
+  // Для всех остальных – облачная функция с ?url=
   const debugSuffix = CORS_PROXY_DEBUG ? '&debug=1' : '';
-  return `${proxyBase}?url=${encodeURIComponent(targetUrl)}${debugSuffix}`;
+  return `${corsProxyBase()}?url=${encodeURIComponent(targetUrl)}${debugSuffix}`;
 }
 
 /**

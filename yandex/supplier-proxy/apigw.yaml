@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: tyres-discs supplier proxy
-  version: 1.0.0
+  version: 2.0.0
 
 # Глобальный CORS (заменяет CORS-заголовки из облачной функции для всех маршрутов)
 x-yc-apigateway-cors:
@@ -22,10 +22,85 @@ x-yc-apigateway:
       description: "Yandex Cloud Function ID for supplier-proxy"
 
 paths:
-  # =========================================================================
-  #  1. Основной маршрут – вызов облачной функции (для shina.su, shinservice и др.)
-  # =========================================================================
+  # Старые публичные пути закрыты: вкладки со старым JS больше не грузят прайсы.
   /:
+    get:
+      summary: Отключённый публичный маршрут
+      responses:
+        "403":
+          description: Forbidden
+      x-yc-apigateway-integration:
+        type: dummy
+        http_code: 403
+        http_headers:
+          Content-Type: application/json
+        content:
+          application/json: '{"error":"Gone"}'
+
+  /b2b/{path+}:
+    get:
+      summary: Отключённый публичный маршрут
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "403":
+          description: Forbidden
+      x-yc-apigateway-integration:
+        type: dummy
+        http_code: 403
+        http_headers:
+          Content-Type: application/json
+        content:
+          application/json: '{"error":"Gone"}'
+
+  /z34/{path+}:
+    get:
+      summary: Отключённый публичный маршрут
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "403":
+          description: Forbidden
+      x-yc-apigateway-integration:
+        type: dummy
+        http_code: 403
+        http_headers:
+          Content-Type: application/json
+        content:
+          application/json: '{"error":"Gone"}'
+
+  /vershina/{path+}:
+    get:
+      summary: Отключённый публичный маршрут
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "403":
+          description: Forbidden
+      x-yc-apigateway-integration:
+        type: dummy
+        http_code: 403
+        http_headers:
+          Content-Type: application/json
+        content:
+          application/json: '{"error":"Gone"}'
+
+  # =========================================================================
+  #  Актуальные маршруты (/v2) — только новая сборка фронта
+  # =========================================================================
+  /v2:
     options:
       summary: CORS preflight (облачная функция)
       responses:
@@ -54,10 +129,7 @@ paths:
         type: cloud_functions
         function_id: ${var.SUPPLIER_PROXY_FUNCTION_ID}
 
-  # =========================================================================
-  #  2. Прямой прокси до b2b.4tochki.ru
-  # =========================================================================
-  /b2b/{path+}:
+  /v2/b2b/{path+}:
     get:
       summary: Прямой прокси → b2b.4tochki.ru
       parameters:
@@ -66,7 +138,7 @@ paths:
           required: true
           schema:
             type: string
-          description: Остаток пути после /b2b/
+          description: Остаток пути после /v2/b2b/
       responses:
         "200":
           description: Ответ от b2b.4tochki.ru
@@ -75,10 +147,7 @@ paths:
         url: https://b2b.4tochki.ru/{path}
         method: GET
 
-  # =========================================================================
-  #  3. Прямой прокси до z34.ru
-  # =========================================================================
-  /z34/{path+}:
+  /v2/z34/{path+}:
     get:
       summary: Прямой прокси → z34.ru
       parameters:
@@ -102,10 +171,7 @@ paths:
           '*': '*'
         omitEmptyHeaders: true
 
-  # =========================================================================
-  #  4. Прямой прокси до vershinatyres.ru
-  # =========================================================================
-  /vershina/{path+}:
+  /v2/vershina/{path+}:
     get:
       summary: Прямой прокси → vershinatyres.ru
       parameters:

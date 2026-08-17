@@ -34,6 +34,8 @@ npm start
 REACT_APP_CORS_PROXY=https://<ваш-api-gateway>.apigw.yandexcloud.net
 ```
 
+Фронт сам добавляет префикс `/v2`. Старые пути шлюза закрыты (403), поэтому кнопка «Загрузить данные» на незакрытых вкладках со старым сайтом перестаёт работать сразу после деплоя `apigw.yaml`.
+
 Деплой и проверка прокси — см. [`yandex/supplier-proxy/README.md`](yandex/supplier-proxy/README.md).
 
 ## Структура
