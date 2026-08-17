@@ -1,14 +1,15 @@
 import React from 'react';
 import { Button } from 'antd';
 import { ShoppingCartOutlined } from '@ant-design/icons';
-import { useAppShell } from '../../../app/AppShellContext';
+import { useNavigate } from 'react-router-dom';
+import { PATHS } from '../../../app/paths';
 import { useCart } from '../../../cart/CartContext';
 import { getCartItemKey, getDefaultCartQty, parseStock } from '../../../cart/cartUtils';
 import CartQtyControls from '../CartQtyControls/CartQtyControls';
 import './AddToCartControl.scss';
 
 function AddToCartControl({ item, onGoToCart, className = '', block = true }) {
-  const { goToBasket } = useAppShell();
+  const navigate = useNavigate();
   const { addItem, getItem, increment, decrement, removeItem } = useCart();
   const key = getCartItemKey(item);
   const cartLine = getItem(key);
@@ -18,7 +19,7 @@ function AddToCartControl({ item, onGoToCart, className = '', block = true }) {
   const handleGoToCart = (e) => {
     e.stopPropagation();
     onGoToCart?.();
-    goToBasket();
+    navigate(PATHS.basket);
   };
 
   const rootClassName = [

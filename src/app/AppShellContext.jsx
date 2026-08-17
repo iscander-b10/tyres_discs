@@ -6,6 +6,9 @@ import React, {
   useMemo,
   useState,
 } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
+import { PATHS } from './paths';
 
 const CLIENT_MODE_STORAGE_KEY = 'ivanor-client-mode';
 
@@ -24,52 +27,66 @@ function getInitialClientMode() {
 const AppShellContext = createContext(null);
 
 export function AppShellProvider({ children }) {
-  const [clientMode, setClientMode] = useState(getInitialClientMode);
-  const [activeKey, setActiveKeyState] = useState('tires');
+  const { isAuthenticated, isReady } = useAuth();
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const [clientMode, setClientModeState] = useState(getInitialClientMode);
   const [catalogDataVersion, setCatalogDataVersion] = useState(0);
   const [sessionResetKey, setSessionResetKey] = useState(0);
-  const [lastCatalogKey, setLastCatalogKey] = useState('tires');
+  const [lastCatalogPath, setLastCatalogPath] = useState(PATHS.tyres);
 
   useEffect(() => {
+    if (pathname === PATHS.tyres || pathname === PATHS.wheels) {
+      setLastCatalogPath(pathname);
+    }
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!isReady || isAuthenticated) return;
+    setClientModeState(true);
+  }, [isAuthenticated, isReady]);
+
+  useEffect(() => {
+    if (!isReady) return;
+    const stored = isAuthenticated ? clientMode : true;
     try {
-      window.localStorage.setItem(CLIENT_MODE_STORAGE_KEY, String(clientMode));
+      window.localStorage.setItem(CLIENT_MODE_STORAGE_KEY, String(stored));
     } catch {
       /* ignore */
     }
-  }, [clientMode]);
+  }, [clientMode, isAuthenticated, isReady]);
 
-  const setActiveKey = useCallback((key) => {
-    if (key === 'tires' || key === 'disks') {
-      setLastCatalogKey(key);
-    }
-    setActiveKeyState(key);
-  }, []);
-
-  const goToBasket = useCallback(() => {
-    setActiveKeyState('basket');
-  }, []);
+  const setClientMode = useCallback(
+    (value) => {
+      if (!isAuthenticated) {
+        setClientModeState(true);
+        return;
+      }
+      setClientModeState(value);
+    },
+    [isAuthenticated]
+  );
 
   const continueSelection = useCallback(() => {
-    setActiveKeyState(lastCatalogKey === 'disks' ? 'disks' : 'tires');
-  }, [lastCatalogKey]);
+    navigate(lastCatalogPath === PATHS.wheels ? PATHS.wheels : PATHS.tyres);
+  }, [lastCatalogPath, navigate]);
 
   const handleBrandClick = useCallback(() => {
     setSessionResetKey((key) => key + 1);
-    setActiveKeyState('tires');
-    setLastCatalogKey('tires');
-  }, []);
+    setLastCatalogPath(PATHS.tyres);
+    navigate(PATHS.tyres);
+  }, [navigate]);
 
   const bumpCatalogDataVersion = useCallback(() => {
     setCatalogDataVersion((version) => version + 1);
   }, []);
 
+  const effectiveClientMode = isAuthenticated ? clientMode : true;
+
   const value = useMemo(
     () => ({
-      clientMode,
+      clientMode: effectiveClientMode,
       setClientMode,
-      activeKey,
-      setActiveKey,
-      goToBasket,
       continueSelection,
       handleBrandClick,
       catalogDataVersion,
@@ -77,10 +94,8 @@ export function AppShellProvider({ children }) {
       sessionResetKey,
     }),
     [
-      clientMode,
-      activeKey,
-      setActiveKey,
-      goToBasket,
+      effectiveClientMode,
+      setClientMode,
       continueSelection,
       handleBrandClick,
       catalogDataVersion,

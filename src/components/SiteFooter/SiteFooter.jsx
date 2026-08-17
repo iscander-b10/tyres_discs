@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { ReactComponent as PhoneIcon } from '../../icons/Phone.svg';
 import { ReactComponent as TelegramIcon } from '../../icons/Telegram.svg';
 import {
@@ -7,32 +8,35 @@ import {
   SITE_PRODUCT_NAV,
   SITE_SERVICE_NAV,
 } from '../../config/site';
+import { PATHS } from '../../app/paths';
 import { useAppShell } from '../../app/AppShellContext';
 import HoverTooltip from '../shared/HoverTooltip';
 import './SiteFooter.scss';
 
-function NavColumn({ label, items, onNavigate }) {
+function NavColumn({ label, items }) {
   return (
     <nav className="site-footer__col" aria-label={label}>
       <h2 className="site-footer__heading">{label}</h2>
       <ul className="site-footer__list">
         {items.map((item) => (
           <li key={item.key} className="site-footer__list-item">
-            <button
-              type="button"
-              className={[
-                'site-footer__link',
-                item.disabled ? 'is-disabled' : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-              disabled={item.disabled}
-              onClick={() => {
-                if (!item.disabled) onNavigate?.(item.key);
-              }}
-            >
-              {item.label}
-            </button>
+            {item.disabled || !item.path ? (
+              <HoverTooltip title="Скоро">
+                <span className="site-footer__link-wrap">
+                  <button
+                    type="button"
+                    className="site-footer__link is-disabled"
+                    disabled
+                  >
+                    {item.label}
+                  </button>
+                </span>
+              </HoverTooltip>
+            ) : (
+              <Link className="site-footer__link" to={item.path}>
+                {item.label}
+              </Link>
+            )}
           </li>
         ))}
       </ul>
@@ -41,35 +45,24 @@ function NavColumn({ label, items, onNavigate }) {
 }
 
 function SiteFooter() {
-  const { setActiveKey, handleBrandClick } = useAppShell();
+  const { handleBrandClick } = useAppShell();
 
   return (
     <footer className="site-footer">
       <div className="site-footer__inner">
         <div className="site-footer__grid">
           <div className="site-footer__col site-footer__col--brand">
-            <a
+            <Link
               className="site-footer__brand"
-              href="/"
-              onClick={(e) => {
-                e.preventDefault();
-                handleBrandClick();
-              }}
+              to={PATHS.tyres}
+              onClick={handleBrandClick}
             >
               <span className="site-footer__brand-mark">IVANOR</span>
-            </a>
+            </Link>
           </div>
 
-          <NavColumn
-            label="Каталог"
-            items={SITE_PRODUCT_NAV}
-            onNavigate={setActiveKey}
-          />
-          <NavColumn
-            label="Услуги"
-            items={SITE_SERVICE_NAV}
-            onNavigate={setActiveKey}
-          />
+          <NavColumn label="Каталог" items={SITE_PRODUCT_NAV} />
+          <NavColumn label="Услуги" items={SITE_SERVICE_NAV} />
 
           <div className="site-footer__col site-footer__col--contacts">
             <h2 className="site-footer__heading">Контакты</h2>

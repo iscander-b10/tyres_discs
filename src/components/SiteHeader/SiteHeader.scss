@@ -27,6 +27,8 @@
   display: inline-flex;
   line-height: 1.1;
   min-width: 0;
+  text-decoration: none;
+  color: inherit;
 }
 
 .site-brand__mark {
@@ -106,6 +108,7 @@
   background: transparent;
   color: $color-text;
   cursor: pointer;
+  text-decoration: none;
   transition: background-color 0.2s, color 0.2s, opacity 0.2s;
 
   .anticon {
@@ -121,6 +124,10 @@
   }
 
   &:hover:not(:disabled) {
+    background: $color-border-soft;
+  }
+
+  &.is-active {
     background: $color-border-soft;
   }
 
@@ -207,6 +214,7 @@
   padding: 12px 14px;
   white-space: nowrap;
   cursor: pointer;
+  text-decoration: none;
   position: relative;
   transition: color 0.2s;
 

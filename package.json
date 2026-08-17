@@ -9,16 +9,19 @@
     "http-proxy-middleware": "^3.0.5",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-router-dom": "^6.30.4",
     "react-scripts": "5.0.1",
     "sass": "1.78.0",
     "xlsx": "^0.18.5"
   },
   "scripts": {
+    "prestart": "node scripts/generate-auth-verifier.js development",
     "start": "react-scripts start",
+    "prebuild": "node scripts/generate-auth-verifier.js production",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "predeploy": "npm run build",
+    "predeploy": "npm run build && node -e \"require('fs').copyFileSync('build/index.html', 'build/404.html')\"",
     "deploy": "gh-pages -d build"
   },
   "eslintConfig": {

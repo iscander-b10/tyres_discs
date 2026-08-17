@@ -13,8 +13,8 @@ export const SITE_DEVELOPER_TELEGRAM = {
 };
 
 export const SITE_PRODUCT_NAV = [
-  { key: 'tires', label: 'Шины' },
-  { key: 'disks', label: 'Диски' },
+  { key: 'tires', path: '/tyres', label: 'Шины' },
+  { key: 'disks', path: '/wheels', label: 'Диски' },
   { key: 'sensors', label: 'Датчики давления', disabled: true },
 ];
 

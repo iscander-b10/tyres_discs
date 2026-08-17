@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Checkbox, Typography } from 'antd';
 import { CloseOutlined } from '@ant-design/icons';
+import { useLocation } from 'react-router-dom';
 import { useAppShell } from '../../app/AppShellContext';
+import { PATHS } from '../../app/paths';
 import { useCart } from '../../cart/CartContext';
 import {
   getUnitSellingPrice,
@@ -28,8 +30,9 @@ const formatMoney = (value) => {
 };
 
 function BasketPage() {
-  const { clientMode: isClientMode, continueSelection, activeKey } = useAppShell();
-  const isActive = activeKey === 'basket';
+  const { clientMode: isClientMode, continueSelection } = useAppShell();
+  const { pathname } = useLocation();
+  const isActive = pathname === PATHS.basket;
   const { items, totals, increment, decrement, removeItem, clear } = useCart();
   const [modalItem, setModalItem] = useState(null);
 

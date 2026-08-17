@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { ArrowUpOutlined } from '@ant-design/icons';
 import './ScrollToTop.scss';
 
@@ -9,7 +10,12 @@ function prefersReducedMotion() {
 }
 
 function ScrollToTop() {
+  const { pathname } = useLocation();
   const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
 
   useEffect(() => {
     const onScroll = () => {
