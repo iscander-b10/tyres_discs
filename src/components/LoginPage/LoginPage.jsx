@@ -1,12 +1,8 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button, Form, Input, Modal } from 'antd';
-import { CloseOutlined, EyeInvisibleOutlined, EyeOutlined } from '@ant-design/icons';
+import { EyeInvisibleOutlined, EyeOutlined } from '@ant-design/icons';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { useAppShell } from '../../app/AppShellContext';
-import {
-  canCloseLoginWithHistoryBack,
-  loginReturnPath,
-} from '../../app/paths';
+import { loginReturnPath } from '../../app/paths';
 import { useAuth } from '../../auth/AuthContext';
 import './LoginPage.scss';
 
@@ -24,22 +20,13 @@ function prefersReducedMotion() {
 
 function LoginPage() {
   const { isAuthenticated, signIn } = useAuth();
-  const { lastBackgroundPath } = useAppShell();
   const location = useLocation();
   const navigate = useNavigate();
-  const redirectTo = loginReturnPath(location, lastBackgroundPath);
+  const redirectTo = loginReturnPath(location);
   const [form] = Form.useForm();
   const [authError, setAuthError] = useState(false);
   const [reducedMotion] = useState(prefersReducedMotion);
   const emailInputRef = useRef(null);
-
-  const closeLogin = useCallback(() => {
-    if (canCloseLoginWithHistoryBack(location)) {
-      navigate(-1);
-      return;
-    }
-    navigate(redirectTo, { replace: true });
-  }, [location, navigate, redirectTo]);
 
   useEffect(() => {
     if (isAuthenticated) return undefined;
@@ -88,8 +75,8 @@ function LoginPage() {
       centered
       footer={null}
       closable={false}
-      maskClosable
-      keyboard
+      maskClosable={false}
+      keyboard={false}
       width={420}
       zIndex={1300}
       rootClassName="login-page"
@@ -102,17 +89,12 @@ function LoginPage() {
         mask: { background: 'var(--color-overlay)' },
       }}
       aria-labelledby="login-page-title"
-      onCancel={closeLogin}
       {...motionNames}
     >
       <header className="login-page__header">
         <h1 id="login-page-title" className="login-page__title">
           Вход
         </h1>
-        <button type="button" className="login-page__close" onClick={closeLogin}>
-          Закрыть
-          <CloseOutlined className="login-page__close-icon" aria-hidden />
-        </button>
       </header>
 
       <Form

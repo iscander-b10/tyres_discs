@@ -15,12 +15,31 @@ import SideBar from './components/SideBar/SideBar';
 import ScrollToTop from './components/ScrollToTop/ScrollToTop';
 import './App.scss';
 
+function loginRedirectState(location) {
+  return { from: `${location.pathname}${location.search}` };
+}
+
+function LoginRedirect() {
+  const location = useLocation();
+  return <Navigate to={PATHS.login} replace state={loginRedirectState(location)} />;
+}
+
+function UnmatchedRoute() {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) return <LoginRedirect />;
+  return <Navigate to={PATHS.tyres} replace />;
+}
+
 function AppFrame({ appearance = 'light', onAppearanceChange }) {
   const { lastBackgroundPath, sessionResetKey } = useAppShell();
   const { isAuthenticated } = useAuth();
   const location = useLocation();
   const isLogin = location.pathname === PATHS.login;
   const backgroundPage = overlayBackgroundPage(location, lastBackgroundPath);
+
+  if (!isAuthenticated && !isLogin) {
+    return <LoginRedirect />;
+  }
 
   return (
     <>
@@ -33,27 +52,31 @@ function AppFrame({ appearance = 'light', onAppearanceChange }) {
         <Layout className="app-content-layout">
           <Layout.Content className="app-content">
             <Flex className="app-content-wrapper" vertical>
-              <div
-                className="catalog-panel"
-                hidden={backgroundPage !== 'tyres'}
-                inert={isLogin || backgroundPage !== 'tyres' ? true : undefined}
-              >
-                <TiresSearchParameters key={`tires-${sessionResetKey}`} />
-              </div>
-              <div
-                className="catalog-panel"
-                hidden={backgroundPage !== 'wheels'}
-                inert={isLogin || backgroundPage !== 'wheels' ? true : undefined}
-              >
-                <DiscsSearchParameters key={`discs-${sessionResetKey}`} />
-              </div>
-              <div
-                className="catalog-panel"
-                hidden={backgroundPage !== 'basket'}
-                inert={isLogin || backgroundPage !== 'basket' ? true : undefined}
-              >
-                <BasketPage />
-              </div>
+              {isAuthenticated ? (
+                <>
+                  <div
+                    className="catalog-panel"
+                    hidden={backgroundPage !== 'tyres'}
+                    inert={isLogin || backgroundPage !== 'tyres' ? true : undefined}
+                  >
+                    <TiresSearchParameters key={`tires-${sessionResetKey}`} />
+                  </div>
+                  <div
+                    className="catalog-panel"
+                    hidden={backgroundPage !== 'wheels'}
+                    inert={isLogin || backgroundPage !== 'wheels' ? true : undefined}
+                  >
+                    <DiscsSearchParameters key={`discs-${sessionResetKey}`} />
+                  </div>
+                  <div
+                    className="catalog-panel"
+                    hidden={backgroundPage !== 'basket'}
+                    inert={isLogin || backgroundPage !== 'basket' ? true : undefined}
+                  >
+                    <BasketPage />
+                  </div>
+                </>
+              ) : null}
             </Flex>
           </Layout.Content>
         </Layout>
@@ -96,7 +119,7 @@ function App({ appearance = 'light', onAppearanceChange }) {
                   <Route path="basket" element={<></>} />
                   <Route path="login" element={<></>} />
                 </Route>
-                <Route path="*" element={<Navigate to={PATHS.tyres} replace />} />
+                <Route path="*" element={<UnmatchedRoute />} />
               </Routes>
             </AppReady>
           </CartProvider>
