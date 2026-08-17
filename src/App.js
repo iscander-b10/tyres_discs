@@ -82,7 +82,6 @@ function App({ appearance = 'light', onAppearanceChange }) {
           <CartProvider>
             <AppReady>
               <Routes>
-                <Route path="/" element={<Navigate to={PATHS.tyres} replace />} />
                 <Route
                   element={
                     <AppFrame
@@ -91,7 +90,8 @@ function App({ appearance = 'light', onAppearanceChange }) {
                     />
                   }
                 >
-                  <Route path="tyres" element={<></>} />
+                  <Route index element={<></>} />
+                  <Route path="tyres" element={<Navigate to={PATHS.tyres} replace />} />
                   <Route path="wheels" element={<></>} />
                   <Route path="basket" element={<></>} />
                   <Route path="login" element={<></>} />

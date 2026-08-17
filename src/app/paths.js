@@ -1,5 +1,5 @@
 export const PATHS = {
-  tyres: '/tyres',
+  tyres: '/',
   wheels: '/wheels',
   basket: '/basket',
   login: '/login',

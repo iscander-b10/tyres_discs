@@ -1,3 +1,5 @@
+import { PATHS } from '../app/paths';
+
 /** Shared site contact & nav — used by SiteHeader / SiteFooter. */
 
 /** Store phone — client / shop contact (not the developer). */
@@ -13,8 +15,8 @@ export const SITE_DEVELOPER_TELEGRAM = {
 };
 
 export const SITE_PRODUCT_NAV = [
-  { key: 'tires', path: '/tyres', label: 'Шины' },
-  { key: 'disks', path: '/wheels', label: 'Диски' },
+  { key: 'tires', path: PATHS.tyres, label: 'Шины' },
+  { key: 'disks', path: PATHS.wheels, label: 'Диски' },
   { key: 'sensors', label: 'Датчики давления', disabled: true },
 ];
 
