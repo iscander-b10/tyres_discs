@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ShoppingCartOutlined } from '@ant-design/icons';
 import { ReactComponent as PhoneIcon } from '../../icons/Phone.svg';
 import { ReactComponent as UserIcon } from '../../icons/User.svg';
@@ -7,6 +7,7 @@ import { useAppShell } from '../../app/AppShellContext';
 import { useCart } from '../../cart/CartContext';
 import HoverTooltip from '../shared/HoverTooltip';
 import ThemeSwitch from '../shared/ThemeSwitch/ThemeSwitch';
+import LoginModal from '../LoginModal/LoginModal';
 import './SiteHeader.scss';
 
 function SiteHeader({
@@ -15,6 +16,7 @@ function SiteHeader({
 }) {
   const { activeKey, setActiveKey, goToBasket, handleBrandClick } = useAppShell();
   const { totalQuantity } = useCart();
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
   const cartActive = activeKey === 'basket';
   const badgeLabel =
     totalQuantity > 99 ? '99+' : totalQuantity > 0 ? String(totalQuantity) : null;
@@ -47,19 +49,17 @@ function SiteHeader({
               </a>
             </div>
 
-            <HoverTooltip title="Скоро">
-              <span className="site-header__icon-btn-wrap">
-                <button
-                  type="button"
-                  className="site-header__icon-btn is-disabled"
-                  aria-label="Личный кабинет"
-                  disabled
-                >
-                  <UserIcon className="site-header__icon-btn-icon" aria-hidden />
-                  <span className="site-header__icon-label">Войти</span>
-                </button>
-              </span>
-            </HoverTooltip>
+            <button
+              type="button"
+              className="site-header__icon-btn"
+              aria-label="Войти"
+              aria-haspopup="dialog"
+              aria-expanded={isLoginOpen}
+              onClick={() => setIsLoginOpen(true)}
+            >
+              <UserIcon className="site-header__icon-btn-icon" aria-hidden />
+              <span className="site-header__icon-label">Войти</span>
+            </button>
 
             <button
               type="button"
@@ -122,6 +122,8 @@ function SiteHeader({
           </div>
         </nav>
       </div>
+
+      <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
     </header>
   );
 }
