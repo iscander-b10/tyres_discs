@@ -38,6 +38,10 @@ process.on('uncaughtException', (err) => {
   console.error('uncaughtException', err);
 });
 
+const IMAGE_PATH_RE = /\.(?:jpe?g|png|gif|webp|svg|bmp|avif)(?:$|\?)/i;
+const IMAGE_DIR_RE = /\/(?:pictures|photo|photos|catalog|goods|upload)\//i;
+const ALLOWED_METRIC_EVENTS = new Set(['load-start', 'load-finish']);
+
 function json(statusCode, data, extraHeaders = {}) {
   return {
     statusCode,
@@ -45,6 +49,81 @@ function json(statusCode, data, extraHeaders = {}) {
     body: JSON.stringify(data),
     isBase64Encoded: false,
   };
+}
+
+function empty(statusCode = 204) {
+  return { statusCode, headers: { ...CORS_HEADERS }, body: '', isBase64Encoded: false };
+}
+
+function logJson(payload) {
+  console.error(JSON.stringify(payload));
+}
+
+function queryOf(event) {
+  return event?.queryStringParameters || {};
+}
+
+function headerOf(event, name) {
+  const headers = event?.headers || {};
+  const key = Object.keys(headers).find((k) => k.toLowerCase() === name.toLowerCase());
+  return key ? String(headers[key] || '') : '';
+}
+
+function getClientIp(event) {
+  const forwarded = headerOf(event, 'x-forwarded-for');
+  const first = forwarded.split(',')[0].trim();
+  if (first) return first;
+  return (
+    event?.requestContext?.identity?.sourceIp ||
+    event?.requestContext?.http?.sourceIp ||
+    event?.requestContext?.sourceIp ||
+    ''
+  );
+}
+
+function looksLikeImageUrl(targetUrl) {
+  const path = `${targetUrl.pathname || ''}${targetUrl.search || ''}`;
+  return IMAGE_PATH_RE.test(path) || IMAGE_DIR_RE.test(targetUrl.pathname || '');
+}
+
+function requestPurpose(event, targetUrl) {
+  const raw = String(queryOf(event).purpose || '').toLowerCase();
+  if (raw === 'image' || raw === 'price') return raw;
+  if (targetUrl && looksLikeImageUrl(targetUrl)) return 'image';
+  return 'price';
+}
+
+function safeUpstream(targetUrl) {
+  if (!targetUrl) return {};
+  return { host: targetUrl.hostname, path: targetUrl.pathname };
+}
+
+function parseBool(value) {
+  return String(value || '').toLowerCase() === 'true';
+}
+
+function handleMetricEvent(event) {
+  const q = queryOf(event);
+  const metricEvent = String(q.metricEvent || '').trim();
+  if (!ALLOWED_METRIC_EVENTS.has(metricEvent)) {
+    return json(400, { error: 'Unknown metricEvent' });
+  }
+
+  const payload = {
+    event: metricEvent,
+    loadId: String(q.loadId || '').slice(0, 80),
+    ip: getClientIp(event),
+  };
+
+  if (metricEvent === 'load-finish') {
+    payload.ok = parseBool(q.ok);
+    payload.hadClientErrors = parseBool(q.hadClientErrors);
+    payload.hadSaveErrors = parseBool(q.hadSaveErrors);
+    payload.suppliers = String(q.suppliers || '').slice(0, 500);
+  }
+
+  logJson(payload);
+  return empty(204);
 }
 
 function parseAllowedHostsEnv() {
@@ -190,18 +269,19 @@ async function readBodyForGateway(upstreamResponse, maxBytes) {
 }
 
 module.exports.handler = async function handler(event) {
-  // Заменили log на error
-  console.error('Incoming request:', event?.httpMethod || event?.requestContext?.http?.method, event?.queryStringParameters?.url);
-
   try {
     const method = (event?.httpMethod || event?.requestContext?.http?.method || 'GET').toUpperCase();
 
     if (method === 'OPTIONS') {
-      return { statusCode: 204, headers: { ...CORS_HEADERS }, body: '', isBase64Encoded: false };
+      return empty(204);
     }
 
     if (method !== 'GET') {
       return json(405, { error: 'Method not allowed' });
+    }
+
+    if (queryOf(event).metricEvent) {
+      return handleMetricEvent(event);
     }
 
     const allowedHosts = parseAllowedHostsEnv();
@@ -209,7 +289,7 @@ module.exports.handler = async function handler(event) {
     const maxRedirects = getMaxRedirects();
     const maxBytes = getMaxResponseBytes();
 
-    const rawUrl = event?.queryStringParameters?.url;
+    const rawUrl = queryOf(event).url;
     if (!rawUrl) {
       return json(400, { error: 'Missing url query parameter. Example: /?url=https%3A%2F%2Fexample.com' });
     }
@@ -221,16 +301,18 @@ module.exports.handler = async function handler(event) {
       return json(400, { error: 'Invalid url' });
     }
 
+    const purpose = requestPurpose(event, targetUrl);
+    const ip = getClientIp(event);
+
     if (targetUrl.protocol !== 'https:' && targetUrl.protocol !== 'http:') {
       return json(400, { error: 'Invalid protocol' });
     }
 
     if (!isAllowedHost(targetUrl.hostname, allowedHosts)) {
-      console.error('Blocked host:', targetUrl.hostname);   // warn → error
+      logJson({ event: 'blocked-host', ip, host: targetUrl.hostname, purpose });
       return json(403, { error: `Host not allowed: ${targetUrl.hostname}` });
     }
 
-    console.error('Fetching:', targetUrl.toString());   // log → error
     const startTime = Date.now();
 
     try {
@@ -247,8 +329,6 @@ module.exports.handler = async function handler(event) {
       );
 
       const fetchDuration = Date.now() - startTime;
-      console.error('Upstream responded with', upstream.status, 'in', fetchDuration, 'ms');   // log → error
-
       const { body, isBase64Encoded, contentType } = await readBodyForGateway(upstream, maxBytes);
 
       const responseObj = {
@@ -261,29 +341,28 @@ module.exports.handler = async function handler(event) {
         isBase64Encoded,
       };
 
-      const responseSize = JSON.stringify(responseObj).length;
-      console.error('Response size:', responseSize, 'bytes');   // log → error
-
-      if (event?.queryStringParameters?.debug === '1') {
-        console.error('Debug info:', {   // log → error
-          targetUrl: targetUrl.toString(),
-          upstreamStatus: upstream.status,
-          contentType,
-          responseSize,
-          fetchDurationMs: fetchDuration,
-          memoryUsage: process.memoryUsage(),
+      if (purpose !== 'image' || upstream.status >= 400) {
+        logJson({
+          event: purpose === 'image' ? 'proxy-image-error' : 'proxy-price',
+          ip,
+          status: upstream.status,
+          ms: fetchDuration,
+          bytes: JSON.stringify(responseObj).length,
+          ...safeUpstream(targetUrl),
         });
       }
 
       return responseObj;
     } catch (e) {
       const fetchDuration = Date.now() - startTime;
-      console.error('proxy error', {   // уже error, оставляем
+      logJson({
+        event: 'proxy-error',
+        ip,
+        purpose,
         error: e?.message || String(e),
         code: e?.code,
-        status: e?.status,
-        url: targetUrl?.toString(),
-        fetchDurationMs: fetchDuration,
+        ms: fetchDuration,
+        ...safeUpstream(targetUrl),
       });
       const msg = e?.message || String(e);
       if (e?.code === 'TOO_MANY_REDIRECTS') return json(502, { error: 'Too many redirects' });
@@ -296,7 +375,7 @@ module.exports.handler = async function handler(event) {
       return json(502, { error: 'Upstream fetch failed', detail: msg });
     }
   } catch (e) {
-    console.error('handler crash', e);
+    logJson({ event: 'handler-crash', error: e?.message || String(e) });
     const msg = e?.message || String(e);
     return json(502, { error: 'Handler crash', detail: msg });
   }

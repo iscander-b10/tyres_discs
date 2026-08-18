@@ -44,7 +44,7 @@ function corsProxyBase() {
  * - Для поставщиков из DIRECT_PROXY_MAP – формирует прямой путь, пробрасывая query-параметры.
  * - Для всех остальных (shina.su, shinservice) – использует параметр ?url=.
  */
-export function resolveSupplierFetchUrl(targetUrl) {
+export function resolveSupplierFetchUrl(targetUrl, { purpose = 'price' } = {}) {
   if (!targetUrl || targetUrl.startsWith('/')) {
     return targetUrl;
   }
@@ -72,7 +72,7 @@ export function resolveSupplierFetchUrl(targetUrl) {
 
   // Для всех остальных – облачная функция с ?url=
   const debugSuffix = CORS_PROXY_DEBUG ? '&debug=1' : '';
-  return `${corsProxyBase()}?url=${encodeURIComponent(targetUrl)}${debugSuffix}`;
+  return `${corsProxyBase()}?url=${encodeURIComponent(targetUrl)}&purpose=${encodeURIComponent(purpose)}${debugSuffix}`;
 }
 
 /**
@@ -97,7 +97,58 @@ export function resolvePhotoUrl(rawUrl, supplierLabel) {
     return absolute;
   }
 
-  return resolveSupplierFetchUrl(absolute);
+  return resolveSupplierFetchUrl(absolute, { purpose: 'image' });
+}
+
+export function createCatalogLoadId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `load-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+export function compactSupplierLoadResults(results = []) {
+  return results
+    .map((result) => {
+      const failedParts =
+        result.status === 'rejected'
+          ? result.reason?.failedParts || []
+          : result.value?.failedParts || [];
+      const failed = Array.isArray(failedParts) ? failedParts.filter(Boolean).join('+') : '';
+      const status = result.status === 'fulfilled' && !failed ? 'ok' : 'fail';
+      return failed ? `${result.key}:${status}:${failed}` : `${result.key}:${status}`;
+    })
+    .join(',');
+}
+
+/**
+ * Пишет в логи Cloud Function одно событие кнопки «Загрузить данные».
+ * Не блокирует загрузку каталога.
+ */
+export function reportCatalogLoadMetric({
+  event,
+  loadId,
+  ok,
+  hadClientErrors,
+  hadSaveErrors,
+  suppliers,
+} = {}) {
+  if (!CORS_PROXY || !event || !loadId) return;
+
+  const params = new URLSearchParams({ metricEvent: event, loadId });
+  if (event === 'load-finish') {
+    params.set('ok', ok ? 'true' : 'false');
+    params.set('hadClientErrors', hadClientErrors ? 'true' : 'false');
+    params.set('hadSaveErrors', hadSaveErrors ? 'true' : 'false');
+    if (suppliers) params.set('suppliers', suppliers);
+  }
+
+  const url = `${corsProxyBase()}/metrics/load?${params.toString()}`;
+  try {
+    void fetch(url, { method: 'GET', cache: 'no-store', keepalive: true }).catch(() => {});
+  } catch {
+    /* ignore */
+  }
 }
 
 function delay(ms) {
@@ -163,7 +214,7 @@ export function describeFetchTarget(targetUrl) {
 }
 
 export async function fetchSupplier(targetUrl, init = {}) {
-  const url = resolveSupplierFetchUrl(targetUrl);
+  const url = resolveSupplierFetchUrl(targetUrl, { purpose: 'price' });
   const { headers = {}, ...rest } = init;
 
   const safeHeaders = { ...headers };

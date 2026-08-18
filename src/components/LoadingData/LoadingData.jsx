@@ -8,7 +8,12 @@ import {
   PART_DISCS,
   PART_TYRES,
 } from '../../services/suppliers/supplierOrchestrator';
-import { usesCorsProxy } from '../../utils/fetchSupplier';
+import {
+  compactSupplierLoadResults,
+  createCatalogLoadId,
+  reportCatalogLoadMetric,
+  usesCorsProxy,
+} from '../../utils/fetchSupplier';
 import HoverTooltip from '../shared/HoverTooltip';
 import './LoadingData.scss';
 
@@ -138,12 +143,25 @@ const LoadingData = ({ onDataLoaded }) => {
     notification.destroy('catalog-load-errors');
     notification.destroy('catalog-save-errors');
 
+    const loadId = createCatalogLoadId();
+    reportCatalogLoadMetric({ event: 'load-start', loadId });
+
+    const finishPayload = {
+      event: 'load-finish',
+      loadId,
+      ok: false,
+      hadClientErrors: true,
+      hadSaveErrors: false,
+      suppliers: '',
+    };
+
     try {
       if (usesCorsProxy()) {
         console.info('Загрузка поставщиков по очереди (production + CORS-прокси)');
       }
 
       const results = await loadAllSuppliersData();
+      finishPayload.suppliers = compactSupplierLoadResults(results);
 
       const saveTasks = results
         .filter((r) => r.status === 'fulfilled' && r.value)
@@ -167,8 +185,14 @@ const LoadingData = ({ onDataLoaded }) => {
 
       const clientErrors = collectClientLoadErrors(results);
       const hasRejectedSupplier = results.some((r) => r.status === 'rejected');
+      const hadClientErrors = clientErrors.length > 0;
+      const ok = !hadClientErrors && !hadSaveErrors && !hasRejectedSupplier;
 
-      if (clientErrors.length > 0) {
+      finishPayload.ok = ok;
+      finishPayload.hadClientErrors = hadClientErrors;
+      finishPayload.hadSaveErrors = hadSaveErrors;
+
+      if (hadClientErrors) {
         setHasError(true);
         notifyLoadErrors(notification, clientErrors);
       } else if (!hadSaveErrors) {
@@ -183,6 +207,7 @@ const LoadingData = ({ onDataLoaded }) => {
       setHasError(true);
       notifyLoadErrors(notification, ['Не удалось загрузить данные. Попробуйте ещё раз.']);
     } finally {
+      reportCatalogLoadMetric(finishPayload);
       setLoading(false);
     }
   };

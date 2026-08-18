@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: tyres-discs supplier proxy
-  version: 2.0.0
+  version: 2.1.0
 
 # Глобальный CORS (заменяет CORS-заголовки из облачной функции для всех маршрутов)
 x-yc-apigateway-cors:
@@ -118,6 +118,12 @@ paths:
           schema:
             type: string
           description: Encoded target URL (https://...)
+        - name: purpose
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [price, image]
       responses:
         "200":
           description: Upstream response
@@ -125,6 +131,58 @@ paths:
           description: Validation / allowlist errors
         "5XX":
           description: Upstream/proxy errors
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: ${var.SUPPLIER_PROXY_FUNCTION_ID}
+
+  /v2/metrics/load:
+    options:
+      summary: CORS preflight
+      responses:
+        "204":
+          description: No content
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: ${var.SUPPLIER_PROXY_FUNCTION_ID}
+    get:
+      summary: Событие кнопки «Загрузить данные» (логи админа)
+      parameters:
+        - name: metricEvent
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [load-start, load-finish]
+        - name: loadId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: ok
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: hadClientErrors
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: hadSaveErrors
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: suppliers
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Logged
+        "400":
+          description: Unknown metricEvent
       x-yc-apigateway-integration:
         type: cloud_functions
         function_id: ${var.SUPPLIER_PROXY_FUNCTION_ID}
