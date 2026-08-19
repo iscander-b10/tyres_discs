@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Button, Form, Input, Modal } from 'antd';
 import { EyeInvisibleOutlined, EyeOutlined } from '@ant-design/icons';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { loginReturnPath } from '../../app/paths';
+import { loginReturnPath, loginDismissPath } from '../../app/paths';
 import { useAuth } from '../../auth/AuthContext';
 import './LoginPage.scss';
 
@@ -64,6 +64,10 @@ function LoginPage() {
     showAuthError();
   };
 
+  const handleDismiss = () => {
+    navigate(loginDismissPath(location), { replace: true });
+  };
+
   const describedBy = authError ? ERROR_ID : undefined;
   const motionNames = reducedMotion
     ? { transitionName: '', maskTransitionName: '' }
@@ -75,8 +79,9 @@ function LoginPage() {
       centered
       footer={null}
       closable={false}
-      maskClosable={false}
-      keyboard={false}
+      maskClosable
+      keyboard
+      onCancel={handleDismiss}
       width={420}
       zIndex={1300}
       rootClassName="login-page"

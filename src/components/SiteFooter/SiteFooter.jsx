@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { ReactComponent as PhoneIcon } from '../../icons/Phone.svg';
 import { ReactComponent as TelegramIcon } from '../../icons/Telegram.svg';
 import {
@@ -10,6 +10,7 @@ import {
 } from '../../config/site';
 import { PATHS } from '../../app/paths';
 import { useAppShell } from '../../app/AppShellContext';
+import { useAuth } from '../../auth/AuthContext';
 import HoverTooltip from '../shared/HoverTooltip';
 import './SiteFooter.scss';
 
@@ -46,6 +47,13 @@ function NavColumn({ label, items }) {
 
 function SiteFooter() {
   const { handleBrandClick } = useAppShell();
+  const { isAuthenticated } = useAuth();
+  const location = useLocation();
+  const brandPath = isAuthenticated ? PATHS.tyres : PATHS.home;
+  const loginState =
+    location.pathname === PATHS.login
+      ? location.state
+      : { from: `${location.pathname}${location.search}` };
 
   return (
     <footer className="site-footer">
@@ -54,7 +62,7 @@ function SiteFooter() {
           <div className="site-footer__col site-footer__col--brand">
             <Link
               className="site-footer__brand"
-              to={PATHS.tyres}
+              to={brandPath}
               onClick={handleBrandClick}
             >
               <span className="site-footer__brand-mark">IVANOR</span>
@@ -83,18 +91,24 @@ function SiteFooter() {
             <h2 className="site-footer__heading">Аккаунт</h2>
             <ul className="site-footer__list">
               <li className="site-footer__list-item">
-                <HoverTooltip title="Скоро">
-                  <span className="site-footer__link-wrap">
-                    <button
-                      type="button"
-                      className="site-footer__link is-disabled"
-                      aria-label="Личный кабинет"
-                      disabled
-                    >
-                      Личный кабинет
-                    </button>
-                  </span>
-                </HoverTooltip>
+                {isAuthenticated ? (
+                  <HoverTooltip title="Скоро">
+                    <span className="site-footer__link-wrap">
+                      <button
+                        type="button"
+                        className="site-footer__link is-disabled"
+                        aria-label="Личный кабинет"
+                        disabled
+                      >
+                        Личный кабинет
+                      </button>
+                    </span>
+                  </HoverTooltip>
+                ) : (
+                  <Link className="site-footer__link" to={PATHS.login} state={loginState}>
+                    Войти
+                  </Link>
+                )}
               </li>
             </ul>
           </nav>

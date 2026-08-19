@@ -31,6 +31,7 @@ function SiteHeader({
 
   const badgeLabel =
     totalQuantity > 99 ? '99+' : totalQuantity > 0 ? String(totalQuantity) : null;
+  const brandPath = isAuthenticated ? PATHS.tyres : PATHS.home;
 
   return (
     <header className="site-header">
@@ -38,7 +39,7 @@ function SiteHeader({
         <div className="site-header__top">
           <Link
             className="site-brand"
-            to={PATHS.tyres}
+            to={brandPath}
             onClick={handleBrandClick}
           >
             <span className="site-brand__mark">IVANOR</span>

@@ -11,6 +11,7 @@ import TiresSearchParameters from './components/TiresSearchParameters/TiresSearc
 import DiscsSearchParameters from './components/DiscsSearchParameters/DiscsSearchParameters';
 import BasketPage from './components/Basket/BasketPage';
 import LoginPage from './components/LoginPage/LoginPage';
+import LandingPage from './components/LandingPage/LandingPage';
 import SideBar from './components/SideBar/SideBar';
 import ScrollToTop from './components/ScrollToTop/ScrollToTop';
 import './App.scss';
@@ -24,10 +25,24 @@ function LoginRedirect() {
   return <Navigate to={PATHS.login} replace state={loginRedirectState(location)} />;
 }
 
-function UnmatchedRoute() {
+function RequireAuth() {
   const { isAuthenticated } = useAuth();
-  if (!isAuthenticated) return <LoginRedirect />;
-  return <Navigate to={PATHS.tyres} replace />;
+  if (!isAuthenticated) {
+    return <LoginRedirect />;
+  }
+  return null;
+}
+
+function HomeRoute() {
+  const { isAuthenticated } = useAuth();
+  if (isAuthenticated) {
+    return <Navigate to={PATHS.tyres} replace />;
+  }
+  return null;
+}
+
+function UnmatchedRoute() {
+  return <Navigate to={PATHS.home} replace />;
 }
 
 function AppFrame({ appearance = 'light', onAppearanceChange }) {
@@ -35,11 +50,8 @@ function AppFrame({ appearance = 'light', onAppearanceChange }) {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
   const isLogin = location.pathname === PATHS.login;
+  const isHome = location.pathname === PATHS.home;
   const backgroundPage = overlayBackgroundPage(location, lastBackgroundPath);
-
-  if (!isAuthenticated && !isLogin) {
-    return <LoginRedirect />;
-  }
 
   return (
     <>
@@ -52,22 +64,28 @@ function AppFrame({ appearance = 'light', onAppearanceChange }) {
         <Layout className="app-content-layout">
           <Layout.Content className="app-content">
             <Flex className="app-content-wrapper" vertical>
-              {isAuthenticated ? (
+              {isHome && !isAuthenticated ? (
+                <LandingPage />
+              ) : (
                 <>
-                  <div
-                    className="catalog-panel"
-                    hidden={backgroundPage !== 'tyres'}
-                    inert={isLogin || backgroundPage !== 'tyres' ? true : undefined}
-                  >
-                    <TiresSearchParameters key={`tires-${sessionResetKey}`} />
-                  </div>
-                  <div
-                    className="catalog-panel"
-                    hidden={backgroundPage !== 'wheels'}
-                    inert={isLogin || backgroundPage !== 'wheels' ? true : undefined}
-                  >
-                    <DiscsSearchParameters key={`discs-${sessionResetKey}`} />
-                  </div>
+                  {isAuthenticated ? (
+                    <>
+                      <div
+                        className="catalog-panel"
+                        hidden={backgroundPage !== 'tyres'}
+                        inert={isLogin || backgroundPage !== 'tyres' ? true : undefined}
+                      >
+                        <TiresSearchParameters key={`tires-${sessionResetKey}`} />
+                      </div>
+                      <div
+                        className="catalog-panel"
+                        hidden={backgroundPage !== 'wheels'}
+                        inert={isLogin || backgroundPage !== 'wheels' ? true : undefined}
+                      >
+                        <DiscsSearchParameters key={`discs-${sessionResetKey}`} />
+                      </div>
+                    </>
+                  ) : null}
                   <div
                     className="catalog-panel"
                     hidden={backgroundPage !== 'basket'}
@@ -76,7 +94,7 @@ function AppFrame({ appearance = 'light', onAppearanceChange }) {
                     <BasketPage />
                   </div>
                 </>
-              ) : null}
+              )}
             </Flex>
           </Layout.Content>
         </Layout>
@@ -113,9 +131,9 @@ function App({ appearance = 'light', onAppearanceChange }) {
                     />
                   }
                 >
-                  <Route index element={<></>} />
-                  <Route path="tyres" element={<Navigate to={PATHS.tyres} replace />} />
-                  <Route path="wheels" element={<></>} />
+                  <Route index element={<HomeRoute />} />
+                  <Route path="tyres" element={<RequireAuth />} />
+                  <Route path="wheels" element={<RequireAuth />} />
                   <Route path="basket" element={<></>} />
                   <Route path="login" element={<></>} />
                 </Route>

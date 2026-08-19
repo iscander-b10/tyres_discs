@@ -1,5 +1,6 @@
 export const PATHS = {
-  tyres: '/',
+  home: '/',
+  tyres: '/tyres',
   wheels: '/wheels',
   basket: '/basket',
   login: '/login',
@@ -8,10 +9,12 @@ export const PATHS = {
 export const ROUTER_BASENAME = (process.env.PUBLIC_URL || '').replace(/\/$/, '');
 
 export function pageFromPathname(pathname) {
+  if (pathname === PATHS.home) return 'home';
+  if (pathname === PATHS.tyres) return 'tyres';
   if (pathname === PATHS.wheels) return 'wheels';
   if (pathname === PATHS.basket) return 'basket';
   if (pathname === PATHS.login) return 'login';
-  return 'tyres';
+  return 'home';
 }
 
 function isSitePath(pathname) {
@@ -37,6 +40,16 @@ export function loginReturnPath(location, fallbackPath = PATHS.tyres) {
 
 export function loginRedirectFrom(location) {
   return loginReturnPath(location);
+}
+
+export function loginDismissPath(location) {
+  const from = location.state?.from;
+  if (typeof from === 'string' && from.startsWith('/') && !from.startsWith(PATHS.login)) {
+    if (from === PATHS.home || from === PATHS.basket) {
+      return from;
+    }
+  }
+  return PATHS.home;
 }
 
 export function canCloseLoginWithHistoryBack(location) {

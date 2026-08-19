@@ -79,10 +79,14 @@ export function AppShellProvider({ children }) {
 
   const handleBrandClick = useCallback(() => {
     setSessionResetKey((key) => key + 1);
-    setLastCatalogPath(PATHS.tyres);
-    setLastBackgroundPath(PATHS.tyres);
-    navigate(PATHS.tyres);
-  }, [navigate]);
+    if (isAuthenticated) {
+      setLastCatalogPath(PATHS.tyres);
+      setLastBackgroundPath(PATHS.tyres);
+      navigate(PATHS.tyres);
+      return;
+    }
+    navigate(PATHS.home);
+  }, [isAuthenticated, navigate]);
 
   const bumpCatalogDataVersion = useCallback(() => {
     setCatalogDataVersion((version) => version + 1);
