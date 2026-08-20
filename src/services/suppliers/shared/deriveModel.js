@@ -1,5 +1,32 @@
-/** Trailing load+speed like 92H or 91/89V (common in tyre titles). */
-const TITLE_INDEX_RE = /(\d{2,3}(?:\/\d{2,3})?)([A-Za-z])\s*$/;
+/** Trailing load+speed like 92H, 91/89V, or Cyrillic speed letter (91Т). */
+export const TITLE_INDEX_RE = /(\d{2,3}(?:\/\d{2,3})?)([A-Za-zА-Яа-яЁё])\s*$/u;
+
+const normalizeSpeedLetter = (letter) => {
+  const ch = String(letter || '');
+  if (ch === 'Т' || ch === 'т') return 'T';
+  if (!/^[A-Za-z]$/.test(ch)) return '';
+  return ch.toUpperCase();
+};
+
+/**
+ * Extract trailing load+speed from a title fragment; Cyrillic Т → T.
+ * @returns {{ indices: string, rest: string }}
+ */
+export const extractLoadSpeedFromTitle = (title) => {
+  const str = String(title || '').trim();
+  if (!str) return { indices: '', rest: '' };
+
+  const match = str.match(TITLE_INDEX_RE);
+  if (!match) return { indices: '', rest: str };
+
+  const letter = normalizeSpeedLetter(match[2]);
+  if (!letter) return { indices: '', rest: str };
+
+  return {
+    indices: `${match[1]}${letter}`,
+    rest: str.slice(0, match.index).trim(),
+  };
+};
 
 /**
  * Model from a display title: strip leading brand, optionally trailing load/speed.
@@ -15,7 +42,7 @@ export const deriveModelFromTitle = (title, brand, { stripIndices = true } = {})
   }
 
   if (stripIndices) {
-    rest = rest.replace(TITLE_INDEX_RE, '').trim();
+    rest = extractLoadSpeedFromTitle(rest).rest;
   }
 
   return rest || null;
