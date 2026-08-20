@@ -161,6 +161,7 @@ function BasketPage() {
                   <button
                     type="button"
                     className="basket-line__media"
+                    data-supplier={item.supplier || undefined}
                     onClick={() => setModalItem(item)}
                     aria-label={`Открыть ${item.title}`}
                   >
@@ -168,6 +169,7 @@ function BasketPage() {
                       src={photoSrc}
                       alt=""
                       className="basket-line__image"
+                      data-supplier={item.supplier || undefined}
                       referrerPolicy="no-referrer"
                       onError={(e) => {
                         e.currentTarget.src =

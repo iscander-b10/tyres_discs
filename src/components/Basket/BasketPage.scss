@@ -210,6 +210,12 @@
   cursor: pointer;
   outline: none;
 
+  @each $supplier in $photo-canvas-suppliers {
+    &[data-supplier='#{$supplier}'] {
+      background: $color-photo-canvas;
+    }
+  }
+
   &::after {
     content: '';
     position: absolute;
@@ -253,6 +259,12 @@
   display: block;
   pointer-events: none;
   transition: transform 0.2s ease;
+
+  @each $supplier in $photo-canvas-suppliers {
+    &[data-supplier='#{$supplier}'] {
+      background: $color-photo-canvas;
+    }
+  }
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;

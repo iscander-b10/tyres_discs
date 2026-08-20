@@ -69,6 +69,18 @@
     overflow: hidden;
     border-bottom: 1px solid $color-border-soft;
     cursor: pointer;
+
+    // Transparent supplier PNGs — fixed light canvas in both themes
+    @each $supplier in $photo-canvas-suppliers {
+      &[data-supplier='#{$supplier}'] {
+        background: $color-photo-canvas;
+
+        .item-image :where(img.ant-image-img) {
+          background: $color-photo-canvas;
+          outline-color: oklch(0 0 0 / 0.1);
+        }
+      }
+    }
   }
 
   .item-image {

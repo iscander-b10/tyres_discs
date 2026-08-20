@@ -60,6 +60,7 @@ const CatalogItemCard = ({
         cover={
           <Flex
             className="item-image-frame"
+            data-supplier={supplierName || undefined}
             align="center"
             justify="center"
             onClick={handleImageClick}

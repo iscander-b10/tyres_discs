@@ -135,7 +135,10 @@ const CatalogItemModalWindow = ({ isOpen, onClose, item, isClientMode = false })
 
         <div className="product-modal__layout">
           <div className="product-modal__stage">
-            <div className="product-modal__frame">
+            <div
+              className="product-modal__frame"
+              data-supplier={item.supplier || undefined}
+            >
               <img
                 src={photoSrc}
                 alt={item.title}
