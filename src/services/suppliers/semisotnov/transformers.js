@@ -213,31 +213,80 @@ const normalizeDiscBrand = (rawBrand) => {
     'mefro': 'MEFRO (Аккурайд/KRONPRINZ)',
     'lemmerz': 'Lemmerz',
     'скад': 'SCAD',
-    'yamoto segun': 'Yamato Segun',
+    'yamato segun': 'Yamato Segun',
   };
 
   return brandMap[key] || decodeHtmlEntities(brand);
 };
 
-const stripDiscBrandTokens = (text, brands) => {
+const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** Alias spellings for a disc brand (raw + normalized). Lead/trail/paren strip only. */
+const getDiscBrandAliases = (rawBrand, normalizedBrand) => {
+  const raw = String(rawBrand ?? '').trim();
+  const norm = String(normalizedBrand ?? '').trim();
+  const decodedRaw = decodeHtmlEntities(raw);
+  const decodedNorm = decodeHtmlEntities(norm);
+  const aliases = [raw, decodedRaw, norm, decodedNorm];
+
+  const key = decodedNorm.toLowerCase();
+  const rawKey = decodedRaw.toLowerCase();
+
+  if (key === 'scad' || rawKey === 'скад' || rawKey === 'scad') {
+    aliases.push('SCAD', 'Скад', 'скад', 'scad');
+  }
+  if (key === 'k&k' || /^k\s*&\s*k$/i.test(decodedRaw)) {
+    aliases.push('K&K', 'K&k', 'K & K', 'КиК', 'кик');
+  }
+  if (key === 'carwel' || rawKey === 'carwel') {
+    aliases.push('Carwel', 'CARWEL');
+  }
+  if (key === 'r-steel' || /^r-?steel$/i.test(decodedRaw)) {
+    aliases.push('R-STEEL', 'R-Steel', 'R-steel');
+  }
+  if (key === 'replay' || rawKey === 'replay') {
+    aliases.push('Replay', 'replay');
+  }
+  if (key === 'stuttgart' || rawKey === 'stuttgart') {
+    aliases.push('Stuttgart', 'stuttgart');
+  }
+  if (key.startsWith('mefro') || rawKey === 'mefro') {
+    aliases.push('Mefro', 'MEFRO', 'mefro');
+  }
+  if (key === 'yamato segun' || rawKey === 'yamato segun') {
+    aliases.push('Yamato Segun', 'YAMATO segun', 'YAMATO Segun');
+  }
+  // Multi-word LS lines still echo bare "LS" after the full brand is stripped
+  if (/^ls\b/i.test(decodedNorm) && !/^ls$/i.test(decodedNorm)) {
+    aliases.push('LS');
+  }
+
+  return [...new Set(
+    aliases.map((a) => String(a ?? '').trim()).filter(Boolean)
+  )].sort((a, b) => b.length - a.length);
+};
+
+/** Strip brand aliases only at start/end (not mid-model). */
+const stripDiscBrandTokens = (text, aliases) => {
   let rest = String(text ?? '').trim();
   const tokens = [...new Set(
-    brands
-      .flatMap((b) => {
-        const decoded = decodeHtmlEntities(b);
-        return [b, decoded].filter(Boolean).map((x) => String(x).trim());
-      })
-      .filter(Boolean)
+    (aliases || []).map((a) => String(a ?? '').trim()).filter(Boolean)
   )].sort((a, b) => b.length - a.length);
 
   let changed = true;
   while (changed) {
     changed = false;
     for (const token of tokens) {
-      const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const re = new RegExp(`(?:^|\\s)${escaped}(?:\\s|$)`, 'i');
-      if (re.test(rest)) {
-        rest = rest.replace(re, ' ').replace(/\s+/g, ' ').trim();
+      const escaped = escapeRegExp(token);
+      const lead = new RegExp(`^${escaped}(?=\\s|$)`, 'i');
+      if (lead.test(rest)) {
+        rest = rest.replace(lead, '').replace(/\s+/g, ' ').trim();
+        changed = true;
+        continue;
+      }
+      const trail = new RegExp(`(?:^|\\s)${escaped}$`, 'i');
+      if (trail.test(rest)) {
+        rest = rest.replace(trail, '').replace(/\s+/g, ' ').trim();
         changed = true;
       }
     }
@@ -245,8 +294,22 @@ const stripDiscBrandTokens = (text, brands) => {
   return rest;
 };
 
+/** Parenthetical brand echo: (скад), (replay), (replay-Т), (Segun). */
+const stripDiscBrandParens = (text, aliases) => {
+  let rest = String(text ?? '');
+  for (const alias of aliases) {
+    const escaped = escapeRegExp(alias);
+    rest = rest.replace(
+      new RegExp(`\\(\\s*${escaped}(?:\\s*[-–—][^)]*)?\\s*\\)`, 'gi'),
+      ' '
+    );
+  }
+  return rest;
+};
+
 const cleanDiscModel = (rawModel, rawBrand, normalizedBrand) => {
   let text = decodeHtmlEntities(rawModel);
+  const aliases = getDiscBrandAliases(rawBrand, normalizedBrand);
 
   // Wheel size: 7.0*16, 8.5*20, 4.50*16E
   text = text.replace(/\d+\.\d+\s*[*xхXХ]\s*\d+[Ee]?/gu, ' ');
@@ -263,10 +326,9 @@ const cleanDiscModel = (rawModel, rawBrand, normalizedBrand) => {
   text = text.replace(/\(\s*Арт\.?\s*\d+\s*\)/gi, ' ');
   text = text.replace(/\bАрт\.?\s*\d+\b/gi, ' ');
   text = text.replace(/\(\s*\d{4,}\s*\)/g, ' ');
-  // Parenthetical brand echo: (скад), (K&K)
-  text = text.replace(/\(\s*(?:скад|scad|k\s*&\s*k|r-?steel|trebl|carwel)\s*\)/gi, ' ');
 
-  text = stripDiscBrandTokens(text, [rawBrand, normalizedBrand, 'K&K', 'K&k', 'R-Steel', 'R-STEEL', 'скад', 'Скад', 'SCAD']);
+  text = stripDiscBrandParens(text, aliases);
+  text = stripDiscBrandTokens(text, aliases);
   text = text.replace(/\(\s*\)/g, ' ');
   text = text.replace(/\s+/g, ' ').trim();
   // Trailing dots from "плат."
