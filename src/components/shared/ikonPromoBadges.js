@@ -16,7 +16,7 @@ const normalizeIkonBrandToken = (value) =>
     .trim()
     .replace(/^ikon(?:\s+tyres?)?$/, 'ikon');
 
-const isIkonBrand = (item) => {
+export const isIkonBrand = (item) => {
   if (!item) return false;
 
   const brand = normalizeIkonBrandToken(item.brand);
