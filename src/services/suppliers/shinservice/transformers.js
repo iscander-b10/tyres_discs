@@ -44,12 +44,12 @@ export const transformTyres = (rawData) => {
 };
 
 const parseDiscDiameter = (diameterString) => {
-  const match = diameterString.match(/^(\d+)\s*\/\s*(\d+(?:\.\d+)?J)$/i);
+  const match = diameterString.match(/^(\d+)\s*\/\s*(\d+(?:\.\d+)?)J$/i);
   if (!match) return {};
 
   return {
     diameter: `R${match[1]}`,
-    width: match[2],
+    width: Number(match[2]),
   };
 };
 
@@ -96,7 +96,7 @@ export const transformDiscs = (rawData) => {
     const brand = normalizeDiscBrand(disc.brand);
     const model = normalizeModelText(disc.model);
     const newTitle = `${brand} ${model ?? ''}`.replace(/\s+/g, ' ').trim();
-    const sizeTitle = `${discDiameter} / ${discWidth} PCD ${disc.pn}x${disc.pcd} ET ${disc.et} ЦО ${disc.cb}`;
+    const sizeTitle = `${discDiameter} / ${discWidth}J PCD ${disc.pn}x${disc.pcd} ET ${disc.et} ЦО ${disc.cb}`;
 
     return {
       id: `shinservice_${disc.sku}`,

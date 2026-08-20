@@ -1,5 +1,5 @@
 import { calculateSellingPrice, getMargin } from '../../dataTransformers';
-import { normalizeModelText } from '../shared/deriveModel';
+import { deriveModelFromTitle, normalizeModelText } from '../shared/deriveModel';
 
 const parseSeason = (season) => season === 'Зимняя' ? 'w' : 's';
 const parseSpikes = (spikes) => spikes === 'Да';
@@ -37,7 +37,7 @@ export const transformTyres = (rawData) => {
   }
   return rawData.tires.map((tyre) => {
       const normalizedBrand = normalizeBrand(tyre.brand);
-      const model = normalizeModelText(tyre.model);
+      const model = deriveModelFromTitle(tyre.model, normalizedBrand, { stripIndices: false });
       const margin = getMargin(normalizedBrand);
       const sellingPrice = calculateSellingPrice(tyre.price_krd, margin);
       const newTitle = `${normalizedBrand} ${model ?? ''} ${tyre.load_index}${tyre.speed_index}`.replace(/\s+/g, ' ').trim();
@@ -77,7 +77,7 @@ const parseTyresDiameter = normalizeDiameter(tyre.diameter);
 };
 
 const parseDiscDiameter = (diameter) => `R${diameter}`;
-const parseDiscWidth = (width) => `J${width}`;
+const parseDiscWidth = (width) => `${width}J`;
 const normalizeDiscBrand = (rawBrand) => {
   const brand = String(rawBrand ?? '').trim();
   const key = brand.toLowerCase();
@@ -86,6 +86,7 @@ const normalizeDiscBrand = (rawBrand) => {
     'trebl': 'TREBL',
     'neo': 'NEO',
     'скад': 'SCAD',
+    'skad original': 'SCAD',
   };
 
   return brandMap[key] || brand;  

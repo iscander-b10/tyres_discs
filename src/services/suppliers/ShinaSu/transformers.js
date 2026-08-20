@@ -115,6 +115,32 @@ const normalizeDiscBrand = (brand) => (
   String(brand).trim() === 'SKAD' ? 'SCAD' : 
   brand
 );
+
+/** When raw «Тип диска» is empty — stamped brands → Штампованный, else Литой. */
+const STAMPED_DISC_BRANDS = new Set([
+  'ACCURIDE',
+  'ТЗСК',
+  'TREBL',
+  'R-STEEL',
+  'Asterro',
+  'MEFRO',
+  'KRONPRINZ',
+  'LEMMERZ',
+]);
+
+const parseDiskType = (rawType, brand) => {
+  const type = String(rawType ?? '').trim();
+  if (type === 'Литой' || type === 'Штампованный') {
+    return type;
+  }
+  if (type.toLowerCase() === 'стальной') {
+    return 'Штампованный';
+  }
+  return STAMPED_DISC_BRANDS.has(String(brand ?? '').trim())
+    ? 'Штампованный'
+    : 'Литой';
+};
+
 /**
  * Преобразует данные дисков
  */
@@ -136,7 +162,7 @@ export const transformDiscs = (rawData) => {
     const model = normalizeModelText(disc['Модель']);
     const width = disc['Ширина'];
     const diameter = parseDiameter(disc['Диаметр']);
-    const diskType = disc['Тип диска'];
+    const diskType = parseDiskType(disc['Тип диска'], brand);
     const dia = parseDIA(disc['DIA']);
     const et = disc['Вылет'];
     const color = disc['Цвет'];
