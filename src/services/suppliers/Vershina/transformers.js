@@ -1,4 +1,5 @@
 import { calculateSellingPrice, getMargin } from '../../dataTransformers';
+import { normalizeModelText } from '../shared/deriveModel';
 
 const normalizeBrand = (brand) => {
   const trimmed = String(brand).trim();
@@ -12,12 +13,15 @@ const normalizeBrand = (brand) => {
   return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
 };
 
-const normalizeModel = (model) => String(model ?? '')
-  .trim()
-  .split(/\s+/)
-  .filter(Boolean)
-  .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-  .join(' ');
+const normalizeModel = (model) => {
+  const text = String(model ?? '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+  return normalizeModelText(text);
+};
 
 const parseDiameter = (diameter, commercial) => {
   const base = `R${diameter}`;
@@ -36,15 +40,17 @@ export const transformTyres = (rawData) => {
 
   return tyresArray.map((tyre) => {
     const normalizedBrand = normalizeBrand(tyre.brand);
+    const model = normalizeModel(tyre.model);
     const margin = getMargin(normalizedBrand);
     const sellingPrice = calculateSellingPrice(tyre.price_opt, margin);
     const rim = parseDiameter(tyre.diameter, tyre.commercial);
-    const newTitle = `${normalizedBrand} ${normalizeModel(tyre.model)} ${tyre.load_speed_index}`;
+    const newTitle = `${normalizedBrand} ${model ?? ''} ${tyre.load_speed_index}`.replace(/\s+/g, ' ').trim();
     const sizeTitle = `${tyre.width}/${tyre.height}${rim}`; 
     return {
       id: `vershina_${tyre.cae}`,
       code: tyre.cae,
       brand: normalizedBrand,
+      model,
       width: tyre.width,
       profile: tyre.height,
       diameter: rim,                                
@@ -93,14 +99,16 @@ export const transformDiscs = (rawData) => {
   }
 
   return discsArray.map((disc) => {
-    const brand = normalizeDiscBrand(disc.brand); 
-    const newTitle = `${brand} ${disc.model}`;
+    const brand = normalizeDiscBrand(disc.brand);
+    const model = normalizeModelText(disc.model);
+    const newTitle = `${brand} ${model ?? ''}`.replace(/\s+/g, ' ').trim();
     const sizeTitle = `${parseDiameter(disc.rims_height)} / ${disc.rims_width}J PCD ${disc.rims_count_bolt}x${disc.rims_distance_bolt} ET ${disc.rims_et} ЦО ${disc.rims_hub}`;
 
     return {
       id: `vershina_${disc.cae}`,
       code: disc.cae,
-      brand,                                
+      brand,
+      model,
       diameter: parseDiameter(disc.rims_height),
       width: disc.rims_width,
       pn: disc.rims_count_bolt,

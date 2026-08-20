@@ -1,5 +1,7 @@
 /** Shared catalog UI copy — keep card and modal in sync. */
 
+import { deriveModelFromTitle } from '../../services/suppliers/shared/deriveModel';
+
 const isValidPrice = (value) => {
   if (value == null || value === '') return false;
   const num =
@@ -123,17 +125,7 @@ export const resolveCatalogModel = (item) => {
   if (!item) return null;
   const explicit = pickText(item.model);
   if (explicit) return explicit;
-
-  let rest = String(item.title || '').trim();
-  if (!rest) return null;
-
-  const brand = pickText(item.brand);
-  if (brand && rest.toLowerCase().startsWith(brand.toLowerCase())) {
-    rest = rest.slice(brand.length).trim();
-  }
-
-  rest = rest.replace(TITLE_INDEX_RE, '').trim();
-  return rest || null;
+  return deriveModelFromTitle(item.title, item.brand, { stripIndices: true });
 };
 
 export const resolveCatalogLoadIndex = (item) => {

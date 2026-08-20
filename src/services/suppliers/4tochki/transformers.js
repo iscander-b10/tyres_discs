@@ -1,4 +1,5 @@
 import { calculateSellingPrice, getMargin } from '../../dataTransformers';
+import { normalizeModelText } from '../shared/deriveModel';
 
 const parseSeason = (season) => season === 'Зимняя' ? 'w' : 's';
 const parseSpikes = (spikes) => spikes === 'Да';
@@ -36,9 +37,10 @@ export const transformTyres = (rawData) => {
   }
   return rawData.tires.map((tyre) => {
       const normalizedBrand = normalizeBrand(tyre.brand);
+      const model = normalizeModelText(tyre.model);
       const margin = getMargin(normalizedBrand);
       const sellingPrice = calculateSellingPrice(tyre.price_krd, margin);
-      const newTitle = `${normalizedBrand} ${tyre.model} ${tyre.load_index}${tyre.speed_index}`;
+      const newTitle = `${normalizedBrand} ${model ?? ''} ${tyre.load_index}${tyre.speed_index}`.replace(/\s+/g, ' ').trim();
       const normalizeDiameter = (diameter) => {
         let d = String(diameter).replace(/Z/gi, ''); // убираем Z (в любом регистре)
         d = d.trim();
@@ -47,7 +49,7 @@ export const transformTyres = (rawData) => {
           d = 'R' + d.replace(/^[-—–]+/, '');
         }
       return d;
-};
+    };
 const parseTyresDiameter = normalizeDiameter(tyre.diameter);
       const sizeTitle = `${tyre.width}/${tyre.height}${parseTyresDiameter}`;
       
@@ -55,6 +57,7 @@ const parseTyresDiameter = normalizeDiameter(tyre.diameter);
         id: `fourtochki_${tyre.cae}`,
         code: tyre.cae,
         brand: normalizedBrand,
+        model,
         width: tyre.width,
         profile: tyre.height,
         diameter: parseTyresDiameter,
@@ -93,7 +96,8 @@ export const transformDiscs = (rawData) => {
   }
   return rawData.rims.map((disc) => {
       const brand = normalizeDiscBrand(disc.brand);
-      const newTitle = `${brand} ${disc.model}`;
+      const model = normalizeModelText(disc.model);
+      const newTitle = `${brand} ${model ?? ''}`.replace(/\s+/g, ' ').trim();
       const sizeTitle = `${parseDiscDiameter(disc.diameter)} / ${parseDiscWidth(disc.width)} PCD ${disc.bolts_count}x${disc.bolts_spacing} ET ${disc.et} ЦО ${disc.dia}`;
       const newColor = `${disc.color} ${disc.rim_base_color}`;
       
@@ -101,6 +105,7 @@ export const transformDiscs = (rawData) => {
         id: `fourtochki_${disc.cae}`,
         code: disc.cae,
         brand,
+        model,
         diameter: parseDiscDiameter(disc.diameter),
         width: disc.width,
         pn: disc.bolts_count,

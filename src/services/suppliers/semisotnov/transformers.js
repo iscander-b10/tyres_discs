@@ -1,4 +1,5 @@
 import { calculateSellingPrice, getMargin } from '../../dataTransformers';
+import { deriveModelFromTitle, normalizeModelText } from '../shared/deriveModel';
 
 const normalizeBrand = (brand) => (
   String(brand).trim() === 'BELSHINA' ? 'Belshina' :
@@ -73,19 +74,22 @@ export const transformTyres = (rawData) => {
     const sizeData = parseTyreSize(tyre.Типоразмер);
     const { width, profile, diameter } = sizeData;
     const normalizedBrand = normalizeBrand(tyre.Бренд);
+    const title = parseTitle(tyre.Наименование);
+    const model = deriveModelFromTitle(title, normalizedBrand, { stripIndices: true });
     const margin = getMargin(normalizedBrand);
     const sellingPrice = calculateSellingPrice(tyre.Цена, margin);
     return {
         id: `semisotnov_${tyre.Код}`,
         code: tyre.Код,
         brand: normalizedBrand,
+        model,
         width,
         profile,
         diameter,
         season: parseSeason(tyre.Лето),
         spikes: parseSpikes(tyre.Шипы),
         amount: tyre.Остаток,
-        title: parseTitle(tyre.Наименование),
+        title,
         sizeTitle: tyre.Типоразмер,
         price: tyre.Цена,
         sellingPrice,
@@ -126,13 +130,17 @@ export const transformDiscs = (rawData) => {
   }
 
   return discsArray.map((disc) => {
+    const brand = normalizeDiscBrand(disc.Бренд);
+    const model = normalizeModelText(disc.Модель);
+    const title = `${brand} ${model ?? ''}`.replace(/\s+/g, ' ').trim();
     const sizeTitle = `${parseDiscDiameter(disc.Диаметр)} / ${disc.Ширина}J PCD ${disc.Болт_количество}x${disc.PCD} ET ${disc.ET} ЦО ${disc.DIA}`;
     const diskType = parseDiskTypeByBrand(disc.Бренд);
 
     return {
       id: `semisotnov_${disc.Код}`,
       code: disc.Код,
-      brand: normalizeDiscBrand(disc.Бренд),
+      brand,
+      model,
       diameter: parseDiscDiameter(disc.Диаметр),
       width: disc.Ширина,
       pn: disc.Болт_количество,
@@ -142,7 +150,7 @@ export const transformDiscs = (rawData) => {
       diskType,
       color: disc.Цвет,
       amount: disc.Остаток,
-      title: disc.Модель,
+      title,
       sizeTitle,
       price: disc.Цена,
       sellingPrice: Math.round(disc.Цена * 1.2),

@@ -1,4 +1,5 @@
 import { calculateSellingPrice, getMargin } from '../../dataTransformers';
+import { normalizeModelText } from '../shared/deriveModel';
 
 const normalizeBrand = (brand) => (
   String(brand).trim() === 'IKON TYRES' ? 'Ikon' : 
@@ -52,7 +53,7 @@ export const transformTyres = (rawData) => {
   return tyresData.map((tyre) => {
     const code = String(tyre['Код']).trim();
     const normalizedBrand = normalizeBrand(String(tyre['Бренд']).trim());
-    const model = String(tyre['Модель']).trim();
+    const model = normalizeModelText(tyre['Модель']);
     const season = parseSeason(tyre['Сезонность']);
     const loadIndex = parseIndexLoad(tyre['Индекс нагрузки']).trim();
     const speedIndex = parseIndexSpeed(tyre['Индекс скорости']).trim();
@@ -67,7 +68,7 @@ export const transformTyres = (rawData) => {
     
 
     // Новый title: бренд + модель + индекс нагрузки и скорости
-    const title = `${normalizedBrand} ${model} ${loadIndex}${speedIndex}`.trim();
+    const title = `${normalizedBrand} ${model ?? ''} ${loadIndex}${speedIndex}`.replace(/\s+/g, ' ').trim();
 
     // sizeTitle: ширина/профиль + диаметр (например, "205/55R16")
     let sizeTitle = '';
@@ -86,6 +87,7 @@ export const transformTyres = (rawData) => {
       diameter,
       season,
       brand: normalizedBrand,
+      model,
       title,
       sizeTitle,       
       price,
@@ -131,7 +133,7 @@ export const transformDiscs = (rawData) => {
   return discsData.map((disc) => {
     const code = disc['Код'];
     const brand = normalizeDiscBrand(disc['Бренд']);
-    const model = disc['Модель'];
+    const model = normalizeModelText(disc['Модель']);
     const width = disc['Ширина'];
     const diameter = parseDiameter(disc['Диаметр']);
     const diskType = disc['Тип диска'];
@@ -145,13 +147,14 @@ export const transformDiscs = (rawData) => {
     const amount = disc['Количество'];
 
     // Создаем title из бренда и модели
-    const title = `${brand} ${model}`;
+    const title = `${brand} ${model ?? ''}`.replace(/\s+/g, ' ').trim();
     const sizeTitle = `${diameter} / ${width}J PCD ${pn}x${pcd} ET ${et} ЦО ${dia}`;
 
     return {
       id: `shinasu_${code}`,
       code,
       brand,
+      model,
       diameter,
       width,
       pn,

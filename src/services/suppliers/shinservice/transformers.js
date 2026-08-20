@@ -1,4 +1,5 @@
 import { calculateSellingPrice, getMargin } from '../../dataTransformers';
+import { normalizeModelText } from '../shared/deriveModel';
 
 export const transformTyres = (rawData) => {
   if (!rawData.tyre || !Array.isArray(rawData.tyre)) {
@@ -12,7 +13,8 @@ export const transformTyres = (rawData) => {
       diameter = diameter.slice(0, -1) + 'C';
     }
 
-    const newTitle = `${tyre.brand} ${tyre.model} ${tyre.loadIndex}${tyre.speedIndex}`;
+    const model = normalizeModelText(tyre.model);
+    const newTitle = `${tyre.brand} ${model ?? ''} ${tyre.loadIndex}${tyre.speedIndex}`.replace(/\s+/g, ' ').trim();
     const sizeTitle = `${tyre.width}/${tyre.profile}${diameter}`;
 
     const margin = getMargin(tyre.brand);
@@ -22,6 +24,7 @@ export const transformTyres = (rawData) => {
       id: `shinservice_${tyre.sku}`,
       code: tyre.sku,
       brand: tyre.brand,
+      model,
       width: tyre.width,
       profile: tyre.profile,
       diameter,
@@ -90,14 +93,16 @@ export const transformDiscs = (rawData) => {
   return rawData.disk.map((disc) => {
     const { diameter: discDiameter, width: discWidth } = parseDiscDiameter(disc.diameter);
     const { diskType, color } = parseDiscType(disc.type);
-    const brand = normalizeDiscBrand(disc.brand);             
-    const newTitle = `${brand} ${disc.model}`;
+    const brand = normalizeDiscBrand(disc.brand);
+    const model = normalizeModelText(disc.model);
+    const newTitle = `${brand} ${model ?? ''}`.replace(/\s+/g, ' ').trim();
     const sizeTitle = `${discDiameter} / ${discWidth} PCD ${disc.pn}x${disc.pcd} ET ${disc.et} ЦО ${disc.cb}`;
 
     return {
       id: `shinservice_${disc.sku}`,
       code: disc.sku,
-      brand,                                                  
+      brand,
+      model,
       diameter: discDiameter,
       width: discWidth,
       pn: disc.pn,

@@ -189,8 +189,8 @@ class IndexedDBService {
   constructor() {
     this.dbName = 'TireDatabase';
     this.discDbName = 'DiscDatabase';
-    this.version = 1;
-    this.discVersion = 2; // Увеличена версия для добавления новых индексов
+    this.version = 2; // + индекс model
+    this.discVersion = 3; // + индекс model
     this.db = null;
     this.discDb = null;
   }
@@ -211,22 +211,35 @@ class IndexedDBService {
       
       request.onupgradeneeded = (event) => {
         const db = event.target.result;
-        
-        const tireStore = db.createObjectStore('tires', { 
-          keyPath: 'id'
-        });
-    
-        tireStore.createIndex('supplier', 'supplier', { unique: false });
-        tireStore.createIndex('brand', 'brand', { unique: false });
-        tireStore.createIndex('title', 'title', { unique: false });
-        tireStore.createIndex('photoUrl', 'photoUrl', { unique: false });
-        tireStore.createIndex('width', 'width', { unique: false });
-        tireStore.createIndex('profile', 'profile', { unique: false });
-        tireStore.createIndex('diameter', 'diameter', { unique: false });
-        tireStore.createIndex('season', 'season', { unique: false });
-        tireStore.createIndex('spikes', 'spikes', { unique: false });
-        tireStore.createIndex('price', 'price', { unique: false });
-        tireStore.createIndex('amount', 'amount', { unique: false });
+        const transaction = event.target.transaction;
+
+        let tireStore;
+        if (!db.objectStoreNames.contains('tires')) {
+          tireStore = db.createObjectStore('tires', {
+            keyPath: 'id'
+          });
+        } else {
+          tireStore = transaction.objectStore('tires');
+        }
+
+        const ensureTireIndex = (name, keyPath) => {
+          if (!tireStore.indexNames.contains(name)) {
+            tireStore.createIndex(name, keyPath, { unique: false });
+          }
+        };
+
+        ensureTireIndex('supplier', 'supplier');
+        ensureTireIndex('brand', 'brand');
+        ensureTireIndex('model', 'model');
+        ensureTireIndex('title', 'title');
+        ensureTireIndex('photoUrl', 'photoUrl');
+        ensureTireIndex('width', 'width');
+        ensureTireIndex('profile', 'profile');
+        ensureTireIndex('diameter', 'diameter');
+        ensureTireIndex('season', 'season');
+        ensureTireIndex('spikes', 'spikes');
+        ensureTireIndex('price', 'price');
+        ensureTireIndex('amount', 'amount');
       };
     });
   }
@@ -442,6 +455,9 @@ class IndexedDBService {
         }
         if (!discStore.indexNames.contains('brand')) {
           discStore.createIndex('brand', 'brand', { unique: false });
+        }
+        if (!discStore.indexNames.contains('model')) {
+          discStore.createIndex('model', 'model', { unique: false });
         }
         if (!discStore.indexNames.contains('title')) {
           discStore.createIndex('title', 'title', { unique: false });
