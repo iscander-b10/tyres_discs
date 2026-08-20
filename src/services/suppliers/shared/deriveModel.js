@@ -53,3 +53,20 @@ export const normalizeModelText = (model) => {
   const text = String(model ?? '').trim();
   return text || null;
 };
+
+/**
+ * Brand + model for display title without doubling when model already starts with brand
+ * (e.g. Nordman + Nordman 5 → "Nordman 5").
+ */
+export const joinBrandAndModel = (brand, model) => {
+  const brandStr = String(brand ?? '').trim();
+  const modelStr = String(model ?? '').trim();
+  if (!modelStr) return brandStr;
+  if (!brandStr) return modelStr;
+
+  const escaped = brandStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (new RegExp(`^${escaped}(?=\\s|$)`, 'i').test(modelStr)) {
+    return modelStr;
+  }
+  return `${brandStr} ${modelStr}`;
+};

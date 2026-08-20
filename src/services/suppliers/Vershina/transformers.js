@@ -1,5 +1,5 @@
 import { calculateSellingPrice, getMargin } from '../../dataTransformers';
-import { deriveModelFromTitle, normalizeModelText } from '../shared/deriveModel';
+import { joinBrandAndModel, normalizeModelText } from '../shared/deriveModel';
 
 const normalizeBrand = (brand) => {
   const trimmed = String(brand).trim();
@@ -40,11 +40,11 @@ export const transformTyres = (rawData) => {
 
   return tyresArray.map((tyre) => {
     const normalizedBrand = normalizeBrand(tyre.brand);
-    const model = deriveModelFromTitle(normalizeModel(tyre.model), normalizedBrand, { stripIndices: false });
+    const model = normalizeModel(tyre.model);
     const margin = getMargin(normalizedBrand);
     const sellingPrice = calculateSellingPrice(tyre.price_opt, margin);
     const rim = parseDiameter(tyre.diameter, tyre.commercial);
-    const newTitle = `${normalizedBrand} ${model ?? ''} ${tyre.load_speed_index}`.replace(/\s+/g, ' ').trim();
+    const newTitle = `${joinBrandAndModel(normalizedBrand, model)} ${tyre.load_speed_index}`.replace(/\s+/g, ' ').trim();
     const sizeTitle = `${tyre.width}/${tyre.height}${rim}`; 
     return {
       id: `vershina_${tyre.cae}`,

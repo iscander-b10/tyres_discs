@@ -1,5 +1,5 @@
 import { calculateSellingPrice, getMargin } from '../../dataTransformers';
-import { deriveModelFromTitle, normalizeModelText } from '../shared/deriveModel';
+import { joinBrandAndModel, normalizeModelText } from '../shared/deriveModel';
 
 const parseSeason = (season) => season === 'Зимняя' ? 'w' : 's';
 const parseSpikes = (spikes) => spikes === 'Да';
@@ -37,10 +37,10 @@ export const transformTyres = (rawData) => {
   }
   return rawData.tires.map((tyre) => {
       const normalizedBrand = normalizeBrand(tyre.brand);
-      const model = deriveModelFromTitle(tyre.model, normalizedBrand, { stripIndices: false });
+      const model = normalizeModelText(tyre.model);
       const margin = getMargin(normalizedBrand);
       const sellingPrice = calculateSellingPrice(tyre.price_krd, margin);
-      const newTitle = `${normalizedBrand} ${model ?? ''} ${tyre.load_index}${tyre.speed_index}`.replace(/\s+/g, ' ').trim();
+      const newTitle = `${joinBrandAndModel(normalizedBrand, model)} ${tyre.load_index}${tyre.speed_index}`.replace(/\s+/g, ' ').trim();
       const normalizeDiameter = (diameter) => {
         let d = String(diameter).replace(/Z/gi, ''); // убираем Z (в любом регистре)
         d = d.trim();
