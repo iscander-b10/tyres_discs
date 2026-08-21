@@ -74,7 +74,10 @@ const TiresSearchParameters = memo(() => {
 
   useEffect(() => {
     loadAvailableParameters(buildFiltersFromFormValues(form.getFieldsValue()));
-    // Перезагрузка опций только при обновлении каталога, не при каждой смене form
+    // Перезапуск активного поиска без сброса фильтров (после cloud/local обновления IDB)
+    if (searchResults !== null) {
+      handleSearch(form.getFieldsValue());
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [catalogDataVersion]);
 

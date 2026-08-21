@@ -206,7 +206,7 @@
 @media (max-width: 768px) {
   .site-footer__inner {
     padding-block: $space-5;
-    /* Clear floating SideBar / mobile chrome over the credit strip */
+    /* Clear floating mode toggle / mobile chrome over the credit strip */
     padding-bottom: calc(#{$space-5} + 72px);
   }
 

@@ -122,8 +122,8 @@ export function compactSupplierLoadResults(results = []) {
 }
 
 /**
- * Пишет в логи Cloud Function одно событие кнопки «Загрузить данные».
- * Не блокирует загрузку каталога.
+ * Пишет в логи Cloud Function событие метрики загрузки каталога (маршрут /v2/metrics/load).
+ * На UI больше не вызывается — autosync без toast’ов; хелпер оставлен для отладки/ручных вызовов.
  */
 export function reportCatalogLoadMetric({
   event,

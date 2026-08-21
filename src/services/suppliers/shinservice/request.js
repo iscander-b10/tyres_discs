@@ -1,11 +1,11 @@
 import { fetchWithRetry } from '../../../utils/fetchSupplier';
 
-const API_URL = process.env.REACT_APP_SHINSERVIVE_TYRES_URL;
-const DISC_API_URL = process.env.REACT_APP_SHINSERVIVE_DISCS_URL;
+const API_URL = process.env.REACT_APP_SHINSERVICE_TYRES_URL?.trim() || '';
+const DISC_API_URL = process.env.REACT_APP_SHINSERVICE_DISCS_URL?.trim() || '';
 
 export const requestShinServiceTyres = async () => {
   if (!API_URL) {
-    throw new Error('REACT_APP_SHINSERVIVE_TYRES_URL не определен в переменных окружения');
+    throw new Error('REACT_APP_SHINSERVICE_TYRES_URL не определен в переменных окружения');
   }
 
   const response = await fetchWithRetry(API_URL);
@@ -19,7 +19,7 @@ export const requestShinServiceTyres = async () => {
 
 export const requestShinServiceDiscs = async () => {
   if (!DISC_API_URL) {
-    throw new Error('REACT_APP_SHINSERVIVE_DISCS_URL не определен в переменных окружения');
+    throw new Error('REACT_APP_SHINSERVICE_DISCS_URL не определен в переменных окружения');
   }
 
   const response = await fetchWithRetry(DISC_API_URL);

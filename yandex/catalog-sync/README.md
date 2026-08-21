@@ -1,0 +1,206 @@
+# Yandex Cloud Function: catalog-sync
+
+Автосинхронизация каталога поставщиков → Yandex Object Storage → фронт читает meta/snapshot.
+
+## Что делает
+
+По Timer (Europe/Moscow): **08:00, 09:30, 12:00, 15:00**
+
+1. Тянет тех же 5 поставщиков, что фронт (`src/services/suppliers/*`), с **прямыми** upstream URL (без CORS-прокси).
+2. Нормализует теми же `transform*` (бандлятся из репозитория).
+3. **Частичный успех:** успешных обновляет в снимке; у упавших оставляет предыдущую удачную версию поставщика.
+4. Пишет в Object Storage:
+   - `stores/{storeId}/meta.json`
+   - `stores/{storeId}/snapshot.json`
+5. Логирует JSON: `catalog-sync-start` / `catalog-sync-finish`.
+6. Telegram: если заданы `TELEGRAM_BOT_TOKEN` и `TELEGRAM_CHAT_ID` — одно короткое сообщение; иначе skip. Сбой Telegram **не** откатывает снимок.
+
+`storeId` по умолчанию: **ElistaIvanor**.
+
+## Формат meta
+
+```json
+{
+  "storeId": "ElistaIvanor",
+  "version": "2026-08-20T08:00:00+03:00",
+  "slot": "08:00",
+  "suppliers": [
+    { "key": "shinservice", "label": "Шинсервис", "ok": true },
+    { "key": "semisotnov", "label": "Семисотнов", "ok": false, "error": "HTTP 500", "keptPrevious": true }
+  ],
+  "okCount": 4,
+  "failCount": 1
+}
+```
+
+`version` — ISO слота МСК (лексикографически сравнима).
+
+## Формат snapshot
+
+```json
+{
+  "storeId": "ElistaIvanor",
+  "version": "2026-08-20T08:00:00+03:00",
+  "slot": "08:00",
+  "suppliers": {
+    "shinservice": {
+      "key": "shinservice",
+      "label": "Шинсервис",
+      "ok": true,
+      "tyres": [ /* записи как в IndexedDB */ ],
+      "discs": []
+    }
+  }
+}
+```
+
+## 1. Bucket Object Storage
+
+В консоли Yandex Cloud → Object Storage → создать бакет, например:
+
+- имя: `tyres-discs-catalog-elista` (должно быть глобально уникальным)
+- доступ: **закрытый** (чтение через API Gateway + SA)
+
+Ключи появятся после первого sync.
+
+CLI (пример):
+
+```powershell
+yc storage bucket create --name tyres-discs-catalog-elista --default-storage-class standard --max-size 0
+```
+
+## 2. Сервисный аккаунт
+
+Нужны права:
+
+| Роль | Зачем |
+| --- | --- |
+| `storage.editor` на бакет (или folder) | запись/чтение meta+snapshot функцией |
+| `storage.viewer` на бакет для SA API Gateway | отдача meta/snapshot через Gateway |
+| `serverless.functions.invoker` | Timer → функция |
+| `lockbox.payloadViewer` (опционально) | если секреты Telegram в Lockbox |
+
+Создайте **статический ключ доступа** к Object Storage для SA функции и сохраните Access Key / Secret Key.
+
+## 3. Cloud Function
+
+1. Создайте функцию `catalog-sync` (runtime Node.js 20, память ≥ 1024 МБ, timeout ≥ 300 с).
+2. Привяжите сервисный аккаунт.
+3. Env (обязательные):
+
+| Переменная | Пример |
+| --- | --- |
+| `STORE_ID` | `ElistaIvanor` |
+| `CATALOG_BUCKET` | `tyres-discs-catalog-elista` |
+| `AWS_ACCESS_KEY_ID` | ключ SA |
+| `AWS_SECRET_ACCESS_KEY` | секрет SA |
+| `AWS_REGION` | `ru-central1` |
+| `S3_ENDPOINT` | `https://storage.yandexcloud.net` |
+
+URL поставщиков — **полные https://…** (не `/api/...`):
+
+| Переменная | Альтернатива (как во фронте) |
+| --- | --- |
+| `SHINSERVICE_TYRES_URL` | `REACT_APP_SHINSERVICE_TYRES_URL` |
+| `SHINSERVICE_DISCS_URL` | `REACT_APP_SHINSERVICE_DISCS_URL` |
+| `SEMISOTNOV_TYRES_URL` | `REACT_APP_SEMISOTNOV_TYRES_URL` |
+| `SEMISOTNOV_DISCS_URL` | `REACT_APP_SEMISOTNOV_DISCS_URL` |
+| `FOURTOCHKI_TYRES_URL` | `REACT_APP_4TOCHKI_TYRES_URL` |
+| `SHINASU_URL` | `REACT_APP_SHINASU_URL` |
+| `VERSHINA_TYRES_URL` | `REACT_APP_VERSHINA_TYRES_URL` |
+| `VERSHINA_DISCS_URL` | `REACT_APP_VERSHINA_DISCS_URL` |
+
+Опционально:
+
+| Переменная | Назначение |
+| --- | --- |
+| `UPSTREAM_TIMEOUT_MS` | таймаут fetch (по умолчанию 120000) |
+| `TELEGRAM_BOT_TOKEN` | токен бота (секрет) |
+| `TELEGRAM_CHAT_ID` | chat id владельца |
+
+### Сборка и деплой кода
+
+```powershell
+cd yandex\catalog-sync
+npm install
+.\deploy.ps1 -FunctionId <FUNCTION_ID>
+```
+
+Или вручную: `npm run pack` → `yc serverless function version create ... --entrypoint index.handler --source-path catalog-sync.zip`
+
+## 4. Timer triggers (Europe/Moscow)
+
+Создайте **4** триггера (cron в МСК) на одну функцию, payload = слот:
+
+| Cron (MSK) | Payload |
+| --- | --- |
+| `0 8 * * *` | `08:00` |
+| `30 9 * * *` | `09:30` |
+| `0 12 * * *` | `12:00` |
+| `0 15 * * *` | `15:00` |
+
+В консоли: Trigger → Timer → timezone `Europe/Moscow` → invoke function → payload строка слота.
+
+CLI (пример одного слота):
+
+```powershell
+yc serverless trigger create timer `
+  --name catalog-sync-0800 `
+  --cron-expression "0 8 * * *" `
+  --timezone Europe/Moscow `
+  --invoke-function-id <FUNCTION_ID> `
+  --invoke-function-service-account-id <SA_ID> `
+  --invoke-function-payload "08:00"
+```
+
+## 5. API Gateway
+
+Маршруты добавлены в [`../supplier-proxy/apigw.yaml`](../supplier-proxy/apigw.yaml) (существующий proxy **не ломается**):
+
+- `GET /v2/catalog/{storeId}/meta` → Object Storage `stores/{storeId}/meta.json`
+- `GET /v2/catalog/{storeId}/snapshot` → Object Storage `stores/{storeId}/snapshot.json`
+
+Перед деплоем шлюза подставьте:
+
+- `CATALOG_BUCKET` (default в variables)
+- `service_account_id` gateway с правом читать бакет
+
+```powershell
+.\yandex\supplier-proxy\deploy.ps1
+.\yandex\catalog-sync\verify.ps1
+```
+
+Эквивалент для фронта:
+
+- meta: `{GATEWAY}/v2/catalog/ElistaIvanor/meta`
+- snapshot: `{GATEWAY}/v2/catalog/ElistaIvanor/snapshot`
+
+## 6. Ручной invoke
+
+```powershell
+yc serverless function invoke --id <FUNCTION_ID> --data "{\"slot\":\"08:00\"}"
+```
+
+Смотрите логи функции: фильтр `catalog-sync-finish`.
+
+## 7. Telegram (включить позже)
+
+1. Создайте бота у [@BotFather](https://t.me/BotFather) → получите токен.
+2. Напишите боту / добавьте в чат, узнайте `chat_id` (например через `@userinfobot` или getUpdates).
+3. В секретах/env функции задайте:
+   - `TELEGRAM_BOT_TOKEN`
+   - `TELEGRAM_CHAT_ID`
+4. Перевыпустите версию функции. Без этих переменных sync **успешен**, Telegram просто skip.
+
+Формат сообщения: `catalog ElistaIvanor 08:00 ok=4 fail=1 fail:semisotnov`
+
+## Локальная сборка без деплоя
+
+```powershell
+cd yandex\catalog-sync
+npm install
+npm run build
+# dist/index.js — бандл для Cloud Function
+```
+
+Не ломает `yandex/supplier-proxy` и локальный `src/setupProxy.js`.

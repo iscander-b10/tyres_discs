@@ -12,8 +12,9 @@ import DiscsSearchParameters from './components/DiscsSearchParameters/DiscsSearc
 import BasketPage from './components/Basket/BasketPage';
 import LoginPage from './components/LoginPage/LoginPage';
 import LandingPage from './components/LandingPage/LandingPage';
-import SideBar from './components/SideBar/SideBar';
+import ModeToggle from './components/ModeToggle/ModeToggle';
 import ScrollToTop from './components/ScrollToTop/ScrollToTop';
+import { CatalogSyncHost } from './services/catalogSync/CatalogSyncHost';
 import './App.scss';
 
 function loginRedirectState(location) {
@@ -100,7 +101,7 @@ function AppFrame({ appearance = 'light', onAppearanceChange }) {
         </Layout>
 
         <SiteFooter />
-        {isAuthenticated ? <SideBar /> : null}
+        {isAuthenticated ? <ModeToggle /> : null}
         <ScrollToTop />
         <Outlet />
       </Layout>
@@ -121,6 +122,7 @@ function App({ appearance = 'light', onAppearanceChange }) {
       <AuthProvider>
         <AppShellProvider>
           <CartProvider>
+            <CatalogSyncHost />
             <AppReady>
               <Routes>
                 <Route

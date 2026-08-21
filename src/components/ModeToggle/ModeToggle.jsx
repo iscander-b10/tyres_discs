@@ -2,16 +2,16 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import ReactDOM from 'react-dom';
 import { Flex, Switch } from 'antd';
 import { useAppShell } from '../../app/AppShellContext';
-import LoadingData from '../LoadingData/LoadingData';
 import HoverTooltip from '../shared/HoverTooltip';
-import './SideBar.scss';
+import './ModeToggle.scss';
 
-const POSITION_STORAGE_KEY = 'ivanor-sidebar-position';
+const POSITION_STORAGE_KEY = 'ivanor.mode-toggle.position';
+const LEGACY_POSITION_STORAGE_KEY = 'ivanor-sidebar-position';
 const EDGE_MARGIN = 0;
 const DRAG_THRESHOLD_PX = 5;
 
 const INTERACTIVE_SELECTOR =
-  '.ant-switch, .control-button, button, a, input, textarea, select, [data-no-drag]';
+  '.ant-switch, button, a, input, textarea, select, [data-no-drag]';
 
 function clampPosition(left, top, width, height) {
   const maxLeft = Math.max(EDGE_MARGIN, window.innerWidth - width - EDGE_MARGIN);
@@ -76,7 +76,9 @@ function fromStored(parsed, width, height) {
 
 function loadStoredPosition(width, height) {
   try {
-    const raw = window.localStorage.getItem(POSITION_STORAGE_KEY);
+    const raw =
+      window.localStorage.getItem(POSITION_STORAGE_KEY) ||
+      window.localStorage.getItem(LEGACY_POSITION_STORAGE_KEY);
     if (!raw) return null;
     return fromStored(JSON.parse(raw), width, height);
   } catch {
@@ -90,6 +92,7 @@ function savePosition(left, top, width, height) {
       POSITION_STORAGE_KEY,
       JSON.stringify(toRatios(left, top, width, height)),
     );
+    window.localStorage.removeItem(LEGACY_POSITION_STORAGE_KEY);
   } catch {
     /* ignore */
   }
@@ -99,9 +102,9 @@ function isInteractiveTarget(target) {
   return Boolean(target?.closest?.(INTERACTIVE_SELECTOR));
 }
 
-function SideBar() {
-  const { clientMode, setClientMode, bumpCatalogDataVersion } = useAppShell();
-  const asideRef = useRef(null);
+function ModeToggle() {
+  const { clientMode, setClientMode } = useAppShell();
+  const panelRef = useRef(null);
   const controlsRef = useRef(null);
   const positionRef = useRef(null);
   const dragRef = useRef(null);
@@ -121,14 +124,14 @@ function SideBar() {
   }, []);
 
   const clearDragTransform = useCallback(() => {
-    const el = asideRef.current;
+    const el = panelRef.current;
     if (!el) return;
     el.style.transform = '';
     el.style.willChange = '';
   }, []);
 
   const writeRestingPosition = useCallback((left, top) => {
-    const el = asideRef.current;
+    const el = panelRef.current;
     if (!el) return;
     el.style.left = `${left}px`;
     el.style.top = `${top}px`;
@@ -136,7 +139,7 @@ function SideBar() {
   }, []);
 
   const writeDragOffset = useCallback((left, top, originLeft, originTop) => {
-    const el = asideRef.current;
+    const el = panelRef.current;
     if (!el) return;
     el.style.transform = `translate3d(${left - originLeft}px, ${top - originTop}px, 0)`;
   }, []);
@@ -221,7 +224,7 @@ function SideBar() {
   }, [isSnapping, position]);
 
   useEffect(() => {
-    const asideEl = asideRef.current;
+    const panelEl = panelRef.current;
 
     return () => {
       if (rafRef.current != null) {
@@ -235,7 +238,7 @@ function SideBar() {
       window.removeEventListener('pointerup', drag.onPointerUp);
       window.removeEventListener('pointercancel', drag.onPointerUp);
       dragRef.current = null;
-      asideEl?.classList.remove('is-dragging');
+      panelEl?.classList.remove('is-dragging');
     };
   }, []);
 
@@ -292,7 +295,7 @@ function SideBar() {
       if (!drag.moved) {
         if (Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
         drag.moved = true;
-        const el = asideRef.current;
+        const el = panelRef.current;
         if (el) {
           el.style.willChange = 'transform';
         }
@@ -354,8 +357,8 @@ function SideBar() {
     ? 'Переключить на режим менеджера'
     : 'Переключить на режим клиента';
 
-  const sidebarClassName = [
-    'floating-sidebar',
+  const panelClassName = [
+    'floating-mode-toggle',
     isDragging ? 'is-dragging' : '',
     isSnapping ? 'is-snapping' : '',
     position ? 'is-positioned' : '',
@@ -365,9 +368,9 @@ function SideBar() {
 
   return ReactDOM.createPortal(
     <aside
-      ref={asideRef}
-      className={sidebarClassName}
-      aria-label="Служебные инструменты"
+      ref={panelRef}
+      className={panelClassName}
+      aria-label="Переключение режима клиента и менеджера"
       style={
         position
           ? { left: position.left, top: position.top }
@@ -376,16 +379,12 @@ function SideBar() {
     >
       <Flex
         ref={controlsRef}
-        className="header-controls"
+        className="mode-toggle-controls"
         align="center"
         gap={8}
         onPointerDown={onPointerDown}
         onClickCapture={onClickCapture}
       >
-        <Flex className="control-button" align="center" justify="center" data-no-drag>
-          <LoadingData onDataLoaded={bumpCatalogDataVersion} />
-        </Flex>
-
         <HoverTooltip title={targetModeLabel} placement="top">
           <Switch
             className="client-mode-switch"
@@ -401,4 +400,4 @@ function SideBar() {
   );
 }
 
-export default SideBar;
+export default ModeToggle;

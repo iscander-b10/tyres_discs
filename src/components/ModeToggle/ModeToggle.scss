@@ -1,10 +1,10 @@
 @use '../../styles/tokens' as *;
 
-.floating-sidebar {
+.floating-mode-toggle {
   position: fixed;
   left: 0;
   bottom: 0;
-  z-index: $z-sidebar;
+  z-index: $z-mode-toggle;
   pointer-events: none;
 
   &.is-positioned {
@@ -22,12 +22,11 @@
   &.is-dragging {
     transition: none;
 
-    .header-controls {
+    .mode-toggle-controls {
       cursor: grabbing;
       user-select: none;
       touch-action: none;
 
-      .control-button,
       .client-mode-switch {
         pointer-events: none;
       }
@@ -35,7 +34,7 @@
   }
 }
 
-.header-controls {
+.mode-toggle-controls {
   pointer-events: auto;
   display: flex;
   align-items: center;
@@ -48,13 +47,6 @@
   cursor: grab;
   touch-action: none;
   transition: background-color 0.2s ease;
-}
-
-.control-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
 }
 
 .client-mode-switch.ant-switch {
@@ -82,7 +74,7 @@
 }
 
 @media (max-width: 768px) {
-  .header-controls {
+  .mode-toggle-controls {
     padding: 6px 10px;
     transform: scale(0.92);
     transform-origin: top left;

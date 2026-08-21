@@ -1,0 +1,196 @@
+/**
+ * Автосинхронизация каталога из Yandex Object Storage (через API Gateway).
+ *
+ * Триггеры: старт приложения, слот+10 МСК, visibilitychange→visible, online.
+ * Без UI-кнопки и без toast-уведомлений — только console при отладке.
+ */
+
+import indexedDBService from '../indexedDBService';
+
+const STORE_ID = (process.env.REACT_APP_STORE_ID || 'ElistaIvanor').trim();
+const LOCAL_VERSION_KEY = 'ivanor.catalog.cloudVersion';
+
+/** Проверки meta в МСК: слот Timer + 10 минут. */
+export const CATALOG_SYNC_CHECK_SLOTS = [
+  { hour: 8, minute: 10 },
+  { hour: 9, minute: 40 },
+  { hour: 12, minute: 10 },
+  { hour: 15, minute: 10 },
+];
+
+function catalogApiBase() {
+  const explicit = process.env.REACT_APP_CATALOG_API_BASE?.trim();
+  if (explicit) return explicit.replace(/\/$/, '');
+  const cors = process.env.REACT_APP_CORS_PROXY?.trim();
+  if (cors) return cors.replace(/\/$/, '');
+  return '';
+}
+
+export function isCatalogSyncConfigured() {
+  return Boolean(catalogApiBase() && STORE_ID);
+}
+
+export function getCatalogStoreId() {
+  return STORE_ID;
+}
+
+function metaUrl() {
+  return `${catalogApiBase()}/v2/catalog/${encodeURIComponent(STORE_ID)}/meta`;
+}
+
+function snapshotUrl() {
+  return `${catalogApiBase()}/v2/catalog/${encodeURIComponent(STORE_ID)}/snapshot`;
+}
+
+export function getLocalCatalogVersion() {
+  try {
+    return window.localStorage.getItem(LOCAL_VERSION_KEY) || '';
+  } catch {
+    return '';
+  }
+}
+
+export function setLocalCatalogVersion(version) {
+  try {
+    if (version) {
+      window.localStorage.setItem(LOCAL_VERSION_KEY, version);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+function getMoscowParts(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Moscow',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).formatToParts(date);
+
+  const map = {};
+  for (const p of parts) {
+    if (p.type !== 'literal') map[p.type] = p.value;
+  }
+  if (map.hour === '24') map.hour = '00';
+  return map;
+}
+
+/**
+ * Миллисекунды до ближайшего слота проверки (сегодня/завтра, МСК).
+ */
+export function msUntilNextSyncCheck(now = new Date()) {
+  const m = getMoscowParts(now);
+  const nowMin = Number(m.hour) * 60 + Number(m.minute);
+  const nowSec = Number(m.second) || 0;
+
+  let bestMin = null;
+  for (const slot of CATALOG_SYNC_CHECK_SLOTS) {
+    const slotMin = slot.hour * 60 + slot.minute;
+    if (slotMin > nowMin || (slotMin === nowMin && nowSec === 0)) {
+      bestMin = slotMin;
+      break;
+    }
+  }
+
+  const dayMs = 24 * 60 * 60 * 1000;
+  if (bestMin == null) {
+    // следующий день — первый слот 08:10
+    const first = CATALOG_SYNC_CHECK_SLOTS[0];
+    const minutesUntilMidnight = 24 * 60 - nowMin;
+    const minutesAfterMidnight = first.hour * 60 + first.minute;
+    return (minutesUntilMidnight + minutesAfterMidnight) * 60 * 1000 - nowSec * 1000;
+  }
+
+  const deltaMin = bestMin - nowMin;
+  return deltaMin * 60 * 1000 - nowSec * 1000;
+}
+
+/**
+ * @param {object} snapshot
+ */
+export async function applyCatalogSnapshot(snapshot) {
+  const entries = Object.values(snapshot?.suppliers || {});
+  const tasks = [];
+
+  for (const entry of entries) {
+    if (!entry) continue;
+    if (Array.isArray(entry.tyres) && entry.tyres.length > 0) {
+      tasks.push(indexedDBService.saveTires(entry.tyres));
+    }
+    if (Array.isArray(entry.discs) && entry.discs.length > 0) {
+      tasks.push(indexedDBService.saveDiscs(entry.discs));
+    }
+  }
+
+  if (tasks.length === 0) return { saved: false };
+
+  const results = await Promise.allSettled(tasks);
+  const failed = results.filter((r) => r.status === 'rejected');
+  if (failed.length > 0) {
+    failed.forEach((r) => console.error('catalog sync save error:', r.reason));
+    throw new Error(`Не удалось сохранить снимок (${failed.length} ошибок)`);
+  }
+
+  return { saved: true };
+}
+
+async function fetchJson(url) {
+  const res = await fetch(url, { cache: 'no-store' });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+/**
+ * Сверка meta → при новой version скачать snapshot → IndexedDB.
+ * @returns {Promise<{ status: 'skipped'|'up-to-date'|'applied'|'offline'|'disabled'|'error', version?: string, error?: string }>}
+ */
+export async function checkAndSyncCatalog({ force = false } = {}) {
+  if (!isCatalogSyncConfigured()) {
+    return { status: 'disabled' };
+  }
+
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return { status: 'offline' };
+  }
+
+  try {
+    const meta = await fetchJson(metaUrl());
+    if (!meta?.version) {
+      return { status: 'skipped', error: 'meta empty' };
+    }
+
+    const local = getLocalCatalogVersion();
+    if (!force && local && meta.version <= local) {
+      return { status: 'up-to-date', version: meta.version };
+    }
+
+    const snapshot = await fetchJson(snapshotUrl());
+    if (!snapshot?.version) {
+      return { status: 'skipped', error: 'snapshot empty' };
+    }
+
+    if (!force && local && snapshot.version <= local) {
+      return { status: 'up-to-date', version: snapshot.version };
+    }
+
+    await applyCatalogSnapshot(snapshot);
+    setLocalCatalogVersion(snapshot.version);
+
+    console.info('catalog sync applied', {
+      storeId: STORE_ID,
+      version: snapshot.version,
+      slot: snapshot.slot,
+    });
+
+    return { status: 'applied', version: snapshot.version };
+  } catch (err) {
+    console.warn('catalog sync failed:', err?.message || err);
+    return { status: 'error', error: err?.message || String(err) };
+  }
+}

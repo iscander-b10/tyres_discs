@@ -34,15 +34,33 @@ npm start
 REACT_APP_CORS_PROXY=https://<ваш-api-gateway>.apigw.yandexcloud.net
 ```
 
-Фронт сам добавляет префикс `/v2`. Старые пути шлюза закрыты (403), поэтому кнопка «Загрузить данные» на незакрытых вкладках со старым сайтом перестаёт работать сразу после деплоя `apigw.yaml`.
+Фронт сам добавляет префикс `/v2`. Старые пути шлюза закрыты (403) — после деплоя `apigw.yaml` клиенты со старым бандлом получают 403 на устаревшие маршруты.
 
 Деплой и проверка прокси — см. [`yandex/supplier-proxy/README.md`](yandex/supplier-proxy/README.md).
 
+## Автосинхронизация каталога (Yandex Object Storage)
+
+По расписанию Cloud Function [`yandex/catalog-sync/`](yandex/catalog-sync/) пишет снимок прайсов в Object Storage. Фронт при старте и около `*:10` МСК (слот Timer + 10 мин) сверяет `meta` и при новой `version` подтягивает `snapshot` в IndexedDB.
+
+В `.env` / `.env.production`:
+
+```env
+# Обычно тот же origin, что и CORS_PROXY (можно оставить пустым — возьмётся CORS_PROXY)
+REACT_APP_CATALOG_API_BASE=https://<ваш-api-gateway>.apigw.yandexcloud.net
+REACT_APP_STORE_ID=ElistaIvanor
+```
+
+Каталог на сайте подтягивается автоматически из Object Storage (без ручной кнопки). Локальный `setupProxy` и `supplier-proxy` не меняются по смыслу — только добавляются маршруты `/v2/catalog/...` в `apigw.yaml`.
+
+Полный деплой функции, Timer, bucket и Telegram (опционально) — [`yandex/catalog-sync/README.md`](yandex/catalog-sync/README.md).
+
 ## Структура
 
-- `src/components/` — UI (поиск шин/дисков, карточки, загрузка каталога)
+- `src/components/` — UI (поиск шин/дисков, карточки, переключатель режима)
 - `src/services/suppliers/` — адаптеры поставщиков и оркестратор загрузки
+- `src/services/catalogSync/` — автосинхронизация снимка из Yandex
 - `src/services/indexedDBService.js` — локальный кэш каталога
 - `src/setupProxy.js` — dev-прокси `/api/...` → хосты поставщиков
 - `yandex/supplier-proxy/` — production CORS-прокси (Yandex Cloud)
+- `yandex/catalog-sync/` — Timer-синхронизация каталога → Object Storage
 - `yandex/saas-api/` — отдельный SaaS API (мультиарендность), опционально

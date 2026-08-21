@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: tyres-discs supplier proxy
-  version: 2.1.0
+  version: 2.2.0
 
 # Глобальный CORS (заменяет CORS-заголовки из облачной функции для всех маршрутов)
 x-yc-apigateway-cors:
@@ -20,6 +20,9 @@ x-yc-apigateway:
     SUPPLIER_PROXY_FUNCTION_ID:
       default: "d4ehp73ttejr687820if" # ← замени на актуальный ID облачной функции
       description: "Yandex Cloud Function ID for supplier-proxy"
+    CATALOG_BUCKET:
+      default: "tyres-discs-catalog" # ← имя бакета Object Storage (catalog-sync)
+      description: "Object Storage bucket for catalog meta/snapshot"
 
 paths:
   # Старые публичные пути закрыты: вкладки со старым JS больше не грузят прайсы.
@@ -222,11 +225,11 @@ paths:
         url: https://z34.ru/{path}
         method: GET
         query:
-          '*': '*'
+          "*": "*"
         headers:
           Host: z34.ru
-          Accept: '{Accept}'
-          '*': '*'
+          Accept: "{Accept}"
+          "*": "*"
         omitEmptyHeaders: true
 
   /v2/vershina/{path+}:
@@ -246,12 +249,54 @@ paths:
         url: https://vershinatyres.ru/{path}
         method: GET
         query:
-          '*': '*'
+          "*": "*"
         headers:
           Host: vershinatyres.ru
-          Accept: '{Accept}'
-          '*': '*'
+          Accept: "{Accept}"
+          "*": "*"
         omitEmptyHeaders: true
         timeouts:
           connect: 5
           read: 60
+
+  # =========================================================================
+  #  Каталог (Object Storage) — пишет yandex/catalog-sync Timer
+  # =========================================================================
+  /v2/catalog/{storeId}/meta:
+    get:
+      summary: Метаданные последнего снимка каталога
+      parameters:
+        - name: storeId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Например ElistaIvanor
+      responses:
+        "200":
+          description: meta.json
+        "404":
+          description: Снимок ещё не создан
+      x-yc-apigateway-integration:
+        type: object_storage
+        bucket: ${var.CATALOG_BUCKET}
+        object: stores/{storeId}/meta.json
+
+  /v2/catalog/{storeId}/snapshot:
+    get:
+      summary: Полный снимок каталога (шины/диски по поставщикам)
+      parameters:
+        - name: storeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: snapshot.json
+        "404":
+          description: Снимок ещё не создан
+      x-yc-apigateway-integration:
+        type: object_storage
+        bucket: ${var.CATALOG_BUCKET}
+        object: stores/{storeId}/snapshot.json
