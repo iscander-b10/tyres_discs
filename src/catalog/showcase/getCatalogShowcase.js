@@ -1,4 +1,5 @@
 import indexedDBService from '../../services/indexedDBService';
+import { isIkonBrand } from '../../components/shared/ikonPromoBadges';
 import { SHOWCASE_CONFIG } from './showcaseConfig';
 import { buildTireShowcase } from './buildTireShowcase';
 import { buildDiscShowcase } from './buildDiscShowcase';
@@ -14,6 +15,8 @@ const loadTirePayload = async () => {
     candidateLimit: cfg.candidateLimit,
     minAmount: cfg.minAmount,
     supplier: SHOWCASE_CONFIG.showcaseSupplier,
+    // Ikon первыми в пуле: уникальные модели не отрезаются ранним лимитом 480.
+    preferItem: isIkonBrand,
   });
 };
 

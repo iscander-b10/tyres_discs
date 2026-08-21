@@ -1,3 +1,5 @@
+import { mergePreferredShowcaseCandidates } from '../catalog/showcase/preferredCandidates';
+
 const isActiveFilterValue = (value) => {
   if (value === undefined || value === null || value === '') return false;
   if (Array.isArray(value)) return value.length > 0;
@@ -117,6 +119,9 @@ const addUniqueValue = (set, value) => {
  * Если store не пуст, но у `supplier` нет строк / in-stock кандидатов —
  * `isEmpty: false` и `candidates: []`: полки пустые, чипы остаются.
  * При переданном `supplier` обходим только индекс `supplier` (чужие не попадают в пул).
+ *
+ * `preferItem(item)` — позиции идут в приоритетный пул первым; при его наличии
+ * курсор не обрывается на limit, пока не просмотрены все preferred (гарантия Ikon).
  */
 const collectShowcaseCandidatesFromStore = (
   store,
@@ -124,6 +129,7 @@ const collectShowcaseCandidatesFromStore = (
     candidateLimit = 480,
     minAmount = 1,
     supplier = null,
+    preferItem = null,
   } = {}
 ) =>
   new Promise((resolve, reject) => {
@@ -140,8 +146,10 @@ const collectShowcaseCandidatesFromStore = (
         return;
       }
 
-      const candidates = [];
+      const preferred = [];
+      const others = [];
       let settled = false;
+      const hasPrefer = typeof preferItem === 'function';
 
       const finish = (payload) => {
         if (settled) return;
@@ -150,14 +158,19 @@ const collectShowcaseCandidatesFromStore = (
       };
 
       const considerItem = (item) => {
-        if (candidates.length >= candidateLimit) return;
-
         if (supplier && item?.supplier !== supplier) return;
 
         const amount = Number(item?.amount);
         if (Number.isNaN(amount) || amount < minAmount) return;
 
-        candidates.push(item);
+        if (hasPrefer && preferItem(item)) {
+          preferred.push(item);
+          return;
+        }
+
+        if (others.length < candidateLimit) {
+          others.push(item);
+        }
       };
 
       const useSupplierIndex =
@@ -169,15 +182,28 @@ const collectShowcaseCandidatesFromStore = (
       request.onsuccess = () => {
         const cursor = request.result;
         if (!cursor) {
-          finish({ isEmpty: false, candidates });
+          finish({
+            isEmpty: false,
+            candidates: hasPrefer
+              ? mergePreferredShowcaseCandidates(
+                  preferred,
+                  others,
+                  candidateLimit
+                )
+              : others.slice(0, candidateLimit),
+          });
           return;
         }
 
         considerItem(cursor.value);
-        if (candidates.length >= candidateLimit) {
-          finish({ isEmpty: false, candidates });
+
+        // Без prefer — прежний ранний выход. С prefer — дочитываем store,
+        // чтобы Ikon не отрезались лимитом 480 чужих SKU.
+        if (!hasPrefer && others.length >= candidateLimit) {
+          finish({ isEmpty: false, candidates: others.slice(0, candidateLimit) });
           return;
         }
+
         cursor.continue();
       };
 
@@ -611,8 +637,9 @@ class IndexedDBService {
   }
 
   /**
-   * Кандидаты для автовитрины шин: ранний лимит, без полного getAll в React.
+   * Кандидаты для автовитрины шин: без полного getAll в React.
    * Обычно ограничен `options.supplier` (полки только из Шинсервиса).
+   * `options.preferItem` — приоритетный пул (Ikon) в начале candidates.
    */
   async collectTireShowcaseCandidates(options = {}) {
     if (!this.db) await this.openDatabase();

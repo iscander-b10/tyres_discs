@@ -15,7 +15,7 @@ export const normalizeIkonModelText = (value) =>
     .replace(/\s+/g, ' ')
     .trim();
 
-const EXCLUDED_IKON_RE = /\b(?:suv|suf|sav|eco\s*c\s*3)\b/i;
+const EXCLUDED_IKON_RE = /\b(?:suv|suf|sav|eco\s*c\s*3|nordman)\b/i;
 
 export const isExcludedIkonModel = (modelText) =>
   EXCLUDED_IKON_RE.test(normalizeIkonModelText(modelText));

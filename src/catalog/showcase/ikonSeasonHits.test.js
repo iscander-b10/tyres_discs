@@ -51,6 +51,8 @@ describe('ikon season shelf', () => {
       )
     ).toBeNull();
     expect(isExcludedIkonModel('Character Eco SUV')).toBe(true);
+    expect(isExcludedIkonModel('Nordman 7')).toBe(true);
+    expect(isExcludedIkonModel('Nordman RS2')).toBe(true);
     expect(
       resolveIkonSeasonModelKey(
         mk({ title: 'Ikon Character Ice 8 95T', season: 'w' }),
@@ -59,10 +61,22 @@ describe('ikon season shelf', () => {
     ).toBe('Character Ice 8');
     expect(
       resolveIkonSeasonModelKey(
+        mk({ title: 'Ikon Character Snow 2 94R', season: 'w' }),
+        winterWl
+      )
+    ).toBe('Character Snow 2');
+    expect(
+      resolveIkonSeasonModelKey(
+        mk({ title: 'Ikon Autograph Snow 5 94T', season: 'w' }),
+        winterWl
+      )
+    ).toBe('Autograph Snow 5');
+    expect(
+      resolveIkonSeasonModelKey(
         mk({ title: 'Ikon Nordman 7 99T', season: 'w' }),
         winterWl
       )
-    ).toBe('Nordman 7');
+    ).toBeNull();
   });
 
   test('slot formula ~1/3', () => {
@@ -251,7 +265,7 @@ describe('ikon season shelf', () => {
       }),
       mk({
         id: 104,
-        title: 'Ikon Nordman 5 94T',
+        title: 'Ikon Autograph Ice 9 94T',
         season: 'w',
         spikes: true,
       }),

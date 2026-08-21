@@ -35,7 +35,7 @@ export const SHOWCASE_CONFIG = {
     seasonHitsCount: { min: 12, max: 18 },
     /**
      * Whitelist Ikon для партнёрского блока полки «Сейчас в сезоне».
-     * SUV/SUF/SAV и Eco C3 отсекаются в `ikonSeasonHits.js`.
+     * SUV/SUF/SAV, Eco C3 и Nordman (старые имена → Character) отсекаются в `ikonSeasonHits.js`.
      */
     ikonSeasonModelsSummer: [
       'Character Eco',
@@ -45,20 +45,20 @@ export const SHOWCASE_CONFIG = {
       'Character Ultra',
       'Autograph Ultra 2',
     ],
-    /** Зимние: Character Ice/Snow + прежние Nordman-имена в прайсе. */
+    /** Зимние: Character Ice/Snow + Autograph (Nordman в прайсе больше не используем). */
     ikonSeasonModelsWinter: [
       'Character Ice 8',
       'Character Ice 7',
       'Character Ice 5',
       'Character Snow 2',
-      'Nordman 8',
-      'Nordman 7',
-      'Nordman 5',
-      'Nordman RS2',
       'Autograph Ice 9',
       'Autograph Snow Pro 3',
+      'Autograph Snow 5',
     ],
-    /** Кандидаты из IDB (ранний лимит, не весь каталог). */
+    /**
+     * Кандидаты из IDB. Ikon (preferItem) забираются целиком,
+     * остальные — до этого лимита суммарно с Ikon.
+     */
     candidateLimit: 480,
     minAmount: 1,
   },
