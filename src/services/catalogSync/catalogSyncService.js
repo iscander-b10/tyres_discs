@@ -97,7 +97,6 @@ export function msUntilNextSyncCheck(now = new Date()) {
     }
   }
 
-  const dayMs = 24 * 60 * 60 * 1000;
   if (bestMin == null) {
     // следующий день — первый слот 08:10
     const first = CATALOG_SYNC_CHECK_SLOTS[0];

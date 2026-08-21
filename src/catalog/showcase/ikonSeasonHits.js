@@ -53,9 +53,6 @@ export const resolveIkonSeasonModelKey = (item, whitelist = []) => {
   return null;
 };
 
-const sizeKey = (item) =>
-  `${item?.width ?? ''}/${item?.profile ?? ''}/${item?.diameter ?? ''}`;
-
 const brandModelKey = (item) => {
   const brand = normalizeIkonModelText(item?.brand);
   const model = normalizeIkonModelText(modelTextOf(item));
@@ -222,7 +219,6 @@ export const pickMixedSeasonHits = ({
   if (!Array.isArray(pool) || limit <= 0) return [];
 
   const ikonCap = ikonSlotsForLimit(limit);
-  const otherTarget = limit - ikonCap;
 
   const ikonPool = pool.filter((item) => isIkonBrand(item));
   const otherPool = pool.filter((item) => !isIkonBrand(item));
