@@ -8,7 +8,7 @@ import {
   TeamOutlined,
 } from '@ant-design/icons';
 import { Button, Card, Flex, Tooltip } from 'antd';
-import { PATHS } from '../../app/paths';
+import { PATHS, loginLinkState } from '../../app/paths';
 import { SITE_PHONE } from '../../config/site';
 import './LandingPage.scss';
 
@@ -39,7 +39,8 @@ const FEATURES = [
   },
 ];
 
-const LOGIN_STATE = { from: PATHS.tyres };
+/** Единый intent с хедером/футером: post-login → /tyres. */
+const LOGIN_STATE = loginLinkState({ pathname: PATHS.home, search: '' });
 
 function LandingPage() {
   return (

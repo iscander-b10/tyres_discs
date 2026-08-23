@@ -4,7 +4,7 @@ import { ShoppingCartOutlined } from '@ant-design/icons';
 import { ReactComponent as PhoneIcon } from '../../icons/Phone.svg';
 import { ReactComponent as UserIcon } from '../../icons/User.svg';
 import { SITE_NAV_ITEMS, SITE_PHONE } from '../../config/site';
-import { PATHS } from '../../app/paths';
+import { DEFAULT_APP_HOME, PATHS, loginLinkState } from '../../app/paths';
 import { useAppShell } from '../../app/AppShellContext';
 import { useAuth } from '../../auth/AuthContext';
 import { useCart } from '../../cart/CartContext';
@@ -24,14 +24,11 @@ function SiteHeader({
   const { isAuthenticated, logout } = useAuth();
   const { totalQuantity } = useCart();
   const location = useLocation();
-  const loginState =
-    location.pathname === PATHS.login
-      ? location.state
-      : { from: `${location.pathname}${location.search}` };
+  const loginState = loginLinkState(location);
 
   const badgeLabel =
     totalQuantity > 99 ? '99+' : totalQuantity > 0 ? String(totalQuantity) : null;
-  const brandPath = isAuthenticated ? PATHS.tyres : PATHS.home;
+  const brandPath = isAuthenticated ? DEFAULT_APP_HOME : PATHS.home;
 
   return (
     <header className="site-header">

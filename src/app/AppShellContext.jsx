@@ -8,7 +8,7 @@ import React, {
 } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { PATHS } from './paths';
+import { DEFAULT_APP_HOME, PATHS } from './paths';
 
 const CLIENT_MODE_STORAGE_KEY = 'ivanor-client-mode';
 
@@ -33,8 +33,8 @@ export function AppShellProvider({ children }) {
   const [clientMode, setClientModeState] = useState(getInitialClientMode);
   const [catalogDataVersion, setCatalogDataVersion] = useState(0);
   const [sessionResetKey, setSessionResetKey] = useState(0);
-  const [lastCatalogPath, setLastCatalogPath] = useState(PATHS.tyres);
-  const [lastBackgroundPath, setLastBackgroundPath] = useState(PATHS.tyres);
+  const [lastCatalogPath, setLastCatalogPath] = useState(DEFAULT_APP_HOME);
+  const [lastBackgroundPath, setLastBackgroundPath] = useState(DEFAULT_APP_HOME);
 
   useEffect(() => {
     if (pathname === PATHS.tyres || pathname === PATHS.wheels) {
@@ -74,15 +74,15 @@ export function AppShellProvider({ children }) {
   );
 
   const continueSelection = useCallback(() => {
-    navigate(lastCatalogPath === PATHS.wheels ? PATHS.wheels : PATHS.tyres);
+    navigate(lastCatalogPath === PATHS.wheels ? PATHS.wheels : DEFAULT_APP_HOME);
   }, [lastCatalogPath, navigate]);
 
   const handleBrandClick = useCallback(() => {
     setSessionResetKey((key) => key + 1);
     if (isAuthenticated) {
-      setLastCatalogPath(PATHS.tyres);
-      setLastBackgroundPath(PATHS.tyres);
-      navigate(PATHS.tyres);
+      setLastCatalogPath(DEFAULT_APP_HOME);
+      setLastBackgroundPath(DEFAULT_APP_HOME);
+      navigate(DEFAULT_APP_HOME);
       return;
     }
     navigate(PATHS.home);

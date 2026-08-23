@@ -138,6 +138,22 @@ export async function applyCatalogSnapshot(snapshot) {
   return { saved: true };
 }
 
+/** Локальный каталог пуст (после wipe IDB) — нужно качать snapshot даже при совпадении version. */
+async function isLocalCatalogEmpty() {
+  try {
+    const tires = await indexedDBService.collectTireShowcaseCandidates({
+      candidateLimit: 1,
+    });
+    if (!tires?.isEmpty) return false;
+    const discs = await indexedDBService.collectDiscShowcaseCandidates({
+      candidateLimit: 1,
+    });
+    return Boolean(discs?.isEmpty);
+  } catch {
+    return true;
+  }
+}
+
 async function fetchJson(url) {
   const res = await fetch(url, { cache: 'no-store' });
   if (res.status === 404) return null;
@@ -165,7 +181,8 @@ export async function checkAndSyncCatalog({ force = false } = {}) {
     }
 
     const local = getLocalCatalogVersion();
-    if (!force && local && meta.version <= local) {
+    const catalogEmpty = await isLocalCatalogEmpty();
+    if (!force && !catalogEmpty && local && meta.version <= local) {
       return { status: 'up-to-date', version: meta.version };
     }
 
@@ -174,7 +191,7 @@ export async function checkAndSyncCatalog({ force = false } = {}) {
       return { status: 'skipped', error: 'snapshot empty' };
     }
 
-    if (!force && local && snapshot.version <= local) {
+    if (!force && !catalogEmpty && local && snapshot.version <= local) {
       return { status: 'up-to-date', version: snapshot.version };
     }
 

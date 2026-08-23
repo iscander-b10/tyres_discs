@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Button, Form, Input, Modal } from 'antd';
 import { EyeInvisibleOutlined, EyeOutlined } from '@ant-design/icons';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { loginReturnPath, loginDismissPath } from '../../app/paths';
+import { resolveLoginDismissPath, resolvePostLoginPath } from '../../app/paths';
 import { useAuth } from '../../auth/AuthContext';
 import './LoginPage.scss';
 
@@ -22,7 +22,7 @@ function LoginPage() {
   const { isAuthenticated, signIn } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const redirectTo = loginReturnPath(location);
+  const redirectTo = resolvePostLoginPath(location);
   const [form] = Form.useForm();
   const [authError, setAuthError] = useState(false);
   const [reducedMotion] = useState(prefersReducedMotion);
@@ -65,7 +65,7 @@ function LoginPage() {
   };
 
   const handleDismiss = () => {
-    navigate(loginDismissPath(location), { replace: true });
+    navigate(resolveLoginDismissPath(location), { replace: true });
   };
 
   const describedBy = authError ? ERROR_ID : undefined;

@@ -2,7 +2,13 @@ import React from 'react';
 import { Flex, Layout } from 'antd';
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { AppShellProvider, useAppShell } from './app/AppShellContext';
-import { PATHS, ROUTER_BASENAME, overlayBackgroundPage } from './app/paths';
+import {
+  DEFAULT_APP_HOME,
+  PATHS,
+  ROUTER_BASENAME,
+  loginRedirectState,
+  overlayBackgroundPage,
+} from './app/paths';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import { CartProvider } from './cart/CartContext';
 import SiteHeader from './components/SiteHeader/SiteHeader';
@@ -17,10 +23,6 @@ import ScrollToTop from './components/ScrollToTop/ScrollToTop';
 import { CatalogSyncHost } from './services/catalogSync/CatalogSyncHost';
 import './App.scss';
 
-function loginRedirectState(location) {
-  return { from: `${location.pathname}${location.search}` };
-}
-
 function LoginRedirect() {
   const location = useLocation();
   return <Navigate to={PATHS.login} replace state={loginRedirectState(location)} />;
@@ -34,10 +36,11 @@ function RequireAuth() {
   return null;
 }
 
+/** Auth users never reside on marketing `/` — app home is `/tyres`. */
 function HomeRoute() {
   const { isAuthenticated } = useAuth();
   if (isAuthenticated) {
-    return <Navigate to={PATHS.tyres} replace />;
+    return <Navigate to={DEFAULT_APP_HOME} replace />;
   }
   return null;
 }
@@ -52,6 +55,8 @@ function AppFrame({ appearance = 'light', onAppearanceChange }) {
   const location = useLocation();
   const isLogin = location.pathname === PATHS.login;
   const isHome = location.pathname === PATHS.home;
+  const showLanding = isHome && !isAuthenticated;
+  const showCatalog = isAuthenticated && !showLanding;
   const backgroundPage = overlayBackgroundPage(location, lastBackgroundPath);
 
   return (
@@ -65,11 +70,11 @@ function AppFrame({ appearance = 'light', onAppearanceChange }) {
         <Layout className="app-content-layout">
           <Layout.Content className="app-content">
             <Flex className="app-content-wrapper" vertical>
-              {isHome && !isAuthenticated ? (
+              {showLanding ? (
                 <LandingPage />
               ) : (
                 <>
-                  {isAuthenticated ? (
+                  {showCatalog ? (
                     <>
                       <div
                         className="catalog-panel"

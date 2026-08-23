@@ -88,8 +88,9 @@ export const SHOWCASE_CONFIG = {
     seasonHits: 'Сейчас в сезоне',
     popularModels: 'Литые диски в наличии',
     popularSizes: 'Частые размеры',
-    catalogEmptyTitle: 'Каталог не загружен',
-    catalogEmptyHint: 'Загрузите поставщиков в боковой панели.',
+    catalogEmptyTitle: 'Каталог ещё загружается',
+    catalogEmptyHint:
+      'Данные подтягиваются из облака автоматически. Обновите страницу, если полки пусты дольше минуты.',
     trySizes: 'Другие размеры',
   },
 };
