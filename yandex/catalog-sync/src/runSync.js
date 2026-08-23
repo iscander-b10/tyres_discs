@@ -9,7 +9,6 @@ import {
   CATALOG_SNAPSHOT_SCHEMA_VERSION,
 } from './snapshotCommands.js';
 import { loadAllSuppliersData, getSupplierLabel, SUPPLIER_LOAD_ORDER } from './suppliers/loadAll.js';
-import { formatSyncTelegramMessage, isTelegramConfigured, sendTelegramMessage } from './telegram.js';
 import { resolveSlot, versionForSlot } from './time.js';
 
 function logJson(payload) {
@@ -75,18 +74,5 @@ export async function runCatalogSync(opts = {}) {
     suppliers: metaSuppliers.map((s) => `${s.key}:${s.ok ? 'ok' : 'fail'}`).join(','),
   });
 
-  let telegram = { sent: false, skipped: true };
-  if (isTelegramConfigured()) {
-    telegram = await sendTelegramMessage(formatSyncTelegramMessage(meta));
-    logJson({
-      event: 'catalog-sync-telegram',
-      sent: telegram.sent,
-      skipped: Boolean(telegram.skipped),
-      error: telegram.error || null,
-    });
-  } else {
-    logJson({ event: 'catalog-sync-telegram', skipped: true });
-  }
-
-  return { meta, telegram };
+  return { meta };
 }

@@ -52,7 +52,7 @@ REACT_APP_STORE_ID=ElistaIvanor
 
 Каталог на сайте подтягивается автоматически из Object Storage (без ручной кнопки). Локальный `setupProxy` и `supplier-proxy` не меняются по смыслу — только добавляются маршруты `/v2/catalog/...` в `apigw.yaml`.
 
-Полный деплой функции, Timer, bucket и Telegram (опционально) — [`yandex/catalog-sync/README.md`](yandex/catalog-sync/README.md).
+Полный деплой функции, Timer и bucket — [`yandex/catalog-sync/README.md`](yandex/catalog-sync/README.md).
 
 ## Структура
 

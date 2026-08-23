@@ -13,7 +13,6 @@
    - `stores/{storeId}/meta.json`
    - `stores/{storeId}/snapshot.json`
 5. Логирует JSON: `catalog-sync-start` / `catalog-sync-finish`.
-6. Telegram: если заданы `TELEGRAM_BOT_TOKEN` и `TELEGRAM_CHAT_ID` — одно короткое сообщение; иначе skip. Сбой Telegram **не** откатывает снимок.
 
 `storeId` по умолчанию: **ElistaIvanor**.
 
@@ -21,7 +20,6 @@
 
 ```json
 {
-  "schemaVersion": 1,
   "storeId": "ElistaIvanor",
   "version": "2026-08-20T08:00:00+03:00",
   "slot": "08:00",
@@ -40,6 +38,7 @@
 
 ```json
 {
+  "schemaVersion": 1,
   "storeId": "ElistaIvanor",
   "version": "2026-08-20T08:00:00+03:00",
   "slot": "08:00",
@@ -99,7 +98,6 @@ yc storage bucket create --name tyres-discs-catalog-elista --default-storage-cla
 | `storage.editor` на бакет (или folder) | запись/чтение meta+snapshot функцией |
 | `storage.viewer` на бакет для SA API Gateway | отдача meta/snapshot через Gateway |
 | `serverless.functions.invoker` | Timer → функция |
-| `lockbox.payloadViewer` (опционально) | если секреты Telegram в Lockbox |
 
 Создайте **статический ключ доступа** к Object Storage для SA функции и сохраните Access Key / Secret Key.
 
@@ -136,8 +134,6 @@ URL поставщиков — **полные https://…** (не `/api/...`):
 | Переменная | Назначение |
 | --- | --- |
 | `UPSTREAM_TIMEOUT_MS` | таймаут fetch (по умолчанию 120000) |
-| `TELEGRAM_BOT_TOKEN` | токен бота (секрет) |
-| `TELEGRAM_CHAT_ID` | chat id владельца |
 
 ### Сборка и деплой кода
 
@@ -203,17 +199,6 @@ yc serverless function invoke --id <FUNCTION_ID> --data "{\"slot\":\"08:00\"}"
 ```
 
 Смотрите логи функции: фильтр `catalog-sync-finish`.
-
-## 7. Telegram (включить позже)
-
-1. Создайте бота у [@BotFather](https://t.me/BotFather) → получите токен.
-2. Напишите боту / добавьте в чат, узнайте `chat_id` (например через `@userinfobot` или getUpdates).
-3. В секретах/env функции задайте:
-   - `TELEGRAM_BOT_TOKEN`
-   - `TELEGRAM_CHAT_ID`
-4. Перевыпустите версию функции. Без этих переменных sync **успешен**, Telegram просто skip.
-
-Формат сообщения: `catalog ElistaIvanor 08:00 ok=4 fail=1 fail:semisotnov`
 
 ## Локальная сборка без деплоя
 

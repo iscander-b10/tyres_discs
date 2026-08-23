@@ -99,7 +99,7 @@ async function handler(event = {}, context = {}) {
       const result = await runCatalogSync({ slot });
       // Timer не требует HTTP-ответа, но для invoke удобно вернуть meta
       if (event?.httpMethod || event?.requestContext?.http) {
-        return json(200, { ok: true, meta: result.meta, telegram: result.telegram });
+        return json(200, { ok: true, meta: result.meta });
       }
       return result.meta;
     }
