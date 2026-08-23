@@ -5,6 +5,7 @@ import { pickTopDiverse, scoreCatalogItem } from './scoring';
 export const normalizeIkonModelText = (value) =>
   String(value || '')
     .toLowerCase()
+    .replace(/\([^)]*\)/g, ' ')
     .replace(/[^a-z0-9а-яё]+/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -129,6 +130,24 @@ export const shuffleItems = (items) => {
   for (let i = arr.length - 1; i > 0; i -= 1) {
     const j = Math.floor(Math.random() * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+};
+
+/** После shuffle раздвигает preferred, чтобы они не шли подряд, пока хватает остальных. */
+export const spreadPreferredItems = (items, isPreferred) => {
+  const arr = [...items];
+  for (let i = 1; i < arr.length; i += 1) {
+    if (!isPreferred(arr[i - 1]) || !isPreferred(arr[i])) continue;
+    let swapAt = -1;
+    for (let j = i + 1; j < arr.length; j += 1) {
+      if (!isPreferred(arr[j])) {
+        swapAt = j;
+        break;
+      }
+    }
+    if (swapAt < 0) break;
+    [arr[i], arr[swapAt]] = [arr[swapAt], arr[i]];
   }
   return arr;
 };
@@ -275,5 +294,8 @@ export const pickMixedSeasonHits = ({
     result = [...result, ...moreIkon];
   }
 
-  return shuffleItems(result.slice(0, limit));
+  return spreadPreferredItems(
+    shuffleItems(result.slice(0, limit)),
+    isIkonBrand
+  );
 };

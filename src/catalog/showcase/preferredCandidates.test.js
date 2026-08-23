@@ -44,6 +44,39 @@ describe('preferred Ikon candidates', () => {
     expect(merged.filter((i) => i.brand === 'Ikon')).toHaveLength(2);
   });
 
+  test('Ikon SKU flood still keeps others for the mixed shelf', () => {
+    const ikonFlood = Array.from({ length: 500 }, (_, i) =>
+      mk({
+        id: i + 1,
+        title: `Ikon Autograph Eco 3 ${80 + (i % 10)}H`,
+        model: 'Autograph Eco 3',
+        diameter: `R${15 + (i % 4)}`,
+      })
+    );
+    const others = Array.from({ length: 40 }, (_, i) =>
+      mk({
+        id: 1000 + i,
+        brand: `Brand${i}`,
+        title: `Brand${i} Model${i} 91V`,
+        model: `Model${i}`,
+      })
+    );
+
+    const merged = mergePreferredShowcaseCandidates(ikonFlood, others, 480);
+    expect(merged.filter((i) => i.brand === 'Ikon')).toHaveLength(500);
+    expect(merged.filter((i) => i.brand !== 'Ikon')).toHaveLength(40);
+
+    const summer = buildTireShowcase({
+      candidates: merged,
+      isEmpty: false,
+      now: new Date('2026-06-15'),
+    });
+    const items = summer.shelves[0].items;
+    expect(items).toHaveLength(30);
+    expect(items.some((i) => i.brand === 'Ikon')).toBe(true);
+    expect(items.filter((i) => i.brand !== 'Ikon').length).toBeGreaterThan(20);
+  });
+
   test('Ikon buried after 480 others still reach summer/winter shelf', () => {
     const buriedIkon = [
       mk({

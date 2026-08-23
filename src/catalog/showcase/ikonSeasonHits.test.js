@@ -3,6 +3,7 @@ import {
   resolveIkonSeasonModelKey,
   isExcludedIkonModel,
   pickMixedSeasonHits,
+  spreadPreferredItems,
 } from './ikonSeasonHits';
 import { buildTireShowcase } from './buildTireShowcase';
 
@@ -89,6 +90,62 @@ describe('ikon season shelf', () => {
         winterWl
       )
     ).toBeNull();
+    expect(
+      resolveIkonSeasonModelKey(
+        mk({
+          title: 'Ikon Character Eco (Nordman SX3) 91H',
+          model: 'Character Eco (Nordman SX3)',
+        }),
+        summerWl
+      )
+    ).toBe('Character Eco');
+    expect(
+      resolveIkonSeasonModelKey(
+        mk({
+          title: 'Ikon Character Ultra (Nordman SZ2) 94W',
+          model: 'Character Ultra (Nordman SZ2)',
+        }),
+        summerWl
+      )
+    ).toBe('Character Ultra');
+    expect(
+      resolveIkonSeasonModelKey(
+        mk({
+          title: 'Ikon Character Ice 8 (Nordman 8) 95T',
+          model: 'Character Ice 8 (Nordman 8)',
+          season: 'w',
+        }),
+        winterWl
+      )
+    ).toBe('Character Ice 8');
+    expect(
+      resolveIkonSeasonModelKey(
+        mk({
+          title: 'Ikon Character Snow 2 (Nordman RS2) 94R',
+          model: 'Character Snow 2 (Nordman RS2)',
+          season: 'w',
+        }),
+        winterWl
+      )
+    ).toBe('Character Snow 2');
+    expect(
+      resolveIkonSeasonModelKey(
+        mk({
+          title: 'Ikon Nordman SX3 (Character Eco) 91H',
+          model: 'Nordman SX3 (Character Eco)',
+        }),
+        summerWl
+      )
+    ).toBeNull();
+    expect(
+      resolveIkonSeasonModelKey(
+        mk({
+          title: 'Ikon Character Aqua SUV (Nordman S2 SUV) 109V',
+          model: 'Character Aqua SUV (Nordman S2 SUV)',
+        }),
+        summerWl
+      )
+    ).toBeNull();
   });
 
   test('Character Eco C2 does not match Character Eco; plain Eco does', () => {
@@ -113,6 +170,39 @@ describe('ikon season shelf', () => {
         summerWl
       )
     ).toBe('Character Eco');
+  });
+
+  test('spreadPreferredItems breaks adjacent Ikon when others exist', () => {
+    const items = [
+      mk({ id: 1, title: 'Ikon Character Eco 91H' }),
+      mk({ id: 2, title: 'Ikon Autograph Eco 3 91V' }),
+      mk({ id: 3, title: 'Ikon Autograph Aqua 3 94V' }),
+      mk({
+        id: 10,
+        brand: 'Michelin',
+        title: 'Michelin Primacy 4 91V',
+        model: 'Primacy 4',
+      }),
+      mk({
+        id: 11,
+        brand: 'Pirelli',
+        title: 'Pirelli Cinturato P7 91V',
+        model: 'Cinturato P7',
+      }),
+      mk({
+        id: 12,
+        brand: 'Continental',
+        title: 'Continental PremiumContact 6 91V',
+        model: 'PremiumContact 6',
+      }),
+    ];
+    const spread = spreadPreferredItems(items, (item) => item.brand === 'Ikon');
+    for (let i = 1; i < spread.length; i += 1) {
+      expect(
+        spread[i - 1].brand === 'Ikon' && spread[i].brand === 'Ikon'
+      ).toBe(false);
+    }
+    expect(spread.filter((i) => i.brand === 'Ikon')).toHaveLength(3);
   });
 
   test('winter whitelist has 8 models without Snow Pro', () => {
@@ -228,6 +318,52 @@ describe('ikon season shelf', () => {
     expect(mixed.some((i) => i.brand !== 'Ikon')).toBe(true);
     expect(mixed.some((i) => /Eco C3|Eco C2|SUV/i.test(i.title))).toBe(false);
     expect(mixed.filter((i) => /Character Eco/i.test(i.title))).toHaveLength(1);
+    for (let i = 1; i < mixed.length; i += 1) {
+      expect(
+        mixed[i - 1].brand === 'Ikon' && mixed[i].brand === 'Ikon'
+      ).toBe(false);
+    }
+
+    const aliased = pickMixedSeasonHits({
+      pool: [
+        mk({
+          id: 31,
+          title: 'Ikon Character Eco (Nordman SX3) 91H',
+          model: 'Character Eco (Nordman SX3)',
+          diameter: 'R15',
+        }),
+        mk({
+          id: 32,
+          title: 'Ikon Character Ultra (Nordman SZ2) 94W',
+          model: 'Character Ultra (Nordman SZ2)',
+          diameter: 'R17',
+        }),
+        mk({ id: 33, title: 'Ikon Autograph Eco 3 91V', diameter: 'R16' }),
+        mk({
+          id: 34,
+          brand: 'Michelin',
+          title: 'Michelin Primacy 4 91V',
+          model: 'Primacy 4',
+        }),
+        mk({
+          id: 35,
+          brand: 'Pirelli',
+          title: 'Pirelli Cinturato P7 91V',
+          model: 'Cinturato P7',
+        }),
+      ],
+      season: 's',
+      limit: 30,
+      whitelist: summerWl,
+    });
+    expect(aliased.filter((i) => i.brand === 'Ikon')).toHaveLength(3);
+    expect(aliased.some((i) => /Character Eco/i.test(i.model || i.title))).toBe(
+      true
+    );
+    expect(aliased.some((i) => /Character Ultra/i.test(i.model || i.title))).toBe(
+      true
+    );
+    expect(aliased.some((i) => i.brand !== 'Ikon')).toBe(true);
 
     const fewIkon = pickMixedSeasonHits({
       pool: summerPool.filter(

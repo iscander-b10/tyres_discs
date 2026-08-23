@@ -35,7 +35,8 @@ export const SHOWCASE_CONFIG = {
     seasonHitsCount: { min: 30, max: 30 },
     /**
      * Whitelist Ikon для партнёрского блока полки «Сейчас в сезоне».
-     * SUV/SUF/SAV, Eco C2/C3 и Nordman отсекаются в `ikonSeasonHits.js`.
+     * SUV/SUF/SAV, Eco C2/C3 и модели, которые сами Nordman, отсекаются.
+     * Старое имя в скобках («Character Eco (Nordman SX3)») — это Character, не Nordman.
      */
     ikonSeasonModelsSummer: [
       'Character Eco',
