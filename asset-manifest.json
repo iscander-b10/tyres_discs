@@ -1,7 +1,7 @@
 {
   "files": {
-    "main.css": "/tyres_discs/static/css/main.21c19dc0.css",
-    "main.js": "/tyres_discs/static/js/main.4ae15f8f.js",
+    "main.css": "/tyres_discs/static/css/main.5461c743.css",
+    "main.js": "/tyres_discs/static/js/main.e33c4548.js",
     "static/media/runflat.jpg": "/tyres_discs/static/media/runflat.9dbf3e8e9472eaa9cf38.jpg",
     "static/media/TireFittingGift.svg": "/tyres_discs/static/media/TireFittingGift.79482b12b22a39c3c37e5b81e54245da.svg",
     "static/media/Website.svg": "/tyres_discs/static/media/Website.05dcf5157a148bdf01d5fba89f0b83ab.svg",
@@ -13,16 +13,16 @@
     "static/media/PageSize.svg": "/tyres_discs/static/media/PageSize.03b1868840b1203951be906ce5dcf178.svg",
     "index.html": "/tyres_discs/index.html",
     "static/media/Reset.svg": "/tyres_discs/static/media/Reset.dde83b0666421fdbe6990fe09d335483.svg",
-    "static/media/Telegram.svg": "/tyres_discs/static/media/Telegram.c99f69bf76cc245a86271de9947b3e4a.svg",
     "static/media/Search.svg": "/tyres_discs/static/media/Search.71d162a753aec427b4c35e2823ec9472.svg",
+    "static/media/Telegram.svg": "/tyres_discs/static/media/Telegram.9aad611fb7bea7ff83abf3350369ed5b.svg",
     "static/media/Clear.svg": "/tyres_discs/static/media/Clear.8fb0854402ab178a3e36108535a764ce.svg",
     "static/media/Loading.svg": "/tyres_discs/static/media/Loading.e37cb141b309c3940b23b0a5c06f603f.svg",
     "static/media/Sotring.svg": "/tyres_discs/static/media/Sotring.5b478b7fd577635905080483751ba280.svg",
-    "main.21c19dc0.css.map": "/tyres_discs/static/css/main.21c19dc0.css.map",
-    "main.4ae15f8f.js.map": "/tyres_discs/static/js/main.4ae15f8f.js.map"
+    "main.5461c743.css.map": "/tyres_discs/static/css/main.5461c743.css.map",
+    "main.e33c4548.js.map": "/tyres_discs/static/js/main.e33c4548.js.map"
   },
   "entrypoints": [
-    "static/css/main.21c19dc0.css",
-    "static/js/main.4ae15f8f.js"
+    "static/css/main.5461c743.css",
+    "static/js/main.e33c4548.js"
   ]
 }
