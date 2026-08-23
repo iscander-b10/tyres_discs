@@ -438,7 +438,13 @@ const ShowcaseShelf = ({
 
         <div
           ref={rowRef}
-          className="catalog-showcase__row"
+          className={[
+            'catalog-showcase__row',
+            canPrev ? 'catalog-showcase__row--fade-start' : '',
+            canNext ? 'catalog-showcase__row--fade-end' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
           tabIndex={0}
           aria-label={title}
           onKeyDown={handleRowKeyDown}

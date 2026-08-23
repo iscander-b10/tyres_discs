@@ -231,13 +231,55 @@
     display: none;
   }
 
-  /* Peek следующего слайда */
-  mask-image: linear-gradient(
-    to right,
-    #000 0%,
-    #000 calc(100% - 36px),
-    transparent 100%
-  );
+  /* Soft peek на краях ряда — симметрично start/end по модификаторам */
+  $showcase-row-fade: 36px;
+
+  &--fade-end:not(&--fade-start) {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      #000 0%,
+      #000 calc(100% - #{$showcase-row-fade}),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      #000 0%,
+      #000 calc(100% - #{$showcase-row-fade}),
+      transparent 100%
+    );
+  }
+
+  &--fade-start:not(&--fade-end) {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      #000 #{$showcase-row-fade},
+      #000 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      #000 #{$showcase-row-fade},
+      #000 100%
+    );
+  }
+
+  &--fade-start#{&}--fade-end {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      #000 #{$showcase-row-fade},
+      #000 calc(100% - #{$showcase-row-fade}),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      #000 #{$showcase-row-fade},
+      #000 calc(100% - #{$showcase-row-fade}),
+      transparent 100%
+    );
+  }
 
   &:focus-visible {
     outline: 2px solid $color-cta;
