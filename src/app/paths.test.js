@@ -1,12 +1,18 @@
 import {
   DEFAULT_APP_HOME,
+  LOGIN_QUERY_PARAM,
+  LOGIN_QUERY_VALUE,
   PATHS,
+  buildHomeLoginPath,
   isAppPath,
+  isLoginQueryOpen,
   isMarketingPath,
   isSafeRelativePath,
   loginLinkState,
+  loginLinkTarget,
   resolveLoginDismissPath,
   resolvePostLoginPath,
+  stripLoginQuery,
 } from './paths';
 
 describe('path helpers', () => {
@@ -27,6 +33,42 @@ describe('path helpers', () => {
     expect(isSafeRelativePath('https://evil.example')).toBe(false);
     expect(isSafeRelativePath('tyres')).toBe(false);
     expect(isSafeRelativePath(null)).toBe(false);
+  });
+});
+
+describe('login query helpers', () => {
+  test('isLoginQueryOpen', () => {
+    expect(isLoginQueryOpen('login=1')).toBe(true);
+    expect(isLoginQueryOpen(new URLSearchParams('login=1'))).toBe(true);
+    expect(isLoginQueryOpen('login=0')).toBe(false);
+    expect(isLoginQueryOpen('')).toBe(false);
+    expect(isLoginQueryOpen('other=1')).toBe(false);
+  });
+
+  test('stripLoginQuery', () => {
+    expect(stripLoginQuery('/', 'login=1')).toBe('/');
+    expect(stripLoginQuery('/', 'login=1&x=2')).toBe('/?x=2');
+    expect(stripLoginQuery('/tyres', 'login=1')).toBe('/tyres');
+  });
+
+  test('buildHomeLoginPath', () => {
+    expect(buildHomeLoginPath()).toEqual({
+      pathname: PATHS.home,
+      search: `?${LOGIN_QUERY_PARAM}=${LOGIN_QUERY_VALUE}`,
+    });
+    expect(buildHomeLoginPath(PATHS.tyres)).toEqual({
+      pathname: PATHS.home,
+      search: `?${LOGIN_QUERY_PARAM}=${LOGIN_QUERY_VALUE}`,
+      state: { from: PATHS.tyres },
+    });
+  });
+
+  test('loginLinkTarget', () => {
+    expect(loginLinkTarget({ pathname: PATHS.home, search: '' })).toEqual({
+      pathname: PATHS.home,
+      search: `?${LOGIN_QUERY_PARAM}=${LOGIN_QUERY_VALUE}`,
+      state: { from: DEFAULT_APP_HOME },
+    });
   });
 });
 
@@ -67,10 +109,10 @@ describe('resolvePostLoginPath', () => {
 describe('resolveLoginDismissPath', () => {
   const loc = (from) => ({ state: { from } });
 
-  test('guest-safe: home and basket', () => {
+  test('guest-safe: home without login query', () => {
     expect(resolveLoginDismissPath(loc(PATHS.home))).toBe(PATHS.home);
-    expect(resolveLoginDismissPath(loc(`${PATHS.basket}?x=1`))).toBe(
-      `${PATHS.basket}?x=1`
+    expect(resolveLoginDismissPath(loc(`${PATHS.home}?login=1`))).toBe(
+      PATHS.home
     );
   });
 
@@ -78,6 +120,7 @@ describe('resolveLoginDismissPath', () => {
     expect(resolveLoginDismissPath(loc(PATHS.tyres))).toBe(PATHS.home);
     expect(resolveLoginDismissPath(loc(PATHS.wheels))).toBe(PATHS.home);
     expect(resolveLoginDismissPath(loc(PATHS.login))).toBe(PATHS.home);
+    expect(resolveLoginDismissPath(loc(PATHS.basket))).toBe(PATHS.home);
   });
 });
 
@@ -94,10 +137,9 @@ describe('loginLinkState', () => {
     ).toEqual({ from: `${PATHS.wheels}?a=1` });
   });
 
-  test('on login keeps existing state', () => {
-    const state = { from: PATHS.wheels };
+  test('home with login query preserves default intent', () => {
     expect(
-      loginLinkState({ pathname: PATHS.login, search: '', state })
-    ).toEqual(state);
+      loginLinkState({ pathname: PATHS.home, search: '?login=1' })
+    ).toEqual({ from: DEFAULT_APP_HOME });
   });
 });

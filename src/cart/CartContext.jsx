@@ -16,13 +16,31 @@ import {
   snapshotCartItem,
 } from './cartUtils';
 
-const STORAGE_KEY = 'ivanor.cart.v1';
+const LEGACY_CART_KEY = 'ivanor.cart.v1';
+
+export function getCartStorageKey(mode = 'staff') {
+  return mode === 'demo' ? 'cart.demo.v1' : 'cart.staff.v1';
+}
+
+function migrateLegacyCart() {
+  const newKey = getCartStorageKey('staff');
+  try {
+    if (!localStorage.getItem(newKey)) {
+      const legacy = localStorage.getItem(LEGACY_CART_KEY);
+      if (legacy) localStorage.setItem(newKey, legacy);
+    }
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+migrateLegacyCart();
 
 const CartContext = createContext(null);
 
 const readStoredItems = () => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(getCartStorageKey('staff'));
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
@@ -37,7 +55,7 @@ export function CartProvider({ children }) {
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+      localStorage.setItem(getCartStorageKey('staff'), JSON.stringify(items));
     } catch {
       /* ignore quota / private mode */
     }

@@ -1,13 +1,25 @@
 import React from 'react';
 import { Flex, Layout } from 'antd';
-import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
+import {
+  BrowserRouter,
+  Navigate,
+  Outlet,
+  Route,
+  Routes,
+  useLocation,
+  useSearchParams,
+} from 'react-router-dom';
 import { AppShellProvider, useAppShell } from './app/AppShellContext';
+import { canUseApp } from './app/appMode';
 import {
   DEFAULT_APP_HOME,
+  LOGIN_QUERY_PARAM,
+  LOGIN_QUERY_VALUE,
   PATHS,
   ROUTER_BASENAME,
+  isLoginQueryOpen,
   loginRedirectState,
-  overlayBackgroundPage,
+  pageFromPathname,
 } from './app/paths';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import { CartProvider } from './cart/CartContext';
@@ -25,13 +37,44 @@ import './App.scss';
 
 function LoginRedirect() {
   const location = useLocation();
-  return <Navigate to={PATHS.login} replace state={loginRedirectState(location)} />;
+  return (
+    <Navigate
+      to={{
+        pathname: PATHS.home,
+        search: `?${LOGIN_QUERY_PARAM}=${LOGIN_QUERY_VALUE}`,
+      }}
+      replace
+      state={loginRedirectState(location)}
+    />
+  );
+}
+
+function LoginRouteRedirect() {
+  const location = useLocation();
+  return (
+    <Navigate
+      to={{
+        pathname: PATHS.home,
+        search: `?${LOGIN_QUERY_PARAM}=${LOGIN_QUERY_VALUE}`,
+      }}
+      replace
+      state={location.state ?? loginRedirectState(location)}
+    />
+  );
 }
 
 function RequireAuth() {
   const { isAuthenticated } = useAuth();
-  if (!isAuthenticated) {
+  if (!canUseApp(isAuthenticated)) {
     return <LoginRedirect />;
+  }
+  return null;
+}
+
+function BasketGuard() {
+  const { isAuthenticated } = useAuth();
+  if (!canUseApp(isAuthenticated)) {
+    return <Navigate to={PATHS.home} replace />;
   }
   return null;
 }
@@ -39,7 +82,7 @@ function RequireAuth() {
 /** Auth users never reside on marketing `/` — app home is `/tyres`. */
 function HomeRoute() {
   const { isAuthenticated } = useAuth();
-  if (isAuthenticated) {
+  if (canUseApp(isAuthenticated)) {
     return <Navigate to={DEFAULT_APP_HOME} replace />;
   }
   return null;
@@ -50,18 +93,21 @@ function UnmatchedRoute() {
 }
 
 function AppFrame({ appearance = 'light', onAppearanceChange }) {
-  const { lastBackgroundPath, sessionResetKey } = useAppShell();
+  const { sessionResetKey } = useAppShell();
   const { isAuthenticated } = useAuth();
   const location = useLocation();
-  const isLogin = location.pathname === PATHS.login;
+  const [searchParams] = useSearchParams();
+  // TODO phase 3: isDemo from appMode — demo URL, JSON catalog
+  const appEnabled = canUseApp(isAuthenticated);
+  const isLoginOpen = isLoginQueryOpen(searchParams);
   const isHome = location.pathname === PATHS.home;
-  const showLanding = isHome && !isAuthenticated;
-  const showCatalog = isAuthenticated && !showLanding;
-  const backgroundPage = overlayBackgroundPage(location, lastBackgroundPath);
+  const showLanding = !appEnabled && (isHome || isLoginOpen);
+  const showCatalog = appEnabled && !showLanding;
+  const backgroundPage = pageFromPathname(location.pathname);
 
   return (
     <>
-      <Layout className="app-layout" inert={isLogin ? true : undefined}>
+      <Layout className="app-layout" inert={isLoginOpen ? true : undefined}>
         <SiteHeader
           appearance={appearance}
           onAppearanceChange={onAppearanceChange}
@@ -79,26 +125,40 @@ function AppFrame({ appearance = 'light', onAppearanceChange }) {
                       <div
                         className="catalog-panel"
                         hidden={backgroundPage !== 'tyres'}
-                        inert={isLogin || backgroundPage !== 'tyres' ? true : undefined}
+                        inert={
+                          isLoginOpen || backgroundPage !== 'tyres'
+                            ? true
+                            : undefined
+                        }
                       >
                         <TiresSearchParameters key={`tires-${sessionResetKey}`} />
                       </div>
                       <div
                         className="catalog-panel"
                         hidden={backgroundPage !== 'wheels'}
-                        inert={isLogin || backgroundPage !== 'wheels' ? true : undefined}
+                        inert={
+                          isLoginOpen || backgroundPage !== 'wheels'
+                            ? true
+                            : undefined
+                        }
                       >
                         <DiscsSearchParameters key={`discs-${sessionResetKey}`} />
                       </div>
                     </>
                   ) : null}
-                  <div
-                    className="catalog-panel"
-                    hidden={backgroundPage !== 'basket'}
-                    inert={isLogin || backgroundPage !== 'basket' ? true : undefined}
-                  >
-                    <BasketPage />
-                  </div>
+                  {showCatalog ? (
+                    <div
+                      className="catalog-panel"
+                      hidden={backgroundPage !== 'basket'}
+                      inert={
+                        isLoginOpen || backgroundPage !== 'basket'
+                          ? true
+                          : undefined
+                      }
+                    >
+                      <BasketPage />
+                    </div>
+                  ) : null}
                 </>
               )}
             </Flex>
@@ -106,11 +166,11 @@ function AppFrame({ appearance = 'light', onAppearanceChange }) {
         </Layout>
 
         <SiteFooter />
-        {isAuthenticated ? <ModeToggle /> : null}
+        {appEnabled ? <ModeToggle /> : null}
         <ScrollToTop />
         <Outlet />
       </Layout>
-      {isLogin ? <LoginPage /> : null}
+      {isLoginOpen && !isAuthenticated ? <LoginPage /> : null}
     </>
   );
 }
@@ -141,8 +201,8 @@ function App({ appearance = 'light', onAppearanceChange }) {
                   <Route index element={<HomeRoute />} />
                   <Route path="tyres" element={<RequireAuth />} />
                   <Route path="wheels" element={<RequireAuth />} />
-                  <Route path="basket" element={<></>} />
-                  <Route path="login" element={<></>} />
+                  <Route path="basket" element={<BasketGuard />} />
+                  <Route path="login" element={<LoginRouteRedirect />} />
                 </Route>
                 <Route path="*" element={<UnmatchedRoute />} />
               </Routes>

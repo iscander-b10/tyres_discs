@@ -1,8 +1,10 @@
 import { hmacLogin, normalizeLogin, unwrapPassword, wrapPassword } from './crypto';
 import { getDeviceFingerprint } from './fingerprint';
 
-const LOGIN_KEY = 'ivanor-auth-login';
-const SECRET_KEY = 'ivanor-auth-secret';
+const LOGIN_KEY = 'auth.login.v1';
+const SECRET_KEY = 'auth.secret.v1';
+const LEGACY_LOGIN_KEY = 'ivanor-auth-login';
+const LEGACY_SECRET_KEY = 'ivanor-auth-secret';
 
 const VERIFIERS = String(process.env.REACT_APP_AUTH_VERIFIER || '')
   .split(',')
@@ -15,6 +17,21 @@ function readStorage(key) {
   } catch {
     return null;
   }
+}
+
+function readStorageWithMigration(newKey, legacyKey) {
+  const value = readStorage(newKey);
+  if (value) return value;
+
+  const legacy = readStorage(legacyKey);
+  if (!legacy) return null;
+
+  try {
+    writeStorage(newKey, legacy);
+  } catch {
+    return legacy;
+  }
+  return legacy;
 }
 
 function writeStorage(key, value) {
@@ -58,8 +75,8 @@ export async function restore() {
     return null;
   }
 
-  const loginName = readStorage(LOGIN_KEY);
-  const secret = readStorage(SECRET_KEY);
+  const loginName = readStorageWithMigration(LOGIN_KEY, LEGACY_LOGIN_KEY);
+  const secret = readStorageWithMigration(SECRET_KEY, LEGACY_SECRET_KEY);
   if (!loginName || !secret) {
     logout();
     return null;
@@ -82,4 +99,6 @@ export async function restore() {
 export function logout() {
   removeStorage(LOGIN_KEY);
   removeStorage(SECRET_KEY);
+  removeStorage(LEGACY_LOGIN_KEY);
+  removeStorage(LEGACY_SECRET_KEY);
 }

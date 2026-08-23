@@ -11,6 +11,35 @@ export const DEFAULT_APP_HOME = PATHS.tyres;
 
 export const ROUTER_BASENAME = (process.env.PUBLIC_URL || '').replace(/\/$/, '');
 
+export const LOGIN_QUERY_PARAM = 'login';
+export const LOGIN_QUERY_VALUE = '1';
+
+export function isLoginQueryOpen(searchParams) {
+  const params =
+    searchParams instanceof URLSearchParams
+      ? searchParams
+      : new URLSearchParams(searchParams || '');
+  return params.get(LOGIN_QUERY_PARAM) === LOGIN_QUERY_VALUE;
+}
+
+export function stripLoginQuery(pathname, search = '') {
+  const params = new URLSearchParams(search || '');
+  params.delete(LOGIN_QUERY_PARAM);
+  const qs = params.toString();
+  return qs ? `${pathname}?${qs}` : pathname;
+}
+
+/**
+ * Navigate target для «Войти» и RequireAuth: `/?login=1` + optional state.from.
+ */
+export function buildHomeLoginPath(fromHref) {
+  const search = `?${LOGIN_QUERY_PARAM}=${LOGIN_QUERY_VALUE}`;
+  if (typeof fromHref === 'string' && fromHref) {
+    return { pathname: PATHS.home, search, state: { from: fromHref } };
+  }
+  return { pathname: PATHS.home, search };
+}
+
 export function pageFromPathname(pathname) {
   if (pathname === PATHS.home) return 'home';
   if (pathname === PATHS.tyres) return 'tyres';
@@ -77,29 +106,26 @@ export function resolvePostLoginPath(location, { fallback = DEFAULT_APP_HOME } =
 }
 
 /**
- * Куда закрывать модалку логина без входа: только guest-safe поверхности.
+ * Куда закрывать модалку логина без входа: guest-safe поверхности без login query.
  */
 export function resolveLoginDismissPath(location) {
   const from = location?.state?.from;
   const pathname = pathnameFromHref(from);
   const search = searchFromHref(from);
 
-  if (
-    isSafeRelativePath(pathname) &&
-    (isMarketingPath(pathname) || pathname === PATHS.basket)
-  ) {
-    return `${pathname}${search}`;
+  if (isSafeRelativePath(pathname) && isMarketingPath(pathname)) {
+    return stripLoginQuery(pathname, search);
   }
 
   return PATHS.home;
 }
 
 /**
- * state для Link/NavLink на `/login`: единый intent, без `from: '/'`.
+ * state для Link/NavLink на `/?login=1`: единый intent, без `from: '/'`.
  */
 export function loginLinkState(location) {
-  if (!location || location.pathname === PATHS.login) {
-    return location?.state ?? { from: DEFAULT_APP_HOME };
+  if (!location) {
+    return { from: DEFAULT_APP_HOME };
   }
 
   const href = `${location.pathname}${location.search || ''}`;
@@ -110,7 +136,19 @@ export function loginLinkState(location) {
   return { from: DEFAULT_APP_HOME };
 }
 
-/** state при редиректе RequireAuth → login (deep-link на attempted path). */
+/**
+ * Полный to для NavLink «Войти»: pathname + search + state.
+ */
+export function loginLinkTarget(location) {
+  const state = loginLinkState(location);
+  return {
+    pathname: PATHS.home,
+    search: `?${LOGIN_QUERY_PARAM}=${LOGIN_QUERY_VALUE}`,
+    state,
+  };
+}
+
+/** state при редиректе RequireAuth → /?login=1 (deep-link на attempted path). */
 export function loginRedirectState(location) {
   return { from: `${location.pathname}${location.search || ''}` };
 }
@@ -134,21 +172,4 @@ export function canCloseLoginWithHistoryBack(location) {
   const from = location?.state?.from;
   const pathname = pathnameFromHref(from);
   return isSafeRelativePath(pathname) && pathname !== PATHS.login;
-}
-
-export function overlayBackgroundPage(location, lastBackgroundPath = DEFAULT_APP_HOME) {
-  if (location.pathname !== PATHS.login) {
-    return pageFromPathname(location.pathname);
-  }
-
-  const fromPath = pathnameFromHref(location.state?.from);
-  if (isAppPath(fromPath)) {
-    return pageFromPathname(fromPath);
-  }
-
-  if (isAppPath(lastBackgroundPath)) {
-    return pageFromPathname(lastBackgroundPath);
-  }
-
-  return 'tyres';
 }

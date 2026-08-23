@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { ArrowUpOutlined } from '@ant-design/icons';
-import { PATHS } from '../../app/paths';
+import { isLoginQueryOpen } from '../../app/paths';
 import './ScrollToTop.scss';
 
 const SHOW_AFTER_PX = 320;
@@ -12,17 +12,26 @@ function prefersReducedMotion() {
 
 function ScrollToTop() {
   const { pathname } = useLocation();
+  const [searchParams] = useSearchParams();
   const previousPathRef = useRef(pathname);
+  const previousLoginOpenRef = useRef(isLoginQueryOpen(searchParams));
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     const previousPath = previousPathRef.current;
+    const wasLoginOpen = previousLoginOpenRef.current;
+    const isLoginOpen = isLoginQueryOpen(searchParams);
+
     previousPathRef.current = pathname;
-    if (pathname === PATHS.login || previousPath === PATHS.login) {
+    previousLoginOpenRef.current = isLoginOpen;
+
+    if (isLoginOpen || wasLoginOpen) {
       return;
     }
-    window.scrollTo(0, 0);
-  }, [pathname]);
+    if (previousPath !== pathname) {
+      window.scrollTo(0, 0);
+    }
+  }, [pathname, searchParams]);
 
   useEffect(() => {
     const onScroll = () => {

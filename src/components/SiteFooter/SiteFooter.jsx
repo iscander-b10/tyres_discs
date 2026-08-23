@@ -8,7 +8,7 @@ import {
   SITE_PRODUCT_NAV,
   SITE_SERVICE_NAV,
 } from '../../config/site';
-import { DEFAULT_APP_HOME, PATHS, loginLinkState } from '../../app/paths';
+import { DEFAULT_APP_HOME, PATHS, loginLinkTarget } from '../../app/paths';
 import { useAppShell } from '../../app/AppShellContext';
 import { useAuth } from '../../auth/AuthContext';
 import HoverTooltip from '../shared/HoverTooltip';
@@ -50,7 +50,7 @@ function SiteFooter() {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
   const brandPath = isAuthenticated ? DEFAULT_APP_HOME : PATHS.home;
-  const loginState = loginLinkState(location);
+  const loginTarget = loginLinkTarget(location);
 
   return (
     <footer className="site-footer">
@@ -102,7 +102,7 @@ function SiteFooter() {
                     </span>
                   </HoverTooltip>
                 ) : (
-                  <Link className="site-footer__link" to={PATHS.login} state={loginState}>
+                  <Link className="site-footer__link" to={loginTarget}>
                     Войти
                   </Link>
                 )}

@@ -8,7 +8,7 @@ import {
   TeamOutlined,
 } from '@ant-design/icons';
 import { Button, Card, Flex, Tooltip } from 'antd';
-import { PATHS, loginLinkState } from '../../app/paths';
+import { loginLinkTarget } from '../../app/paths';
 import { SITE_PHONE } from '../../config/site';
 import './LandingPage.scss';
 
@@ -40,7 +40,7 @@ const FEATURES = [
 ];
 
 /** Единый intent с хедером/футером: post-login → /tyres. */
-const LOGIN_STATE = loginLinkState({ pathname: PATHS.home, search: '' });
+const LOGIN_TARGET = loginLinkTarget({ pathname: '/', search: '' });
 
 function LandingPage() {
   return (
@@ -90,7 +90,7 @@ function LandingPage() {
             Вход для сотрудников магазина. После авторизации попадёте в каталог — начнёте с шин.
           </p>
           <Flex className="landing-page__cta-actions" gap={12} wrap="wrap">
-            <Link to={PATHS.login} state={LOGIN_STATE}>
+            <Link to={LOGIN_TARGET}>
               <Button type="primary" size="large">
                 Войти
               </Button>

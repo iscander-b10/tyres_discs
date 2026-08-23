@@ -4,9 +4,11 @@ import { ShoppingCartOutlined } from '@ant-design/icons';
 import { ReactComponent as PhoneIcon } from '../../icons/Phone.svg';
 import { ReactComponent as UserIcon } from '../../icons/User.svg';
 import { SITE_NAV_ITEMS, SITE_PHONE } from '../../config/site';
-import { DEFAULT_APP_HOME, PATHS, loginLinkState } from '../../app/paths';
+import { DEFAULT_APP_HOME, PATHS, loginLinkTarget } from '../../app/paths';
+import { canUseApp } from '../../app/appMode';
 import { useAppShell } from '../../app/AppShellContext';
 import { useAuth } from '../../auth/AuthContext';
+import { useLogout } from '../../auth/useLogout';
 import { useCart } from '../../cart/CartContext';
 import HoverTooltip from '../shared/HoverTooltip';
 import ThemeSwitch from '../shared/ThemeSwitch/ThemeSwitch';
@@ -21,14 +23,16 @@ function SiteHeader({
   onAppearanceChange,
 }) {
   const { handleBrandClick } = useAppShell();
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated } = useAuth();
+  const logout = useLogout();
   const { totalQuantity } = useCart();
   const location = useLocation();
-  const loginState = loginLinkState(location);
+  const loginTarget = loginLinkTarget(location);
+  const appEnabled = canUseApp(isAuthenticated);
 
   const badgeLabel =
     totalQuantity > 99 ? '99+' : totalQuantity > 0 ? String(totalQuantity) : null;
-  const brandPath = isAuthenticated ? DEFAULT_APP_HOME : PATHS.home;
+  const brandPath = appEnabled ? DEFAULT_APP_HOME : PATHS.home;
 
   return (
     <header className="site-header">
@@ -75,9 +79,8 @@ function SiteHeader({
                     .filter(Boolean)
                     .join(' ')
                 }
-                to={PATHS.login}
+                to={loginTarget}
                 end
-                state={loginState}
                 aria-label="Войти"
               >
                 <UserIcon className="site-header__icon-btn-icon" aria-hidden />
@@ -85,33 +88,35 @@ function SiteHeader({
               </NavLink>
             )}
 
-            <NavLink
-              className={({ isActive }) =>
-                [
-                  'site-header__icon-btn',
-                  isActive ? 'is-active' : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')
-              }
-              to={PATHS.basket}
-              end
-              aria-label={
-                totalQuantity > 0
-                  ? `Корзина, ${totalQuantity}`
-                  : 'Корзина'
-              }
-            >
-              <span className="site-header__cart-icon-wrap">
-                <ShoppingCartOutlined aria-hidden />
-                {badgeLabel ? (
-                  <span className="site-header__cart-badge" aria-hidden>
-                    {badgeLabel}
-                  </span>
-                ) : null}
-              </span>
-              <span className="site-header__icon-label">Корзина</span>
-            </NavLink>
+            {appEnabled ? (
+              <NavLink
+                className={({ isActive }) =>
+                  [
+                    'site-header__icon-btn',
+                    isActive ? 'is-active' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')
+                }
+                to={PATHS.basket}
+                end
+                aria-label={
+                  totalQuantity > 0
+                    ? `Корзина, ${totalQuantity}`
+                    : 'Корзина'
+                }
+              >
+                <span className="site-header__cart-icon-wrap">
+                  <ShoppingCartOutlined aria-hidden />
+                  {badgeLabel ? (
+                    <span className="site-header__cart-badge" aria-hidden>
+                      {badgeLabel}
+                    </span>
+                  ) : null}
+                </span>
+                <span className="site-header__icon-label">Корзина</span>
+              </NavLink>
+            ) : null}
           </div>
         </div>
 
