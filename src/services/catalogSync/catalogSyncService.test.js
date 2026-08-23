@@ -1,6 +1,6 @@
 const API_BASE_ENV = 'REACT_APP_CATALOG_API_BASE';
 const STORE_ID_ENV = 'REACT_APP_STORE_ID';
-const VERSION_KEY = 'ivanor.catalog.cloudVersion';
+const VERSION_KEY = 'ivanor.catalog.cloudVersion.test-store';
 const VERSION = '2026-08-23T10:00:00Z';
 
 const jsonResponse = (body) => ({
@@ -52,7 +52,21 @@ function loadService(overrides = {}) {
     postCatalogApplied: jest.fn(),
   }));
 
+  let activeStoreId = null;
+  let generation = 0;
   const indexedDBService = {
+    setActiveStore: jest.fn((storeId) => {
+      if (activeStoreId !== storeId) {
+        activeStoreId = storeId;
+        generation += 1;
+      }
+      return generation;
+    }),
+    isActiveStore: jest.fn(
+      (storeId, expectedGeneration) =>
+        storeId === activeStoreId &&
+        (expectedGeneration === undefined || expectedGeneration === generation)
+    ),
     applyCatalogSnapshot: jest
       .fn()
       .mockResolvedValue({ applied: true, writes: 1, skipped: false }),
@@ -238,7 +252,7 @@ describe('безопасное применение snapshot каталога', 
       version: VERSION,
     });
     expect(window.localStorage.getItem(VERSION_KEY)).toBe(VERSION);
-    expect(postCatalogApplied).toHaveBeenCalledWith(VERSION);
+    expect(postCatalogApplied).toHaveBeenCalledWith(VERSION, 'test-store');
   });
 
   test('ошибка IndexedDB не обновляет localStorage и не шлёт broadcast', async () => {
@@ -298,5 +312,79 @@ describe('безопасное применение snapshot каталога', 
       version: VERSION,
     });
     expect(indexedDBService.applyCatalogSnapshot).not.toHaveBeenCalled();
+  });
+
+  test('изолирует URL и local version двух storeId', async () => {
+    const { service } = loadService();
+
+    service.setLocalCatalogVersion('version-a', 'store/a');
+    service.setLocalCatalogVersion('version-b', 'store b');
+
+    expect(
+      window.localStorage.getItem('ivanor.catalog.cloudVersion.store%2Fa')
+    ).toBe('version-a');
+    expect(
+      window.localStorage.getItem('ivanor.catalog.cloudVersion.store%20b')
+    ).toBe('version-b');
+
+    global.fetch.mockResolvedValueOnce(jsonResponse({}));
+    await service.checkAndSyncCatalog({ storeId: 'store/a' });
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://catalog.example/v2/catalog/store%2Fa/meta',
+      { cache: 'no-store' }
+    );
+  });
+
+  test('без storeId использует актуальный REACT_APP_STORE_ID fallback', () => {
+    const { service } = loadService();
+    process.env[STORE_ID_ENV] = 'changed-after-import';
+
+    expect(service.getCatalogStoreId()).toBe('changed-after-import');
+    service.setLocalCatalogVersion('fallback-version');
+    expect(
+      window.localStorage.getItem(
+        'ivanor.catalog.cloudVersion.changed-after-import'
+      )
+    ).toBe('fallback-version');
+  });
+
+  test('игнорирует stale sync после переключения магазина', async () => {
+    let activeStoreId = null;
+    let generation = 0;
+    const setActiveStore = jest.fn((storeId) => {
+      if (activeStoreId !== storeId) {
+        activeStoreId = storeId;
+        generation += 1;
+      }
+      return generation;
+    });
+    const isActiveStore = jest.fn(
+      (storeId, expectedGeneration) =>
+        storeId === activeStoreId && expectedGeneration === generation
+    );
+    const { service, indexedDBService, postCatalogApplied } = loadService({
+      setActiveStore,
+      isActiveStore,
+    });
+    let resolveFirstMeta;
+    global.fetch
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirstMeta = resolve;
+          })
+      )
+      .mockResolvedValueOnce(jsonResponse({}));
+
+    const staleSync = service.checkAndSyncCatalog({ storeId: 'store-a' });
+    await service.checkAndSyncCatalog({ storeId: 'store-b' });
+    resolveFirstMeta(jsonResponse({ version: VERSION }));
+
+    await expect(staleSync).resolves.toEqual({
+      status: 'skipped',
+      error: 'stale store',
+    });
+    expect(indexedDBService.applyCatalogSnapshot).not.toHaveBeenCalled();
+    expect(postCatalogApplied).not.toHaveBeenCalled();
   });
 });

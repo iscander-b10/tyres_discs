@@ -37,11 +37,33 @@ describe('catalogSyncChannel', () => {
 
     window.dispatchEvent(
       new StorageEvent('storage', {
-        key: 'ivanor.catalog.cloudVersion',
+        key: 'ivanor.catalog.cloudVersion.ElistaIvanor',
         newValue: '2026-08-23T11:00:00Z',
       })
     );
 
     expect(handler).toHaveBeenCalledWith('2026-08-23T11:00:00Z');
+  });
+
+  test('не доставляет событие другого storeId', () => {
+    const handler = jest.fn();
+    const unsubscribe = subscribeCatalogApplied(handler, 'store-a');
+
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: 'ivanor.catalog.cloudVersion.store-b',
+        newValue: 'version-b',
+      })
+    );
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: 'ivanor.catalog.cloudVersion.store-a',
+        newValue: 'version-a',
+      })
+    );
+
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(handler).toHaveBeenCalledWith('version-a');
+    unsubscribe();
   });
 });

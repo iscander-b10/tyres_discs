@@ -29,7 +29,11 @@ const optionIncludesString = (options, value) =>
   Array.isArray(options) && options.some((option) => String(option) === String(value));
 
 const DiscsSearchParameters = memo(() => {
-  const { clientMode: isClientMode, catalogDataVersion = 0 } = useAppShell();
+  const {
+    clientMode: isClientMode,
+    catalogDataVersion = 0,
+    workspaceResetKey = 'guest',
+  } = useAppShell();
   const [form] = Form.useForm();
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [errorSearch, setErrorSearch] = useState(null);
@@ -47,6 +51,26 @@ const DiscsSearchParameters = memo(() => {
   const brandSelectCloseOnMouseLeave = useCatalogSelectCloseOnMouseLeave();
   const loadRequestIdRef = useRef(0);
   const searchRequestIdRef = useRef(0);
+  const workspaceKeyRef = useRef(workspaceResetKey);
+  workspaceKeyRef.current = workspaceResetKey;
+
+  useEffect(() => {
+    loadRequestIdRef.current += 1;
+    searchRequestIdRef.current += 1;
+    setLoadingOptions(false);
+    setLoadingSearch(false);
+    setErrorSearch(null);
+    setSearchResults(null);
+    setAvailableBrands([]);
+    setAvailableSuppliers([]);
+    setAvailableDiameters([]);
+    setAvailableWidths([]);
+    setAvailableCb([]);
+    setAvailableEt([]);
+    setAvailablePcd([]);
+    setAvailablePn([]);
+    form.resetFields();
+  }, [form, workspaceResetKey]);
 
   const buildFiltersFromFormValues = (allValues = {}) => {
     const filters = {};
@@ -71,17 +95,21 @@ const DiscsSearchParameters = memo(() => {
       handleSearch(form.getFieldsValue(), { background: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [catalogDataVersion]);
+  }, [catalogDataVersion, workspaceResetKey]);
 
   const loadAvailableParameters = async (filters = {}) => {
     const requestId = ++loadRequestIdRef.current;
+    const requestedWorkspaceKey = workspaceResetKey;
 
     setLoadingOptions(true);
 
     try {
       const options = await indexedDBService.getAvailableDiscParameterOptions(filters);
 
-      if (requestId !== loadRequestIdRef.current) {
+      if (
+        requestId !== loadRequestIdRef.current ||
+        requestedWorkspaceKey !== workspaceKeyRef.current
+      ) {
         return null;
       }
 
@@ -99,7 +127,10 @@ const DiscsSearchParameters = memo(() => {
       // Оставляем предыдущие опции, чтобы UI не моргал пустыми списками
       return null;
     } finally {
-      if (requestId === loadRequestIdRef.current) {
+      if (
+        requestId === loadRequestIdRef.current &&
+        requestedWorkspaceKey === workspaceKeyRef.current
+      ) {
         setLoadingOptions(false);
       }
     }
@@ -155,6 +186,7 @@ const DiscsSearchParameters = memo(() => {
 
   const handleSearch = async (values, { background = false } = {}) => {
     const requestId = ++searchRequestIdRef.current;
+    const requestedWorkspaceKey = workspaceResetKey;
 
     if (!background) {
       setSearchResetKey((key) => key + 1);
@@ -172,7 +204,10 @@ const DiscsSearchParameters = memo(() => {
       delete searchParams.onlyAmountFrom4;
 
       const dbResults = await indexedDBService.searchDiscs(searchParams);
-      if (requestId !== searchRequestIdRef.current) {
+      if (
+        requestId !== searchRequestIdRef.current ||
+        requestedWorkspaceKey !== workspaceKeyRef.current
+      ) {
         return;
       }
       setSearchResults(dbResults);
@@ -180,14 +215,21 @@ const DiscsSearchParameters = memo(() => {
         setErrorSearch(null);
       }
     } catch (err) {
-      if (requestId !== searchRequestIdRef.current) {
+      if (
+        requestId !== searchRequestIdRef.current ||
+        requestedWorkspaceKey !== workspaceKeyRef.current
+      ) {
         return;
       }
       if (!background) {
         setErrorSearch(err.message);
       }
     } finally {
-      if (!background && requestId === searchRequestIdRef.current) {
+      if (
+        !background &&
+        requestId === searchRequestIdRef.current &&
+        requestedWorkspaceKey === workspaceKeyRef.current
+      ) {
         setLoadingSearch(false);
       }
     }

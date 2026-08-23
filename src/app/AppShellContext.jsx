@@ -3,6 +3,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -11,6 +12,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { DEFAULT_APP_HOME, PATHS } from './paths';
 import { subscribeCatalogApplied } from '../services/catalogSync/catalogSyncChannel';
+import indexedDBService from '../services/indexedDBService';
 
 const CLIENT_MODE_STORAGE_KEY = 'ivanor-client-mode';
 
@@ -29,7 +31,7 @@ function getInitialClientMode() {
 const AppShellContext = createContext(null);
 
 export function AppShellProvider({ children }) {
-  const { isAuthenticated, isReady } = useAuth();
+  const { isAuthenticated, isReady, isWorkspaceReady, workspace } = useAuth();
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [clientMode, setClientModeState] = useState(getInitialClientMode);
@@ -38,6 +40,35 @@ export function AppShellProvider({ children }) {
   const [sessionResetKey, setSessionResetKey] = useState(0);
   const [lastCatalogPath, setLastCatalogPath] = useState(DEFAULT_APP_HOME);
   const [lastBackgroundPath, setLastBackgroundPath] = useState(DEFAULT_APP_HOME);
+  const lastAppliedVersionRef = useRef('');
+  const workspaceResetKey = isWorkspaceReady
+    ? `${workspace.accountId}:${workspace.storeId}`
+    : 'guest';
+  const activeWorkspaceRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const currentWorkspace = isWorkspaceReady ? workspace : null;
+    activeWorkspaceRef.current = currentWorkspace;
+    lastAppliedVersionRef.current = '';
+    setCatalogSnapshotVersion('');
+    setCatalogDataVersion((version) => version + 1);
+
+    if (currentWorkspace?.storeId) {
+      indexedDBService.setActiveStore(currentWorkspace.storeId);
+    } else {
+      indexedDBService.invalidateActiveStore();
+    }
+
+    return () => {
+      if (
+        currentWorkspace?.storeId &&
+        activeWorkspaceRef.current === currentWorkspace
+      ) {
+        activeWorkspaceRef.current = null;
+        indexedDBService.invalidateActiveStore(currentWorkspace.storeId);
+      }
+    };
+  }, [isWorkspaceReady, workspace]);
 
   useEffect(() => {
     if (pathname === PATHS.tyres || pathname === PATHS.wheels) {
@@ -91,14 +122,19 @@ export function AppShellProvider({ children }) {
     navigate(PATHS.home);
   }, [isAuthenticated, navigate]);
 
-  const lastAppliedVersionRef = useRef('');
-
   const bumpCatalogDataVersion = useCallback(() => {
     setCatalogDataVersion((version) => version + 1);
   }, []);
 
   const notifyCatalogApplied = useCallback(
-    (version) => {
+    (version, storeId = activeWorkspaceRef.current?.storeId) => {
+      if (
+        !version ||
+        !activeWorkspaceRef.current ||
+        activeWorkspaceRef.current.storeId !== storeId
+      ) {
+        return false;
+      }
       if (version) {
         lastAppliedVersionRef.current = version;
         setCatalogSnapshotVersion((current) =>
@@ -106,12 +142,16 @@ export function AppShellProvider({ children }) {
         );
       }
       bumpCatalogDataVersion();
+      return true;
     },
     [bumpCatalogDataVersion]
   );
 
   useEffect(() => {
+    if (!isWorkspaceReady || !workspace?.storeId) return undefined;
+    const subscribedWorkspace = workspace;
     return subscribeCatalogApplied((version) => {
+      if (activeWorkspaceRef.current !== subscribedWorkspace) return;
       if (version && version === lastAppliedVersionRef.current) {
         return;
       }
@@ -122,8 +162,8 @@ export function AppShellProvider({ children }) {
         );
       }
       bumpCatalogDataVersion();
-    });
-  }, [bumpCatalogDataVersion]);
+    }, subscribedWorkspace.storeId);
+  }, [bumpCatalogDataVersion, isWorkspaceReady, workspace]);
 
   const effectiveClientMode = isAuthenticated ? clientMode : true;
 
@@ -138,6 +178,7 @@ export function AppShellProvider({ children }) {
       bumpCatalogDataVersion,
       notifyCatalogApplied,
       sessionResetKey,
+      workspaceResetKey,
       lastBackgroundPath,
     }),
     [
@@ -150,6 +191,7 @@ export function AppShellProvider({ children }) {
       bumpCatalogDataVersion,
       notifyCatalogApplied,
       sessionResetKey,
+      workspaceResetKey,
       lastBackgroundPath,
     ]
   );

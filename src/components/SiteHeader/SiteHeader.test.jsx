@@ -1,0 +1,89 @@
+import React, { act } from 'react';
+import { createRoot } from 'react-dom/client';
+import { useAppShell } from '../../app/AppShellContext';
+import { useAuth } from '../../auth/AuthContext';
+import { useCart } from '../../cart/CartContext';
+import SiteHeader from './SiteHeader';
+
+jest.mock('../../app/AppShellContext', () => ({ useAppShell: jest.fn() }));
+jest.mock('../../auth/AuthContext', () => ({ useAuth: jest.fn() }));
+jest.mock('../../auth/useLogout', () => ({ useLogout: () => jest.fn() }));
+jest.mock('../../cart/CartContext', () => ({ useCart: jest.fn() }));
+jest.mock('react-router-dom', () => ({
+  Link: ({ children }) => children,
+  NavLink: ({ children, className, 'aria-label': ariaLabel }) => {
+    const ReactModule = require('react');
+    return ReactModule.createElement(
+      'a',
+      {
+        className:
+          typeof className === 'function'
+            ? className({ isActive: false })
+            : className,
+        'aria-label': ariaLabel,
+      },
+      children
+    );
+  },
+  useLocation: () => ({ pathname: '/' }),
+}));
+jest.mock('@ant-design/icons', () => ({
+  ShoppingCartOutlined: () => null,
+}));
+jest.mock('../../icons/Phone.svg', () => ({
+  ReactComponent: () => null,
+}));
+jest.mock('../../icons/User.svg', () => ({
+  ReactComponent: () => null,
+}));
+jest.mock('../shared/HoverTooltip', () => ({ children }) => children);
+jest.mock('../shared/ThemeSwitch/ThemeSwitch', () => () => null);
+
+describe('SiteHeader cart badge', () => {
+  let container;
+  let root;
+
+  beforeEach(() => {
+    global.IS_REACT_ACT_ENVIRONMENT = true;
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    useAppShell.mockReturnValue({ handleBrandClick: jest.fn() });
+    useAuth.mockReturnValue({
+      isAuthenticated: true,
+      isWorkspaceReady: true,
+    });
+  });
+
+  afterEach(async () => {
+    await act(async () => root.unmount());
+    container.remove();
+    jest.clearAllMocks();
+  });
+
+  const render = async () => {
+    await act(async () => {
+      root.render(<SiteHeader />);
+    });
+  };
+
+  test('скрывает количество до загрузки cart namespace', async () => {
+    useCart.mockReturnValue({ isLoaded: false, totalQuantity: 7 });
+    await render();
+
+    expect(container.querySelector('.site-header__cart-badge')).toBeNull();
+    expect(
+      container.querySelector('[aria-label="Корзина"]')
+    ).not.toBeNull();
+  });
+
+  test('показывает количество только для готового workspace', async () => {
+    useCart.mockReturnValue({ isLoaded: true, totalQuantity: 7 });
+    await render();
+
+    expect(container.querySelector('.site-header__cart-badge')?.textContent).toBe(
+      '7'
+    );
+    expect(container.querySelector('[aria-label="Корзина, 7"]')).not.toBeNull();
+  });
+});

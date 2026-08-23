@@ -20,15 +20,21 @@ const CatalogShowcase = ({
   renderCard,
   onChipClick,
 }) => {
-  const { clientMode: isClientMode, catalogDataVersion = 0 } = useAppShell();
+  const {
+    clientMode: isClientMode,
+    catalogDataVersion = 0,
+    workspaceResetKey = 'guest',
+  } = useAppShell();
   const [status, setStatus] = useState('loading');
   const [showcase, setShowcase] = useState(null);
   const requestIdRef = useRef(0);
+  const showcaseRef = useRef(showcase);
+  showcaseRef.current = showcase;
   const staticChips = getShowcaseStaticChips(kind);
 
   useEffect(() => {
     const requestId = ++requestIdRef.current;
-    const hasStaleShowcase = showcase !== null;
+    const hasStaleShowcase = showcaseRef.current !== null;
     if (!hasStaleShowcase) {
       setStatus('loading');
     }
@@ -36,6 +42,7 @@ const CatalogShowcase = ({
     getCatalogShowcase({
       kind,
       catalogDataVersion,
+      workspaceResetKey,
     })
       .then((result) => {
         if (requestId !== requestIdRef.current) return;
@@ -49,7 +56,7 @@ const CatalogShowcase = ({
           setStatus('error');
         }
       });
-  }, [kind, catalogDataVersion]);
+  }, [kind, catalogDataVersion, workspaceResetKey]);
 
   const chips = showcase?.chips ?? staticChips.chips;
   const chipsTitle = showcase?.chipsTitle ?? staticChips.chipsTitle;

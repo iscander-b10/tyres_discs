@@ -1,8 +1,14 @@
 import { mergePreferredShowcaseCandidates } from '../catalog/showcase/preferredCandidates';
+import {
+  getSafeCatalogStoreId,
+  resolveCatalogStoreId,
+} from './catalogSync/catalogStoreNamespace';
 
 /** Единая схема каталога — единственный источник имён stores и metadata keys. */
 export const CATALOG_DB_NAME = 'CatalogDatabase';
 export const CATALOG_DB_VERSION = 1;
+export const getCatalogDatabaseName = (storeId) =>
+  `${CATALOG_DB_NAME}.${getSafeCatalogStoreId(storeId)}`;
 export const CATALOG_STORES = {
   tires: 'tires',
   discs: 'discs',
@@ -431,6 +437,8 @@ const collectShowcaseCandidatesFromStore = (
 
 class IndexedDBService {
   constructor() {
+    this.activeStoreId = resolveCatalogStoreId();
+    this._generation = 0;
     this.catalogDb = null;
     this._migrationComplete = false;
     this._ensurePromise = null;
@@ -440,49 +448,187 @@ class IndexedDBService {
     this.discDb = null;
   }
 
-  async ensureCatalogReady() {
+  setActiveStore(storeId) {
+    const nextStoreId = resolveCatalogStoreId(storeId);
+    if (nextStoreId === this.activeStoreId) {
+      return this._generation;
+    }
+
+    this._generation += 1;
+    this.activeStoreId = nextStoreId;
+    this.catalogDb?.close?.();
+    this.catalogDb = null;
+    this.db = null;
+    this.discDb = null;
+    this._migrationComplete = false;
+    this._ensurePromise = null;
+    return this._generation;
+  }
+
+  invalidateActiveStore(storeId) {
+    if (
+      storeId &&
+      this.activeStoreId &&
+      resolveCatalogStoreId(storeId) !== this.activeStoreId
+    ) {
+      return false;
+    }
+
+    this._generation += 1;
+    this.catalogDb?.close?.();
+    this.activeStoreId = null;
+    this.catalogDb = null;
+    this.db = null;
+    this.discDb = null;
+    this._migrationComplete = false;
+    this._ensurePromise = null;
+    return true;
+  }
+
+  getActiveStore() {
+    return {
+      storeId: this.activeStoreId,
+      generation: this._generation,
+      databaseName: this.activeStoreId
+        ? getCatalogDatabaseName(this.activeStoreId)
+        : null,
+    };
+  }
+
+  isActiveStore(storeId, generation) {
+    return (
+      Boolean(this.activeStoreId) &&
+      resolveCatalogStoreId(storeId) === this.activeStoreId &&
+      (generation === undefined || generation === this._generation)
+    );
+  }
+
+  _createStaleStoreError() {
+    const error = new Error('Результат IndexedDB относится к неактивному магазину');
+    error.name = 'StaleCatalogStoreError';
+    return error;
+  }
+
+  _assertActiveGeneration(generation) {
+    if (generation !== this._generation) {
+      throw this._createStaleStoreError();
+    }
+  }
+
+  _resolveIfActive(resolve, reject, generation, value) {
+    try {
+      this._assertActiveGeneration(generation);
+      resolve(value);
+    } catch (error) {
+      reject(error);
+    }
+  }
+
+  async _getReadyContext() {
+    const generation = this._generation;
+    const database = await this.ensureCatalogReady(generation);
+    this._assertActiveGeneration(generation);
+    return { database, generation };
+  }
+
+  async ensureCatalogReady(expectedGeneration = this._generation) {
+    this._assertActiveGeneration(expectedGeneration);
     if (this.catalogDb && this._migrationComplete) {
       return this.catalogDb;
     }
     if (!this._ensurePromise) {
-      this._ensurePromise = this._doEnsureCatalogReady();
+      this._ensurePromise = this._doEnsureCatalogReady(expectedGeneration);
     }
+    const ensurePromise = this._ensurePromise;
     try {
-      return await this._ensurePromise;
+      const database = await ensurePromise;
+      this._assertActiveGeneration(expectedGeneration);
+      return database;
     } finally {
-      this._ensurePromise = null;
+      if (this._ensurePromise === ensurePromise) {
+        this._ensurePromise = null;
+      }
     }
   }
 
-  async _doEnsureCatalogReady() {
-    await this.openCatalogDatabase();
-    const migrated = await this._isMigrationComplete();
+  async _doEnsureCatalogReady(generation) {
+    const database = await this.openCatalogDatabase(generation);
+    if (!database) return null;
+
+    const migrated = await this._isMigrationComplete(generation, database);
+    this._assertActiveGeneration(generation);
     if (migrated) {
       this._migrationComplete = true;
-      return this.catalogDb;
+      return database;
     }
 
-    const [legacyTires, legacyDiscs] = await Promise.all([
-      readLegacyStore(LEGACY_DB_NAMES.tires, CATALOG_STORES.tires),
-      readLegacyStore(LEGACY_DB_NAMES.discs, CATALOG_STORES.discs),
-    ]);
+    const shouldMigrateLegacy =
+      this.activeStoreId === resolveCatalogStoreId(undefined);
+    const legacySources = shouldMigrateLegacy
+      ? await Promise.all([
+          readLegacyStore(CATALOG_DB_NAME, CATALOG_STORES.tires),
+          readLegacyStore(CATALOG_DB_NAME, CATALOG_STORES.discs),
+          readLegacyStore(CATALOG_DB_NAME, CATALOG_STORES.metadata),
+          readLegacyStore(LEGACY_DB_NAMES.tires, CATALOG_STORES.tires),
+          readLegacyStore(LEGACY_DB_NAMES.discs, CATALOG_STORES.discs),
+        ])
+      : [[], [], [], [], []];
+    const [
+      unifiedTires,
+      unifiedDiscs,
+      unifiedMetadata,
+      legacyTires,
+      legacyDiscs,
+    ] = legacySources;
+    const legacyVersion =
+      unifiedMetadata.find(
+        (record) => record?.key === CATALOG_METADATA_KEYS.snapshotVersion
+      )?.value || '';
 
-    await this._runLegacyMigrationTransaction(legacyTires, legacyDiscs);
+    this._assertActiveGeneration(generation);
+    await this._runLegacyMigrationTransaction(
+      unifiedTires.length ? unifiedTires : legacyTires,
+      unifiedDiscs.length ? unifiedDiscs : legacyDiscs,
+      generation,
+      database,
+      legacyVersion
+    );
+    this._assertActiveGeneration(generation);
     this._migrationComplete = true;
-    return this.catalogDb;
+    return database;
   }
 
-  async openCatalogDatabase() {
+  async openCatalogDatabase(expectedGeneration = this._generation) {
+    this._assertActiveGeneration(expectedGeneration);
     if (this.catalogDb) {
       return this.catalogDb;
     }
 
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(CATALOG_DB_NAME, CATALOG_DB_VERSION);
+      if (typeof indexedDB === 'undefined' || typeof indexedDB.open !== 'function') {
+        resolve(null);
+        return;
+      }
 
-      request.onerror = () => reject(request.error);
+      let request;
+      try {
+        request = indexedDB.open(
+          getCatalogDatabaseName(this.activeStoreId),
+          CATALOG_DB_VERSION
+        );
+      } catch {
+        resolve(null);
+        return;
+      }
+
+      request.onerror = () => resolve(null);
 
       request.onsuccess = () => {
+        if (expectedGeneration !== this._generation) {
+          request.result?.close?.();
+          reject(this._createStaleStoreError());
+          return;
+        }
         this.catalogDb = request.result;
         this.db = this.catalogDb;
         this.discDb = this.catalogDb;
@@ -527,10 +673,14 @@ class IndexedDBService {
     return this.ensureCatalogReady();
   }
 
-  async _isMigrationComplete() {
-    await this.openCatalogDatabase();
+  async _isMigrationComplete(
+    generation = this._generation,
+    database = this.catalogDb
+  ) {
+    this._assertActiveGeneration(generation);
+    if (!database) return true;
     return new Promise((resolve, reject) => {
-      const transaction = this.catalogDb.transaction(
+      const transaction = database.transaction(
         [CATALOG_STORES.metadata],
         'readonly'
       );
@@ -538,17 +688,30 @@ class IndexedDBService {
         .objectStore(CATALOG_STORES.metadata)
         .get(CATALOG_METADATA_KEYS.migrationMarker);
       request.onsuccess = () => {
-        resolve(request.result?.value === LEGACY_MIGRATION_MARKER);
+        try {
+          this._assertActiveGeneration(generation);
+          resolve(request.result?.value === LEGACY_MIGRATION_MARKER);
+        } catch (error) {
+          reject(error);
+        }
       };
       request.onerror = () => reject(request.error);
     });
   }
 
-  async _runLegacyMigrationTransaction(legacyTires, legacyDiscs) {
-    const legacyVersion = this._readLegacyLocalStorageVersion();
+  async _runLegacyMigrationTransaction(
+    legacyTires,
+    legacyDiscs,
+    generation = this._generation,
+    database = this.catalogDb,
+    migratedVersion = ''
+  ) {
+    this._assertActiveGeneration(generation);
+    const legacyVersion =
+      migratedVersion || this._readLegacyLocalStorageVersion();
 
     return new Promise((resolve, reject) => {
-      const transaction = this.catalogDb.transaction(
+      const transaction = database.transaction(
         ALL_CATALOG_STORES,
         'readwrite'
       );
@@ -566,7 +729,14 @@ class IndexedDBService {
         }
       };
 
-      transaction.oncomplete = () => resolve();
+      transaction.oncomplete = () => {
+        try {
+          this._assertActiveGeneration(generation);
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
+      };
       transaction.onabort = () =>
         reject(
           abortCause ||
@@ -616,16 +786,23 @@ class IndexedDBService {
   }
 
   async getPersistedCatalogVersion() {
-    await this.ensureCatalogReady();
+    const { database, generation } = await this._getReadyContext();
+    if (!database) return '';
     return new Promise((resolve, reject) => {
-      const transaction = this.catalogDb.transaction(
+      const transaction = database.transaction(
         [CATALOG_STORES.metadata],
         'readonly'
       );
       const request = transaction
         .objectStore(CATALOG_STORES.metadata)
         .get(CATALOG_METADATA_KEYS.snapshotVersion);
-      request.onsuccess = () => resolve(request.result?.value || '');
+      request.onsuccess = () =>
+        this._resolveIfActive(
+          resolve,
+          reject,
+          generation,
+          request.result?.value || ''
+        );
       request.onerror = () => reject(request.error);
     });
   }
@@ -636,11 +813,18 @@ class IndexedDBService {
    * product stores for legacy cart migration.
    */
   async readCartCatalogItems(references) {
-    await this.ensureCatalogReady();
+    const { database, generation } = await this._getReadyContext();
     const normalizedReferences = Array.isArray(references) ? references : [];
+    const emptyResults = normalizedReferences.map((reference) => ({
+      requestKey: reference.requestKey,
+      matches: { tyres: null, discs: null },
+    }));
+    if (!database) {
+      return { version: '', results: emptyResults };
+    }
 
     return new Promise((resolve, reject) => {
-      const transaction = this.catalogDb.transaction(ALL_CATALOG_STORES, 'readonly');
+      const transaction = database.transaction(ALL_CATALOG_STORES, 'readonly');
       const metadataStore = transaction.objectStore(CATALOG_STORES.metadata);
       const stores = {
         tyres: transaction.objectStore(CATALOG_STORES.tires),
@@ -662,7 +846,8 @@ class IndexedDBService {
         }
       };
 
-      transaction.oncomplete = () => resolve({ version, results });
+      transaction.oncomplete = () =>
+        this._resolveIfActive(resolve, reject, generation, { version, results });
       transaction.onabort = () =>
         reject(
           abortCause ||
@@ -696,7 +881,8 @@ class IndexedDBService {
   }
 
   async isCatalogEmpty() {
-    await this.ensureCatalogReady();
+    const { database } = await this._getReadyContext();
+    if (!database) return true;
     const [tires, discs] = await Promise.all([
       this.collectTireShowcaseCandidates({ candidateLimit: 1 }),
       this.collectDiscShowcaseCandidates({ candidateLimit: 1 }),
@@ -710,7 +896,10 @@ class IndexedDBService {
    * @param {string} version
    */
   async applyCatalogSnapshot(commands, version) {
-    await this.ensureCatalogReady();
+    const { database, generation } = await this._getReadyContext();
+    if (!database) {
+      throw new Error('IndexedDB недоступен для записи каталога');
+    }
 
     const writes = commands
       .filter((command) => command.action !== 'keepPrevious')
@@ -721,7 +910,7 @@ class IndexedDBService {
       }));
 
     return new Promise((resolve, reject) => {
-      const transaction = this.catalogDb.transaction(
+      const transaction = database.transaction(
         ALL_CATALOG_STORES,
         'readwrite'
       );
@@ -742,6 +931,12 @@ class IndexedDBService {
       };
 
       transaction.oncomplete = () => {
+        try {
+          this._assertActiveGeneration(generation);
+        } catch (error) {
+          reject(error);
+          return;
+        }
         if (skippedDueToVersion) {
           resolve({ applied: false, writes: 0, skipped: true });
           return;
@@ -860,10 +1055,13 @@ class IndexedDBService {
     entityName,
   }) {
     validateCatalogItemsForSupplier(items, supplier, entityName);
-    await this.ensureCatalogReady();
+    const { database, generation } = await this._getReadyContext();
+    if (!database) {
+      throw new Error(`IndexedDB недоступен для записи: ${entityName}`);
+    }
 
     return new Promise((resolve, reject) => {
-      const transaction = this.catalogDb.transaction([storeName], 'readwrite');
+      const transaction = database.transaction([storeName], 'readwrite');
       const store = transaction.objectStore(storeName);
       let abortCause = null;
 
@@ -877,7 +1075,10 @@ class IndexedDBService {
       };
 
       transaction.oncomplete = () =>
-        resolve({ saved: items.length, skipped });
+        this._resolveIfActive(resolve, reject, generation, {
+          saved: items.length,
+          skipped,
+        });
       transaction.onabort = () =>
         reject(
           abortCause ||
@@ -896,10 +1097,11 @@ class IndexedDBService {
   }
 
   async searchTires(filters) {
-    await this.ensureCatalogReady();
+    const { database, generation } = await this._getReadyContext();
+    if (!database) return [];
 
     return new Promise((resolve, reject) => {
-      const transaction = this.catalogDb.transaction(
+      const transaction = database.transaction(
         [CATALOG_STORES.tires],
         'readonly'
       );
@@ -959,7 +1161,7 @@ class IndexedDBService {
 
           cursor.continue();
         } else {
-          resolve(results);
+          this._resolveIfActive(resolve, reject, generation, results);
         }
       };
 
@@ -968,10 +1170,20 @@ class IndexedDBService {
   }
 
   async getAvailableParameterOptions(filters = {}) {
-    await this.ensureCatalogReady();
+    const { database, generation } = await this._getReadyContext();
+    if (!database) {
+      return {
+        widths: [],
+        profiles: [],
+        diameters: [],
+        seasons: [],
+        brands: [],
+        suppliers: [],
+      };
+    }
 
     return new Promise((resolve, reject) => {
-      const transaction = this.catalogDb.transaction(
+      const transaction = database.transaction(
         [CATALOG_STORES.tires],
         'readonly'
       );
@@ -1016,7 +1228,7 @@ class IndexedDBService {
           }
         });
 
-        resolve({
+        this._resolveIfActive(resolve, reject, generation, {
           widths: sortNumericValues(widths),
           profiles: sortNumericValues(profiles),
           diameters: sortDiameterValues(diameters),
@@ -1031,10 +1243,11 @@ class IndexedDBService {
   }
 
   async searchDiscs(filters) {
-    await this.ensureCatalogReady();
+    const { database, generation } = await this._getReadyContext();
+    if (!database) return [];
 
     return new Promise((resolve, reject) => {
-      const transaction = this.catalogDb.transaction(
+      const transaction = database.transaction(
         [CATALOG_STORES.discs],
         'readonly'
       );
@@ -1090,7 +1303,7 @@ class IndexedDBService {
 
           cursor.continue();
         } else {
-          resolve(results);
+          this._resolveIfActive(resolve, reject, generation, results);
         }
       };
 
@@ -1099,34 +1312,53 @@ class IndexedDBService {
   }
 
   async collectTireShowcaseCandidates(options = {}) {
-    await this.ensureCatalogReady();
-    const transaction = this.catalogDb.transaction(
+    const { database, generation } = await this._getReadyContext();
+    if (!database) return { isEmpty: true, candidates: [] };
+    const transaction = database.transaction(
       [CATALOG_STORES.tires],
       'readonly'
     );
-    return collectShowcaseCandidatesFromStore(
+    const result = await collectShowcaseCandidatesFromStore(
       transaction.objectStore(CATALOG_STORES.tires),
       options
     );
+    this._assertActiveGeneration(generation);
+    return result;
   }
 
   async collectDiscShowcaseCandidates(options = {}) {
-    await this.ensureCatalogReady();
-    const transaction = this.catalogDb.transaction(
+    const { database, generation } = await this._getReadyContext();
+    if (!database) return { isEmpty: true, candidates: [] };
+    const transaction = database.transaction(
       [CATALOG_STORES.discs],
       'readonly'
     );
-    return collectShowcaseCandidatesFromStore(
+    const result = await collectShowcaseCandidatesFromStore(
       transaction.objectStore(CATALOG_STORES.discs),
       options
     );
+    this._assertActiveGeneration(generation);
+    return result;
   }
 
   async getAvailableDiscParameterOptions(filters = {}) {
-    await this.ensureCatalogReady();
+    const { database, generation } = await this._getReadyContext();
+    if (!database) {
+      return {
+        brands: [],
+        suppliers: [],
+        diameters: [],
+        widths: [],
+        cb: [],
+        et: [],
+        pcd: [],
+        pn: [],
+        diskTypes: [],
+      };
+    }
 
     return new Promise((resolve, reject) => {
-      const transaction = this.catalogDb.transaction(
+      const transaction = database.transaction(
         [CATALOG_STORES.discs],
         'readonly'
       );
@@ -1258,7 +1490,7 @@ class IndexedDBService {
           }
         });
 
-        resolve({
+        this._resolveIfActive(resolve, reject, generation, {
           brands: Array.from(brands).sort(),
           suppliers: Array.from(suppliers).sort(),
           diameters: sortDiscDiameterValues(diameters),

@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Button } from 'antd';
 import { ShoppingCartOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { PATHS } from '../../../app/paths';
+import { useAuth } from '../../../auth/AuthContext';
 import { useCart } from '../../../cart/CartContext';
 import indexedDBService from '../../../services/indexedDBService';
 import {
@@ -21,21 +22,45 @@ function AddToCartControl({
   block = true,
 }) {
   const navigate = useNavigate();
-  const { addItem, getItem, increment, decrement, removeItem } = useCart();
+  const { isWorkspaceReady, workspace } = useAuth();
+  const {
+    addItem,
+    getItem,
+    increment,
+    decrement,
+    removeItem,
+    isLoaded,
+  } = useCart();
+  const workspaceKey = isWorkspaceReady && workspace
+    ? `${workspace.accountId}:${workspace.storeId}`
+    : '';
+  const workspaceKeyRef = useRef(workspaceKey);
+  workspaceKeyRef.current = workspaceKey;
   const key = getCartItemKey(item, category);
   const cartLine = getItem(key);
-  const canAdd = isCatalogItemSellable(item, category);
+  const canAdd =
+    Boolean(workspaceKey) &&
+    isLoaded &&
+    isCatalogItemSellable(item, category);
 
   const handleAdd = async (event) => {
     event.stopPropagation();
     if (!key || !canAdd) return;
+    const requestedWorkspaceKey = workspaceKey;
+    const requestedStoreId = workspace.storeId;
 
     try {
       const catalogRead = await indexedDBService.readCartCatalogItems([
         { requestKey: key, category, id: String(item.id) },
       ]);
+      if (
+        requestedWorkspaceKey !== workspaceKeyRef.current ||
+        !indexedDBService.isActiveStore(requestedStoreId)
+      ) {
+        return;
+      }
       const currentItem = catalogRead.results[0]?.matches?.[category];
-      addItem(currentItem, category);
+      if (currentItem) addItem(currentItem, category);
     } catch {
       // A failed read must not add a stale snapshot.
     }

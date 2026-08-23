@@ -94,7 +94,7 @@ function UnmatchedRoute() {
 }
 
 function AppFrame({ appearance = 'light', onAppearanceChange }) {
-  const { sessionResetKey } = useAppShell();
+  const { sessionResetKey, workspaceResetKey } = useAppShell();
   const { isAuthenticated } = useAuth();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -132,7 +132,9 @@ function AppFrame({ appearance = 'light', onAppearanceChange }) {
                             : undefined
                         }
                       >
-                        <TiresSearchParameters key={`tires-${sessionResetKey}`} />
+                        <TiresSearchParameters
+                          key={`tires-${workspaceResetKey}-${sessionResetKey}`}
+                        />
                       </div>
                       <div
                         className="catalog-panel"
@@ -143,7 +145,9 @@ function AppFrame({ appearance = 'light', onAppearanceChange }) {
                             : undefined
                         }
                       >
-                        <DiscsSearchParameters key={`discs-${sessionResetKey}`} />
+                        <DiscsSearchParameters
+                          key={`discs-${workspaceResetKey}-${sessionResetKey}`}
+                        />
                       </div>
                     </>
                   ) : null}
@@ -157,7 +161,7 @@ function AppFrame({ appearance = 'light', onAppearanceChange }) {
                           : undefined
                       }
                     >
-                      <BasketPage />
+                      <BasketPage key={`basket-${workspaceResetKey}`} />
                     </div>
                   ) : null}
                 </>
@@ -176,6 +180,19 @@ function AppFrame({ appearance = 'light', onAppearanceChange }) {
   );
 }
 
+function WorkspaceHosts() {
+  const { isWorkspaceReady, workspace } = useAuth();
+  if (!isWorkspaceReady || !workspace) return null;
+
+  const workspaceKey = `${workspace.accountId}:${workspace.storeId}`;
+  return (
+    <React.Fragment key={workspaceKey}>
+      <CatalogSyncHost />
+      <CartReconciliationHost />
+    </React.Fragment>
+  );
+}
+
 function AppReady({ children }) {
   const { isReady } = useAuth();
   if (!isReady) return null;
@@ -188,8 +205,7 @@ function App({ appearance = 'light', onAppearanceChange }) {
       <AuthProvider>
         <AppShellProvider>
           <CartProvider>
-            <CatalogSyncHost />
-            <CartReconciliationHost />
+            <WorkspaceHosts />
             <AppReady>
               <Routes>
                 <Route

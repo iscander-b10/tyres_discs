@@ -11,6 +11,15 @@ function toHex(buffer) {
     .join('');
 }
 
+export async function createAccountId(login) {
+  const normalizedLogin = normalizeLogin(login);
+  const hash = await crypto.subtle.digest(
+    'SHA-256',
+    encoder.encode(normalizedLogin)
+  );
+  return toHex(hash);
+}
+
 function bytesToBase64(bytes) {
   let binary = '';
   const chunk = 0x8000;

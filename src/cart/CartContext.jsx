@@ -4,8 +4,10 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
+import { useAuth } from '../auth/AuthContext';
 import {
   clampCartQty,
   getCartItemKey,
@@ -17,67 +19,154 @@ import {
   reconcileCartItems,
   snapshotCartItem,
 } from './cartUtils';
+import {
+  createCartEnvelope,
+  getCartStorageKey,
+  isEnvelopeNewer,
+  readCartEnvelope,
+  writeCartEnvelope,
+} from './cartStorage';
+import { createCartSync } from './cartSync';
+import { LegacyCartMigrationModal } from './LegacyCartMigrationModal';
 
-const LEGACY_CART_KEY = 'ivanor.cart.v1';
-const CART_STORAGE_VERSION = 2;
-
-export function getCartStorageKey(mode = 'staff') {
-  return mode === 'demo' ? 'cart.demo.v2' : 'cart.staff.v2';
-}
+export { getCartStorageKey } from './cartStorage';
 
 const CartContext = createContext(null);
 
-const readItemsFromRawStorage = (raw) => {
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed;
-    if (
-      parsed?.version === CART_STORAGE_VERSION &&
-      Array.isArray(parsed.items)
-    ) {
-      return parsed.items;
-    }
-  } catch {
-    return null;
-  }
-  return null;
-};
-
-export const readStoredItems = () => {
-  try {
-    const storageKeys = [
-      getCartStorageKey('staff'),
-      'cart.staff.v1',
-      LEGACY_CART_KEY,
-    ];
-    for (const key of storageKeys) {
-      const items = readItemsFromRawStorage(localStorage.getItem(key));
-      if (items) {
-        return items.filter(
-          (row) => row && typeof row.key === 'string' && row.key
-        );
-      }
-    }
-    return [];
-  } catch {
-    return [];
-  }
-};
-
 export function CartProvider({ children }) {
-  const [items, setItems] = useState(() => readStoredItems());
+  const { workspace, isWorkspaceReady } = useAuth();
+  return (
+    <CartProviderCore
+      workspace={workspace}
+      isWorkspaceReady={isWorkspaceReady}
+    >
+      {children}
+    </CartProviderCore>
+  );
+}
+
+export function CartProviderCore({
+  children,
+  workspace,
+  isWorkspaceReady,
+  storage = window.localStorage,
+  syncFactory = createCartSync,
+  showLegacyMigration = true,
+}) {
+  const [items, setItems] = useState([]);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const generationRef = useRef(0);
+  const itemsRef = useRef([]);
+  const envelopeRef = useRef(null);
+  const activeRef = useRef(null);
+  const syncRef = useRef(null);
+  const lastReconciledVersionRef = useRef('');
+
+  const replaceRuntime = useCallback((envelope, loaded = true) => {
+    envelopeRef.current = envelope;
+    itemsRef.current = envelope?.items ?? [];
+    setItems(envelope?.items ?? []);
+    setIsLoaded(loaded);
+  }, []);
 
   useEffect(() => {
+    const nextGeneration = generationRef.current + 1;
+    generationRef.current = nextGeneration;
+    syncRef.current?.close();
+    syncRef.current = null;
+    activeRef.current = null;
+    lastReconciledVersionRef.current = '';
+    replaceRuntime(null, false);
+
+    const accountId = workspace?.accountId;
+    if (!isWorkspaceReady || !accountId) return undefined;
+
+    activeRef.current = { accountId, generation: nextGeneration };
+    let envelope;
     try {
-      localStorage.setItem(
-        getCartStorageKey('staff'),
-        JSON.stringify({ version: CART_STORAGE_VERSION, items })
-      );
+      envelope =
+        readCartEnvelope(storage, accountId) ??
+        createCartEnvelope({ items: [], revision: 0, updatedAt: 0 });
     } catch {
-      /* ignore quota / private mode */
+      envelope = createCartEnvelope({ items: [], revision: 0, updatedAt: 0 });
     }
-  }, [items]);
+    replaceRuntime(envelope);
+
+    const isCurrent = () => {
+      const active = activeRef.current;
+      return (
+        active?.accountId === accountId &&
+        active?.generation === nextGeneration
+      );
+    };
+
+    try {
+      syncRef.current = syncFactory({
+        accountId,
+        storage,
+        onEnvelope: (incoming) => {
+          if (!isCurrent() || !isEnvelopeNewer(incoming, envelopeRef.current)) {
+            return;
+          }
+          replaceRuntime(incoming);
+        },
+      });
+    } catch {
+      syncRef.current = null;
+    }
+
+    return () => {
+      if (!isCurrent()) return;
+      syncRef.current?.close();
+      syncRef.current = null;
+      activeRef.current = null;
+    };
+  }, [
+    isWorkspaceReady,
+    replaceRuntime,
+    storage,
+    syncFactory,
+    workspace?.accountId,
+  ]);
+
+  const isCapturedCurrent = useCallback((captured) => {
+    const active = activeRef.current;
+    return (
+      active?.accountId === captured?.accountId &&
+      active?.generation === captured?.generation
+    );
+  }, []);
+
+  const commitItems = useCallback(
+    (update) => {
+      const captured = activeRef.current;
+      if (!captured || !isLoaded || !isCapturedCurrent(captured)) return false;
+
+      const currentEnvelope =
+        envelopeRef.current ??
+        createCartEnvelope({ items: [], revision: 0, updatedAt: 0 });
+      const nextItems = update(itemsRef.current);
+      if (nextItems === itemsRef.current) return true;
+
+      let nextEnvelope;
+      try {
+        nextEnvelope = createCartEnvelope({
+          items: nextItems,
+          revision: currentEnvelope.revision + 1,
+          updatedAt: Math.max(Date.now(), currentEnvelope.updatedAt + 1),
+        });
+        writeCartEnvelope(storage, captured.accountId, nextEnvelope);
+      } catch {
+        return false;
+      }
+      if (!isCapturedCurrent(captured)) return false;
+
+      replaceRuntime(nextEnvelope);
+      syncRef.current?.publish(nextEnvelope);
+      return true;
+    },
+    [isCapturedCurrent, isLoaded, replaceRuntime, storage]
+  );
 
   const addItem = useCallback((item, category, qty) => {
     if (!isCatalogItemSellable(item, category)) return false;
@@ -89,7 +178,7 @@ export function CartProvider({ children }) {
       qty != null ? clampCartQty(qty, stock) : getDefaultCartQty(item.amount);
     if (initialQty <= 0) return false;
 
-    setItems((prev) => {
+    return commitItems((prev) => {
       const existing = prev.find((row) => row.key === key);
       if (existing) {
         return prev.map((row) =>
@@ -108,20 +197,24 @@ export function CartProvider({ children }) {
       }
       return [...prev, snapshotCartItem(item, category, initialQty)];
     });
-    return true;
-  }, []);
-
-  const lastReconciledVersionRef = React.useRef('');
+  }, [commitItems]);
 
   const reconcileCatalog = useCallback(({ version, results }) => {
-    if (!version || version <= lastReconciledVersionRef.current) return false;
+    if (
+      !isLoaded ||
+      !version ||
+      version <= lastReconciledVersionRef.current
+    ) {
+      return false;
+    }
     lastReconciledVersionRef.current = version;
-    setItems((currentItems) => reconcileCartItems(currentItems, results));
-    return true;
-  }, []);
+    return commitItems((currentItems) =>
+      reconcileCartItems(currentItems, results)
+    );
+  }, [commitItems, isLoaded]);
 
   const increment = useCallback((key) => {
-    setItems((prev) =>
+    return commitItems((prev) =>
       prev.map((row) => {
         if (row.key !== key) return row;
         const max = parseStock(row.maxStock ?? row.amount);
@@ -132,10 +225,10 @@ export function CartProvider({ children }) {
         };
       })
     );
-  }, []);
+  }, [commitItems]);
 
   const decrement = useCallback((key) => {
-    setItems((prev) =>
+    return commitItems((prev) =>
       prev.map((row) => {
         if (row.key !== key) return row;
         return {
@@ -144,15 +237,68 @@ export function CartProvider({ children }) {
         };
       })
     );
-  }, []);
+  }, [commitItems]);
 
   const removeItem = useCallback((key) => {
-    setItems((prev) => prev.filter((row) => row.key !== key));
-  }, []);
+    return commitItems((prev) => prev.filter((row) => row.key !== key));
+  }, [commitItems]);
+
+  const flush = useCallback(() => {
+    const captured = activeRef.current;
+    const envelope = envelopeRef.current;
+    if (!captured || !envelope || !isCapturedCurrent(captured)) return false;
+    try {
+      writeCartEnvelope(storage, captured.accountId, envelope);
+      return isCapturedCurrent(captured);
+    } catch {
+      return false;
+    }
+  }, [isCapturedCurrent, storage]);
+
+  const detach = useCallback(() => {
+    const captured = activeRef.current;
+    const snapshot = envelopeRef.current;
+    if (captured) flush();
+    syncRef.current?.close();
+    syncRef.current = null;
+    activeRef.current = null;
+    generationRef.current += 1;
+    replaceRuntime(null, false);
+    return snapshot;
+  }, [flush, replaceRuntime]);
 
   const clear = useCallback(() => {
-    setItems([]);
-  }, []);
+    const captured = activeRef.current;
+    const currentEnvelope = envelopeRef.current;
+    if (!captured || !currentEnvelope || !isCapturedCurrent(captured)) {
+      return false;
+    }
+    const clearedEnvelope = createCartEnvelope({
+      items: [],
+      revision: currentEnvelope.revision + 1,
+      updatedAt: Math.max(Date.now(), currentEnvelope.updatedAt + 1),
+    });
+    try {
+      storage.removeItem(getCartStorageKey(captured.accountId));
+    } catch {
+      return false;
+    }
+    if (!isCapturedCurrent(captured)) return false;
+    replaceRuntime(clearedEnvelope);
+    syncRef.current?.publish(clearedEnvelope);
+    return true;
+  }, [isCapturedCurrent, replaceRuntime, storage]);
+
+  const handleMigrated = useCallback(
+    (envelope) => {
+      const captured = activeRef.current;
+      if (!captured || !isCapturedCurrent(captured)) return false;
+      replaceRuntime(envelope);
+      syncRef.current?.publish(envelope);
+      return true;
+    },
+    [isCapturedCurrent, replaceRuntime]
+  );
 
   const getItem = useCallback(
     (itemOrKey) => {
@@ -183,11 +329,14 @@ export function CartProvider({ children }) {
   const value = useMemo(
     () => ({
       items,
+      isLoaded,
       addItem,
       increment,
       decrement,
       removeItem,
       clear,
+      flush,
+      detach,
       reconcileCatalog,
       getItem,
       totalQuantity,
@@ -195,11 +344,14 @@ export function CartProvider({ children }) {
     }),
     [
       items,
+      isLoaded,
       addItem,
       increment,
       decrement,
       removeItem,
       clear,
+      flush,
+      detach,
       reconcileCatalog,
       getItem,
       totalQuantity,
@@ -207,7 +359,21 @@ export function CartProvider({ children }) {
     ]
   );
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  const active = activeRef.current;
+  return (
+    <CartContext.Provider value={value}>
+      {children}
+      {showLegacyMigration && isLoaded && active ? (
+        <LegacyCartMigrationModal
+          accountId={active.accountId}
+          generation={active.generation}
+          storage={storage}
+          isCurrent={() => isCapturedCurrent(active)}
+          onMigrated={handleMigrated}
+        />
+      ) : null}
+    </CartContext.Provider>
+  );
 }
 
 export function useCart() {

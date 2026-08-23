@@ -33,7 +33,11 @@ const optionIncludesDiameter = (options, value) =>
   Array.isArray(options) && options.some((option) => String(option) === String(value));
 
 const TiresSearchParameters = memo(() => {
-  const { clientMode: isClientMode, catalogDataVersion = 0 } = useAppShell();
+  const {
+    clientMode: isClientMode,
+    catalogDataVersion = 0,
+    workspaceResetKey = 'guest',
+  } = useAppShell();
   const [form] = Form.useForm();
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [errorSearch, setErrorSearch] = useState(null);
@@ -47,6 +51,8 @@ const TiresSearchParameters = memo(() => {
   const [loadingOptions, setLoadingOptions] = useState(false);
   const loadRequestIdRef = useRef(0);
   const searchRequestIdRef = useRef(0);
+  const workspaceKeyRef = useRef(workspaceResetKey);
+  workspaceKeyRef.current = workspaceResetKey;
   const brandSelectCloseOnMouseLeave = useCatalogSelectCloseOnMouseLeave();
   const selectedSeason = Form.useWatch('season', form) ?? DEFAULT_SEASON;
   const showSpikesFilter = selectedSeason === 'w';
@@ -64,6 +70,22 @@ const TiresSearchParameters = memo(() => {
     return [...sortedWidths.slice(splitIndex), ...sortedWidths.slice(0, splitIndex)];
   }, [availableWidths, selectedSeason]);
 
+  useEffect(() => {
+    workspaceKeyRef.current = workspaceResetKey;
+    loadRequestIdRef.current += 1;
+    searchRequestIdRef.current += 1;
+    setLoadingOptions(false);
+    setLoadingSearch(false);
+    setErrorSearch(null);
+    setSearchResults(null);
+    setAvailableWidths([]);
+    setAvailableProfiles([]);
+    setAvailableDiameters([]);
+    setAvailableBrands([]);
+    setAvailableSuppliers([]);
+    form.resetFields();
+  }, [form, workspaceResetKey]);
+
   const buildFiltersFromFormValues = (allValues = {}) => {
     const filters = { season: allValues.season ?? DEFAULT_SEASON };
     if (isActiveFilterValue(allValues.width)) filters.width = allValues.width;
@@ -80,18 +102,22 @@ const TiresSearchParameters = memo(() => {
       handleSearch(form.getFieldsValue(), { background: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [catalogDataVersion]);
+  }, [catalogDataVersion, workspaceResetKey]);
 
   const loadAvailableParameters = async (filters = {}) => {
     const filtersWithSeason = { season: filters.season ?? DEFAULT_SEASON, ...filters };
     const requestId = ++loadRequestIdRef.current;
+    const requestedWorkspaceKey = workspaceResetKey;
 
     setLoadingOptions(true);
 
     try {
       const options = await indexedDBService.getAvailableParameterOptions(filtersWithSeason);
 
-      if (requestId !== loadRequestIdRef.current) {
+      if (
+        requestId !== loadRequestIdRef.current ||
+        requestedWorkspaceKey !== workspaceKeyRef.current
+      ) {
         return null;
       }
 
@@ -106,7 +132,10 @@ const TiresSearchParameters = memo(() => {
       // Оставляем предыдущие опции, чтобы UI не моргал пустыми списками
       return null;
     } finally {
-      if (requestId === loadRequestIdRef.current) {
+      if (
+        requestId === loadRequestIdRef.current &&
+        requestedWorkspaceKey === workspaceKeyRef.current
+      ) {
         setLoadingOptions(false);
       }
     }
@@ -139,6 +168,7 @@ const TiresSearchParameters = memo(() => {
 
   const handleSearch = async (values, { background = false } = {}) => {
     const requestId = ++searchRequestIdRef.current;
+    const requestedWorkspaceKey = workspaceResetKey;
 
     if (!background) {
       setSearchResetKey((key) => key + 1);
@@ -161,7 +191,10 @@ const TiresSearchParameters = memo(() => {
       }
       delete searchParams.onlyRunflat;
       const dbResults = await indexedDBService.searchTires(searchParams);
-      if (requestId !== searchRequestIdRef.current) {
+      if (
+        requestId !== searchRequestIdRef.current ||
+        requestedWorkspaceKey !== workspaceKeyRef.current
+      ) {
         return;
       }
       setSearchResults(dbResults);
@@ -169,14 +202,21 @@ const TiresSearchParameters = memo(() => {
         setErrorSearch(null);
       }
     } catch (err) {
-      if (requestId !== searchRequestIdRef.current) {
+      if (
+        requestId !== searchRequestIdRef.current ||
+        requestedWorkspaceKey !== workspaceKeyRef.current
+      ) {
         return;
       }
       if (!background) {
         setErrorSearch(err.message);
       }
     } finally {
-      if (!background && requestId === searchRequestIdRef.current) {
+      if (
+        !background &&
+        requestId === searchRequestIdRef.current &&
+        requestedWorkspaceKey === workspaceKeyRef.current
+      ) {
         setLoadingSearch(false);
       }
     }

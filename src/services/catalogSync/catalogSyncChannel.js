@@ -1,5 +1,9 @@
+import {
+  getCatalogVersionKey,
+  resolveCatalogStoreId,
+} from './catalogStoreNamespace';
+
 const CHANNEL_NAME = 'ivanor.catalog.sync';
-const STORAGE_KEY = 'ivanor.catalog.cloudVersion';
 
 let channel = null;
 
@@ -16,12 +20,17 @@ const getChannel = () => {
 /**
  * Уведомляет другие вкладки об успешном commit snapshot.
  * @param {string} version
+ * @param {string} [storeId]
  */
-export function postCatalogApplied(version) {
+export function postCatalogApplied(version, storeId) {
   if (!version) return;
 
   try {
-    getChannel()?.postMessage({ type: 'catalog-applied', version });
+    getChannel()?.postMessage({
+      type: 'catalog-applied',
+      storeId: resolveCatalogStoreId(storeId),
+      version,
+    });
   } catch {
     /* ignore */
   }
@@ -30,18 +39,25 @@ export function postCatalogApplied(version) {
 /**
  * Подписка на commit snapshot в других вкладках.
  * @param {(version: string) => void} listener
+ * @param {string} [storeId]
  * @returns {() => void} unsubscribe
  */
-export function subscribeCatalogApplied(listener) {
+export function subscribeCatalogApplied(listener, storeId) {
+  const expectedStoreId = resolveCatalogStoreId(storeId);
+  const storageKey = getCatalogVersionKey(expectedStoreId);
   const bus = getChannel();
   const onMessage = (event) => {
-    if (event?.data?.type === 'catalog-applied' && event.data.version) {
+    if (
+      event?.data?.type === 'catalog-applied' &&
+      event.data.storeId === expectedStoreId &&
+      event.data.version
+    ) {
       listener(event.data.version);
     }
   };
 
   const onStorage = (event) => {
-    if (event.key === STORAGE_KEY && event.newValue) {
+    if (event.key === storageKey && event.newValue) {
       listener(event.newValue);
     }
   };

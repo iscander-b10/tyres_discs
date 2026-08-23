@@ -9,7 +9,7 @@ jest.mock('../../services/indexedDBService', () => ({
 describe('getCatalogShowcase stale-while-revalidate', () => {
   beforeEach(() => {
     jest.resetModules();
-    jest.clearAllMocks();
+    jest.resetAllMocks();
   });
 
   test('возвращает stale payload, пока новая версия грузится', async () => {
@@ -62,5 +62,33 @@ describe('getCatalogShowcase stale-while-revalidate', () => {
       await expect(fast).resolves.toBeTruthy();
       await expect(slow).resolves.toBeTruthy();
     });
+  });
+
+  test('не возвращает payload прежнего workspace при ошибке нового чтения', async () => {
+    const indexedDBService = require('../../services/indexedDBService').default;
+    indexedDBService.collectTireShowcaseCandidates
+      .mockReset()
+      .mockResolvedValueOnce({ isEmpty: false, candidates: [{ id: 'store-a' }] });
+    const { getCatalogShowcase } = require('./getCatalogShowcase');
+
+    await getCatalogShowcase({
+      kind: 'tires',
+      catalogDataVersion: 1,
+      workspaceResetKey: 'account-a:store-a',
+    });
+    expect(
+      indexedDBService.collectTireShowcaseCandidates
+    ).toHaveBeenCalledTimes(1);
+    indexedDBService.collectTireShowcaseCandidates.mockRejectedValueOnce(
+      new Error('store-b unavailable')
+    );
+
+    await expect(
+      getCatalogShowcase({
+        kind: 'tires',
+        catalogDataVersion: 1,
+        workspaceResetKey: 'account-b:store-b',
+      })
+    ).rejects.toThrow('store-b unavailable');
   });
 });

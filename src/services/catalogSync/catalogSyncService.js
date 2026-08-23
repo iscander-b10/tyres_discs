@@ -7,15 +7,16 @@
 
 import indexedDBService from '../indexedDBService';
 import { postCatalogApplied } from './catalogSyncChannel';
+import {
+  getCatalogVersionKey,
+  resolveCatalogStoreId,
+} from './catalogStoreNamespace';
 import { validateAndNormalizeCatalogSnapshot } from './catalogSnapshotValidation';
 
 export {
   validateAndNormalizeCatalogSnapshot,
   validateCatalogSnapshot,
 } from './catalogSnapshotValidation';
-
-const STORE_ID = (process.env.REACT_APP_STORE_ID || 'ElistaIvanor').trim();
-const LOCAL_VERSION_KEY = 'ivanor.catalog.cloudVersion';
 
 /** Проверки meta в МСК: слот Timer + 10 минут. */
 export const CATALOG_SYNC_CHECK_SLOTS = [
@@ -33,34 +34,34 @@ function catalogApiBase() {
   return '';
 }
 
-export function isCatalogSyncConfigured() {
-  return Boolean(catalogApiBase() && STORE_ID);
+export function isCatalogSyncConfigured(storeId) {
+  return Boolean(catalogApiBase() && resolveCatalogStoreId(storeId));
 }
 
-export function getCatalogStoreId() {
-  return STORE_ID;
+export function getCatalogStoreId(storeId) {
+  return resolveCatalogStoreId(storeId);
 }
 
-function metaUrl() {
-  return `${catalogApiBase()}/v2/catalog/${encodeURIComponent(STORE_ID)}/meta`;
+function metaUrl(storeId) {
+  return `${catalogApiBase()}/v2/catalog/${encodeURIComponent(storeId)}/meta`;
 }
 
-function snapshotUrl() {
-  return `${catalogApiBase()}/v2/catalog/${encodeURIComponent(STORE_ID)}/snapshot`;
+function snapshotUrl(storeId) {
+  return `${catalogApiBase()}/v2/catalog/${encodeURIComponent(storeId)}/snapshot`;
 }
 
-export function getLocalCatalogVersion() {
+export function getLocalCatalogVersion(storeId) {
   try {
-    return window.localStorage.getItem(LOCAL_VERSION_KEY) || '';
+    return window.localStorage.getItem(getCatalogVersionKey(storeId)) || '';
   } catch {
     return '';
   }
 }
 
-export function setLocalCatalogVersion(version) {
+export function setLocalCatalogVersion(version, storeId) {
   try {
     if (version) {
-      window.localStorage.setItem(LOCAL_VERSION_KEY, version);
+      window.localStorage.setItem(getCatalogVersionKey(storeId), version);
     }
   } catch {
     /* ignore */
@@ -120,7 +121,33 @@ export function msUntilNextSyncCheck(now = new Date()) {
  * Сначала валидирует и нормализует snapshot целиком, затем применяет
  * нормализованные команды одной транзакцией CatalogDatabase.
  */
-export async function applyCatalogSnapshot(snapshot) {
+const activateCatalogStore = (storeId) =>
+  typeof indexedDBService.setActiveStore === 'function'
+    ? indexedDBService.setActiveStore(storeId)
+    : undefined;
+
+const isCatalogStoreActive = (storeId, generation) =>
+  typeof indexedDBService.isActiveStore !== 'function' ||
+  indexedDBService.isActiveStore(storeId, generation);
+
+const assertCatalogStoreActive = (storeId, generation) => {
+  if (!isCatalogStoreActive(storeId, generation)) {
+    const error = new Error('Результат синхронизации относится к неактивному магазину');
+    error.name = 'StaleCatalogStoreError';
+    throw error;
+  }
+};
+
+const normalizeApplyOptions = (options) =>
+  typeof options === 'string' ? { storeId: options } : options || {};
+
+export async function applyCatalogSnapshot(snapshot, options = {}) {
+  const normalizedOptions = normalizeApplyOptions(options);
+  const storeId = resolveCatalogStoreId(normalizedOptions.storeId);
+  const generation =
+    normalizedOptions.generation ?? activateCatalogStore(storeId);
+  assertCatalogStoreActive(storeId, generation);
+
   const { commands, report } = validateAndNormalizeCatalogSnapshot(snapshot);
   if (!report.valid) {
     const first = report.errors[0];
@@ -136,9 +163,10 @@ export async function applyCatalogSnapshot(snapshot) {
     commands,
     snapshot.version
   );
+  assertCatalogStoreActive(storeId, generation);
   if (result.applied) {
-    setLocalCatalogVersion(snapshot.version);
-    postCatalogApplied(snapshot.version);
+    setLocalCatalogVersion(snapshot.version, storeId);
+    postCatalogApplied(snapshot.version, storeId);
   }
   return {
     ...result,
@@ -174,8 +202,13 @@ async function fetchJson(url) {
  * Сверка meta → при новой version скачать snapshot → IndexedDB.
  * @returns {Promise<{ status: 'skipped'|'up-to-date'|'applied'|'offline'|'disabled'|'error', version?: string, error?: string }>}
  */
-export async function checkAndSyncCatalog({ force = false } = {}) {
-  if (!isCatalogSyncConfigured()) {
+export async function checkAndSyncCatalog({
+  force = false,
+  storeId: requestedStoreId,
+} = {}) {
+  const storeId = resolveCatalogStoreId(requestedStoreId);
+  const generation = activateCatalogStore(storeId);
+  if (!isCatalogSyncConfigured(storeId)) {
     return { status: 'disabled' };
   }
 
@@ -184,18 +217,22 @@ export async function checkAndSyncCatalog({ force = false } = {}) {
   }
 
   try {
-    const meta = await fetchJson(metaUrl());
+    const meta = await fetchJson(metaUrl(storeId));
+    assertCatalogStoreActive(storeId, generation);
     if (!meta?.version) {
       return { status: 'skipped', error: 'meta empty' };
     }
 
     const local = await getPersistedCatalogVersion();
+    assertCatalogStoreActive(storeId, generation);
     const catalogEmpty = await isLocalCatalogEmpty();
+    assertCatalogStoreActive(storeId, generation);
     if (!force && !catalogEmpty && local && meta.version <= local) {
       return { status: 'up-to-date', version: meta.version };
     }
 
-    const snapshot = await fetchJson(snapshotUrl());
+    const snapshot = await fetchJson(snapshotUrl(storeId));
+    assertCatalogStoreActive(storeId, generation);
     if (!snapshot?.version) {
       return { status: 'skipped', error: 'snapshot empty' };
     }
@@ -204,16 +241,19 @@ export async function checkAndSyncCatalog({ force = false } = {}) {
       return { status: 'up-to-date', version: snapshot.version };
     }
 
-    await applyCatalogSnapshot(snapshot);
+    await applyCatalogSnapshot(snapshot, { storeId, generation });
 
     console.info('catalog sync applied', {
-      storeId: STORE_ID,
+      storeId,
       version: snapshot.version,
       slot: snapshot.slot,
     });
 
     return { status: 'applied', version: snapshot.version };
   } catch (err) {
+    if (err?.name === 'StaleCatalogStoreError') {
+      return { status: 'skipped', error: 'stale store' };
+    }
     console.warn('catalog sync failed:', err?.message || err);
     return { status: 'error', error: err?.message || String(err) };
   }

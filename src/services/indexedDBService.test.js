@@ -1,6 +1,7 @@
 import indexedDBService, {
   CATALOG_METADATA_KEYS,
   CATALOG_STORES,
+  getCatalogDatabaseName,
   LEGACY_MIGRATION_MARKER,
   validateCatalogItemsForSupplier,
 } from './indexedDBService';
@@ -432,6 +433,126 @@ describe('CatalogDatabase: migration marker', () => {
     expect(database.getMetadata(CATALOG_METADATA_KEYS.migrationMarker)).toBe(
       LEGACY_MIGRATION_MARKER
     );
+  });
+});
+
+describe('CatalogDatabase: store-aware lifecycle', () => {
+  let originalIndexedDB;
+
+  beforeEach(() => {
+    originalIndexedDB = global.indexedDB;
+    indexedDBService.catalogDb = null;
+    indexedDBService.db = null;
+    indexedDBService.discDb = null;
+    indexedDBService._migrationComplete = false;
+    indexedDBService._ensurePromise = null;
+    indexedDBService.setActiveStore(`reset-${Math.random()}`);
+  });
+
+  afterEach(() => {
+    global.indexedDB = originalIndexedDB;
+  });
+
+  test('создаёт разные безопасные DB namespace для двух storeId', () => {
+    expect(getCatalogDatabaseName('store/a')).toBe(
+      'CatalogDatabase.store%2Fa'
+    );
+    expect(getCatalogDatabaseName('store b')).toBe(
+      'CatalogDatabase.store%20b'
+    );
+    expect(getCatalogDatabaseName('store/a')).not.toBe(
+      getCatalogDatabaseName('store b')
+    );
+  });
+
+  test('при переключении закрывает соединение и сбрасывает lifecycle', () => {
+    indexedDBService.setActiveStore('store-a');
+    const database = { close: jest.fn() };
+    mountCatalogDb(database);
+    indexedDBService._ensurePromise = Promise.resolve(database);
+
+    const generation = indexedDBService.setActiveStore('store-b');
+
+    expect(database.close).toHaveBeenCalledTimes(1);
+    expect(indexedDBService.getActiveStore()).toEqual({
+      storeId: 'store-b',
+      generation,
+      databaseName: 'CatalogDatabase.store-b',
+    });
+    expect(indexedDBService.catalogDb).toBeNull();
+    expect(indexedDBService._ensurePromise).toBeNull();
+    expect(indexedDBService._migrationComplete).toBe(false);
+  });
+
+  test('invalidate отсоединяет runtime активного магазина', () => {
+    indexedDBService.setActiveStore('store-a');
+    const database = { close: jest.fn() };
+    mountCatalogDb(database);
+
+    expect(indexedDBService.invalidateActiveStore('store-a')).toBe(true);
+    expect(database.close).toHaveBeenCalledTimes(1);
+    expect(indexedDBService.getActiveStore()).toEqual({
+      storeId: null,
+      generation: expect.any(Number),
+      databaseName: null,
+    });
+    expect(indexedDBService.isActiveStore('store-a')).toBe(false);
+  });
+
+  test('invalidate другого магазина не отсоединяет активный runtime', () => {
+    indexedDBService.setActiveStore('store-a');
+
+    expect(indexedDBService.invalidateActiveStore('store-b')).toBe(false);
+    expect(indexedDBService.getActiveStore().storeId).toBe('store-a');
+  });
+
+  test('закрывает и отклоняет запоздалый open старого магазина', async () => {
+    const request = {};
+    global.indexedDB = { open: jest.fn(() => request) };
+    indexedDBService.setActiveStore('store-a');
+
+    const opening = indexedDBService.openCatalogDatabase();
+    expect(global.indexedDB.open).toHaveBeenCalledWith(
+      'CatalogDatabase.store-a',
+      1
+    );
+
+    indexedDBService.setActiveStore('store-b');
+    const staleDatabase = { close: jest.fn() };
+    request.result = staleDatabase;
+    request.onsuccess();
+
+    await expect(opening).rejects.toMatchObject({
+      name: 'StaleCatalogStoreError',
+    });
+    expect(staleDatabase.close).toHaveBeenCalledTimes(1);
+    expect(indexedDBService.catalogDb).toBeNull();
+  });
+
+  test('недоступный IndexedDB выглядит как пустой текущий каталог', async () => {
+    global.indexedDB = undefined;
+    indexedDBService.setActiveStore('offline-store');
+
+    await expect(indexedDBService.getPersistedCatalogVersion()).resolves.toBe('');
+    await expect(indexedDBService.searchTires({})).resolves.toEqual([]);
+    await expect(
+      indexedDBService.collectDiscShowcaseCandidates()
+    ).resolves.toEqual({ isEmpty: true, candidates: [] });
+    await expect(
+      indexedDBService.applyCatalogSnapshot([], 'version-1')
+    ).rejects.toThrow('IndexedDB недоступен');
+  });
+
+  test('синхронная ошибка indexedDB.open не выдаёт старые данные', async () => {
+    global.indexedDB = {
+      open: jest.fn(() => {
+        throw new Error('SecurityError');
+      }),
+    };
+    indexedDBService.setActiveStore('blocked-store');
+
+    await expect(indexedDBService.isCatalogEmpty()).resolves.toBe(true);
+    expect(indexedDBService.catalogDb).toBeNull();
   });
 });
 

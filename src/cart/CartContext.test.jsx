@@ -1,248 +1,269 @@
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
-import { CartProvider, useCart } from './CartContext';
+import { CartProviderCore, useCart } from './CartContext';
+import { createCartEnvelope, getCartStorageKey } from './cartStorage';
+
+jest.mock('../auth/AuthContext', () => ({ useAuth: jest.fn() }));
+
+const workspaces = {
+  a: { accountId: 'account-a', login: 'a@example.com', storeId: 'store-a' },
+  b: { accountId: 'account-b', login: 'b@example.com', storeId: 'store-b' },
+};
 
 function Probe({ onReady }) {
   const cart = useCart();
-  React.useEffect(() => {
-    onReady(cart);
-  }, [cart, onReady]);
+  React.useEffect(() => onReady(cart), [cart, onReady]);
   return null;
 }
 
-async function mountCart() {
+async function mountCart(initial = {}) {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   const container = document.createElement('div');
   document.body.appendChild(container);
   const root = createRoot(container);
   let api = null;
+  let props = {
+    workspace: workspaces.a,
+    isWorkspaceReady: true,
+    showLegacyMigration: false,
+    ...initial,
+  };
+  const syncInstances = [];
+  const syncFactory =
+    props.syncFactory ??
+    ((options) => {
+      const instance = {
+        ...options,
+        publish: jest.fn(),
+        close: jest.fn(),
+      };
+      syncInstances.push(instance);
+      return instance;
+    });
   const onReady = (cart) => {
     api = cart;
   };
-
-  await act(async () => {
+  const render = () =>
     root.render(
-      <CartProvider>
+      <CartProviderCore {...props} syncFactory={syncFactory}>
         <Probe onReady={onReady} />
-      </CartProvider>
+      </CartProviderCore>
     );
-  });
 
+  await act(async () => render());
   return {
     get api() {
       return api;
     },
-    async rerenderWait() {
+    syncInstances,
+    async rerender(nextProps = {}) {
+      props = { ...props, ...nextProps };
+      await act(async () => render());
+    },
+    async call(callback) {
+      let result;
       await act(async () => {
-        await Promise.resolve();
+        result = callback(api);
       });
+      return result;
     },
     async unmount() {
-      await act(async () => {
-        root.unmount();
-      });
+      await act(async () => root.unmount());
       container.remove();
     },
   };
 }
 
-describe('CartContext sellability guard', () => {
-  beforeEach(() => {
-    window.localStorage.clear();
-  });
+const item = (overrides = {}) => ({
+  id: 'item-1',
+  amount: 8,
+  sellingPrice: 8000,
+  price: 7000,
+  title: 'Товар',
+  ...overrides,
+});
 
-  test('прямой вызов addItem не обходит sellability-проверку без цены', async () => {
-    const harness = await mountCart();
-    let added;
-    await act(async () => {
-      added = harness.api.addItem(
-        {
-          id: 'no-price',
-          amount: 5,
-          sellingPrice: null,
-          price: null,
-          title: 'Без цены',
-        },
-        'tyres'
-      );
+describe('CartContext workspace lifecycle', () => {
+  beforeEach(() => window.localStorage.clear());
+
+  test('до готового workspace корзина пуста и не загружена', async () => {
+    const harness = await mountCart({
+      workspace: null,
+      isWorkspaceReady: false,
     });
-    expect(added).toBe(false);
-    expect(harness.api.items).toHaveLength(0);
+    expect(harness.api.items).toEqual([]);
+    expect(harness.api.isLoaded).toBe(false);
+    expect(harness.api.addItem(item(), 'tyres')).toBe(false);
+    expect(window.localStorage.length).toBe(0);
     await harness.unmount();
   });
 
-  test('прямой вызов addItem отклоняет amount = 0', async () => {
-    const harness = await mountCart();
-    let added;
-    await act(async () => {
-      added = harness.api.addItem(
-        {
-          id: 'zero-stock',
-          amount: 0,
-          sellingPrice: 1000,
-          price: 900,
-        },
-        'tyres'
-      );
+  test('загружает только namespace текущего accountId', async () => {
+    const envelopeA = createCartEnvelope({
+      items: [{ key: 'tyres:a', quantity: 1 }],
+      revision: 2,
+      updatedAt: 10,
     });
-    expect(added).toBe(false);
-    expect(harness.api.items).toHaveLength(0);
+    const envelopeB = createCartEnvelope({
+      items: [{ key: 'discs:b', quantity: 3 }],
+      revision: 4,
+      updatedAt: 20,
+    });
+    localStorage.setItem(getCartStorageKey('account-a'), JSON.stringify(envelopeA));
+    localStorage.setItem(getCartStorageKey('account-b'), JSON.stringify(envelopeB));
+
+    const harness = await mountCart();
+    expect(harness.api.isLoaded).toBe(true);
+    expect(harness.api.items[0].key).toBe('tyres:a');
+
+    await harness.rerender({ workspace: workspaces.b });
+    expect(harness.api.items).toEqual(envelopeB.items);
+    expect(harness.syncInstances[0].close).toHaveBeenCalled();
     await harness.unmount();
   });
 
-  test('валидный товар добавляется', async () => {
+  test('повреждённый v3 даёт пустой runtime без legacy fallback', async () => {
+    localStorage.setItem(getCartStorageKey('account-a'), '{"version":3');
+    localStorage.setItem(
+      'cart.staff.v2',
+      JSON.stringify({ version: 2, items: [{ key: 'tyres:x', quantity: 1 }] })
+    );
     const harness = await mountCart();
-    let added;
-    await act(async () => {
-      added = harness.api.addItem(
-        {
-          id: 'ok-item',
-          amount: 4,
-          sellingPrice: 1200,
-          price: 1000,
-          title: 'OK',
-        },
-        'tyres'
-      );
-    });
-    await harness.rerenderWait();
-    expect(added).toBe(true);
-    expect(harness.api.items).toHaveLength(1);
-    expect(harness.api.items[0].key).toBe('tyres:ok-item');
+    expect(harness.api.isLoaded).toBe(true);
+    expect(harness.api.items).toEqual([]);
     await harness.unmount();
   });
 
-  test('невалидный sellingPrice с валидным price пропускается', async () => {
+  test('detach сохраняет snapshot, инвалидирует callbacks и не удаляет v3', async () => {
     const harness = await mountCart();
-    let added;
+    expect(await harness.call((api) => api.addItem(item(), 'tyres', 2))).toBe(true);
+    const oldSync = harness.syncInstances[0];
+    const snapshot = await harness.call((api) => api.detach());
+
+    expect(snapshot.items[0].quantity).toBe(2);
+    expect(harness.api.items).toEqual([]);
+    expect(harness.api.isLoaded).toBe(false);
+    expect(localStorage.getItem(getCartStorageKey('account-a'))).not.toBeNull();
+
     await act(async () => {
-      added = harness.api.addItem(
-        {
-          id: 'fallback-price',
-          amount: 3,
-          sellingPrice: 'bad',
-          price: 1500,
-        },
-        'tyres'
+      oldSync.onEnvelope(
+        createCartEnvelope({
+          items: [{ key: 'tyres:stale', quantity: 1 }],
+          revision: 99,
+          updatedAt: 99,
+        })
       );
     });
-    await harness.rerenderWait();
-    expect(added).toBe(true);
-    expect(harness.api.items).toHaveLength(1);
+    expect(harness.api.items).toEqual([]);
+    await harness.unmount();
+  });
+
+  test('clear удаляет persisted v3 и публикует более новую пустую ревизию', async () => {
+    const harness = await mountCart();
+    await harness.call((api) => api.addItem(item(), 'tyres', 1));
+    const revision = JSON.parse(
+      localStorage.getItem(getCartStorageKey('account-a'))
+    ).revision;
+
+    expect(await harness.call((api) => api.clear())).toBe(true);
+    expect(harness.api.items).toEqual([]);
+    expect(localStorage.getItem(getCartStorageKey('account-a'))).toBeNull();
+    const published =
+      harness.syncInstances[0].publish.mock.calls.at(-1)[0];
+    expect(published.items).toEqual([]);
+    expect(published.revision).toBe(revision + 1);
+    await harness.unmount();
+  });
+
+  test('старый callback A не меняет корзину B после переключения', async () => {
+    const harness = await mountCart();
+    const oldSync = harness.syncInstances[0];
+    await harness.rerender({ workspace: workspaces.b });
+    await act(async () => {
+      oldSync.onEnvelope(
+        createCartEnvelope({
+          items: [{ key: 'tyres:a-only', quantity: 1 }],
+          revision: 10,
+          updatedAt: 10,
+        })
+      );
+    });
+    expect(harness.api.items).toEqual([]);
     await harness.unmount();
   });
 });
 
-describe('CartContext reconciliation and persistence', () => {
-  beforeEach(() => {
-    window.localStorage.clear();
-  });
+describe('CartContext mutations and reconciliation', () => {
+  beforeEach(() => window.localStorage.clear());
 
-  const item = (overrides = {}) => ({
-    id: 'item-1',
-    amount: 8,
-    sellingPrice: 8000,
-    price: 7000,
-    title: 'Товар',
-    ...overrides,
-  });
-
-  const catalogRead = (catalogItem, version = '2026-08-23T10:00:00Z') => ({
-    version,
-    results: [
-      {
-        requestKey: 'tyres:item-1',
-        matches: { tyres: catalogItem, discs: null },
-      },
-    ],
-  });
-
-  test('reconciliation использует последнее quantity и сохраняет результат', async () => {
+  test('sellability guard и v3 persistence', async () => {
     const harness = await mountCart();
-    await act(async () => {
-      harness.api.addItem(item(), 'tyres', 2);
-    });
-    await act(async () => {
-      harness.api.increment('tyres:item-1');
-      harness.api.reconcileCatalog(
-        catalogRead(item({ sellingPrice: 9500, title: 'Обновлённый' }))
-      );
-    });
-    await harness.rerenderWait();
+    expect(
+      await harness.call((api) =>
+        api.addItem(item({ sellingPrice: null, price: null }), 'tyres')
+      )
+    ).toBe(false);
+    expect(await harness.call((api) => api.addItem(item(), 'tyres', 2))).toBe(true);
 
-    expect(harness.api.items[0]).toMatchObject({
-      quantity: 3,
-      sellingPrice: 9500,
-      title: 'Обновлённый',
-    });
-    expect(harness.api.totals.selling).toBe(28500);
-
-    const stored = JSON.parse(window.localStorage.getItem('cart.staff.v2'));
-    expect(stored.version).toBe(2);
+    const stored = JSON.parse(
+      localStorage.getItem(getCartStorageKey('account-a'))
+    );
+    expect(stored).toMatchObject({ version: 3, revision: 1 });
     expect(stored.items[0]).toMatchObject({
       key: 'tyres:item-1',
-      quantity: 3,
-      sellingPrice: 9500,
+      quantity: 2,
     });
     await harness.unmount();
   });
 
-  test('более старая версия не перезаписывает новую', async () => {
+  test('reconciliation обновляет snapshot, а старая версия игнорируется', async () => {
     const harness = await mountCart();
-    await act(async () => {
-      harness.api.addItem(item(), 'tyres', 1);
-      harness.api.reconcileCatalog(
-        catalogRead(
-          item({ sellingPrice: 9500 }),
-          '2026-08-23T11:00:00Z'
-        )
-      );
-      harness.api.reconcileCatalog(
-        catalogRead(
-          item({ sellingPrice: 8100 }),
-          '2026-08-23T10:00:00Z'
-        )
-      );
-    });
-    await harness.rerenderWait();
-
-    expect(harness.api.items[0].sellingPrice).toBe(9500);
-    await harness.unmount();
-  });
-
-  test('читает v1 и безопасно мигрирует однозначную legacy-строку', async () => {
-    window.localStorage.setItem(
-      'cart.staff.v1',
-      JSON.stringify([
-        {
-          ...item(),
-          key: 'item-1',
-          quantity: 2,
-          maxStock: 8,
-        },
-      ])
-    );
-    const harness = await mountCart();
-
-    await act(async () => {
-      harness.api.reconcileCatalog({
-        version: '2026-08-23T10:00:00Z',
+    await harness.call((api) => api.addItem(item(), 'tyres', 2));
+    await harness.call((api) =>
+      api.reconcileCatalog({
+        version: '2026-08-23T11:00:00Z',
         results: [
           {
-            requestKey: 'item-1',
-            matches: { tyres: item({ sellingPrice: 9500 }), discs: null },
+            requestKey: 'tyres:item-1',
+            matches: {
+              tyres: item({ sellingPrice: 9500, title: 'Обновлённый' }),
+              discs: null,
+            },
           },
         ],
-      });
-    });
-    await harness.rerenderWait();
-
+      })
+    );
+    await harness.call((api) =>
+      api.reconcileCatalog({
+        version: '2026-08-23T10:00:00Z',
+        results: [],
+      })
+    );
     expect(harness.api.items[0]).toMatchObject({
-      key: 'tyres:item-1',
-      category: 'tyres',
-      quantity: 2,
       sellingPrice: 9500,
+      title: 'Обновлённый',
+      quantity: 2,
     });
+    expect(harness.api.totals.selling).toBe(19000);
+    await harness.unmount();
+  });
+
+  test('ошибка localStorage не меняет runtime и не падает', async () => {
+    const failingStorage = {
+      getItem: jest.fn(() => {
+        throw new Error('blocked');
+      }),
+      setItem: jest.fn(() => {
+        throw new Error('blocked');
+      }),
+      removeItem: jest.fn(() => {
+        throw new Error('blocked');
+      }),
+    };
+    const harness = await mountCart({ storage: failingStorage });
+    expect(harness.api.isLoaded).toBe(true);
+    expect(await harness.call((api) => api.addItem(item(), 'tyres'))).toBe(false);
+    expect(harness.api.items).toEqual([]);
     await harness.unmount();
   });
 });

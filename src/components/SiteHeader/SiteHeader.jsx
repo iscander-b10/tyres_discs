@@ -23,15 +23,21 @@ function SiteHeader({
   onAppearanceChange,
 }) {
   const { handleBrandClick } = useAppShell();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isWorkspaceReady } = useAuth();
   const logout = useLogout();
-  const { totalQuantity } = useCart();
+  const { isLoaded, totalQuantity } = useCart();
   const location = useLocation();
   const loginTarget = loginLinkTarget(location);
   const appEnabled = canUseApp(isAuthenticated);
 
+  const visibleQuantity =
+    isWorkspaceReady && isLoaded ? totalQuantity : 0;
   const badgeLabel =
-    totalQuantity > 99 ? '99+' : totalQuantity > 0 ? String(totalQuantity) : null;
+    visibleQuantity > 99
+      ? '99+'
+      : visibleQuantity > 0
+        ? String(visibleQuantity)
+        : null;
   const brandPath = appEnabled ? DEFAULT_APP_HOME : PATHS.home;
 
   return (
@@ -101,8 +107,8 @@ function SiteHeader({
                 to={PATHS.basket}
                 end
                 aria-label={
-                  totalQuantity > 0
-                    ? `Корзина, ${totalQuantity}`
+                  visibleQuantity > 0
+                    ? `Корзина, ${visibleQuantity}`
                     : 'Корзина'
                 }
               >

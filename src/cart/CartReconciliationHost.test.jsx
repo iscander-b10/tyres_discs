@@ -2,10 +2,12 @@ import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { CartReconciliationHost } from './CartReconciliationHost';
 import { useAppShell } from '../app/AppShellContext';
+import { useAuth } from '../auth/AuthContext';
 import indexedDBService from '../services/indexedDBService';
 import { useCart } from './CartContext';
 
 jest.mock('../app/AppShellContext', () => ({ useAppShell: jest.fn() }));
+jest.mock('../auth/AuthContext', () => ({ useAuth: jest.fn() }));
 jest.mock('./CartContext', () => ({ useCart: jest.fn() }));
 jest.mock('../services/indexedDBService', () => ({
   __esModule: true,
@@ -45,8 +47,13 @@ describe('CartReconciliationHost', () => {
       },
     ];
     useAppShell.mockImplementation(() => ({ catalogSnapshotVersion }));
+    useAuth.mockReturnValue({
+      isWorkspaceReady: true,
+      workspace: { accountId: 'account-a', storeId: 'store-a' },
+    });
     useCart.mockImplementation(() => ({
       items: cartItems,
+      isLoaded: true,
       reconcileCatalog,
     }));
   });
@@ -134,6 +141,42 @@ describe('CartReconciliationHost', () => {
         results: [],
       });
       await read.promise;
+    });
+
+    expect(reconcileCatalog).not.toHaveBeenCalled();
+  });
+
+  test('не запускается до готового workspace', async () => {
+    useAuth.mockReturnValue({
+      isWorkspaceReady: false,
+      workspace: null,
+    });
+    await render();
+
+    expect(indexedDBService.readCartCatalogItems).not.toHaveBeenCalled();
+  });
+
+  test('игнорирует чтение старого workspace после переключения', async () => {
+    const oldRead = deferred();
+    indexedDBService.readCartCatalogItems.mockReturnValue(oldRead.promise);
+    await render();
+
+    useAuth.mockReturnValue({
+      isWorkspaceReady: true,
+      workspace: { accountId: 'account-b', storeId: 'store-b' },
+    });
+    cartItems = [];
+    await act(async () => {
+      root.render(<CartReconciliationHost />);
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      oldRead.resolve({
+        version: '2026-08-23T10:00:00Z',
+        results: [],
+      });
+      await oldRead.promise;
     });
 
     expect(reconcileCatalog).not.toHaveBeenCalled();

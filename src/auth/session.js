@@ -50,48 +50,54 @@ function hasVerifier(digest) {
   return VERIFIERS.includes(digest);
 }
 
-export async function login(email, password) {
+const alwaysCurrent = () => true;
+
+export async function login(email, password, { isCurrent = alwaysCurrent } = {}) {
   if (!VERIFIERS.length || !password) return false;
 
   const loginName = normalizeLogin(email);
   if (!loginName) return false;
 
   const digest = await hmacLogin(loginName, password);
-  if (!hasVerifier(digest)) return false;
+  if (!hasVerifier(digest) || !isCurrent()) return false;
 
   try {
+    const secret = await wrapPassword(password, getDeviceFingerprint());
+    if (!isCurrent()) return false;
+
     writeStorage(LOGIN_KEY, loginName);
-    writeStorage(SECRET_KEY, await wrapPassword(password, getDeviceFingerprint()));
+    writeStorage(SECRET_KEY, secret);
   } catch {
-    logout();
+    if (isCurrent()) logout();
     return false;
   }
   return { login: loginName };
 }
 
-export async function restore() {
+export async function restore({ isCurrent = alwaysCurrent } = {}) {
   if (!VERIFIERS.length) {
-    logout();
+    if (isCurrent()) logout();
     return null;
   }
 
   const loginName = readStorageWithMigration(LOGIN_KEY, LEGACY_LOGIN_KEY);
   const secret = readStorageWithMigration(SECRET_KEY, LEGACY_SECRET_KEY);
   if (!loginName || !secret) {
-    logout();
+    if (isCurrent()) logout();
     return null;
   }
 
   try {
     const password = await unwrapPassword(secret, getDeviceFingerprint());
     const digest = await hmacLogin(loginName, password);
+    if (!isCurrent()) return null;
     if (!hasVerifier(digest)) {
       logout();
       return null;
     }
-    return { login: loginName };
+    return { login: normalizeLogin(loginName) };
   } catch {
-    logout();
+    if (isCurrent()) logout();
     return null;
   }
 }

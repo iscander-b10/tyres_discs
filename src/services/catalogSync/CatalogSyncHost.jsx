@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useAppShell } from '../../app/AppShellContext';
+import { useAuth } from '../../auth/AuthContext';
+import indexedDBService from '../indexedDBService';
 import {
   checkAndSyncCatalog,
   isCatalogSyncConfigured,
@@ -12,31 +14,43 @@ import {
  */
 export function CatalogSyncHost() {
   const { notifyCatalogApplied } = useAppShell();
+  const { isWorkspaceReady, workspace } = useAuth();
   const notifyRef = useRef(notifyCatalogApplied);
   notifyRef.current = notifyCatalogApplied;
-  const syncingRef = useRef(false);
 
   useEffect(() => {
-    if (!isCatalogSyncConfigured()) return undefined;
+    const storeId = workspace?.storeId;
+    if (
+      !isWorkspaceReady ||
+      !storeId ||
+      !isCatalogSyncConfigured(storeId)
+    ) {
+      return undefined;
+    }
 
     let cancelled = false;
+    let syncing = false;
     let slotTimer = null;
+    const storeGeneration = indexedDBService.setActiveStore(storeId);
+    const isCurrent = () =>
+      !cancelled &&
+      indexedDBService.isActiveStore(storeId, storeGeneration);
 
     const run = async (reason) => {
-      if (cancelled || syncingRef.current) return;
+      if (!isCurrent() || syncing) return;
       if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
         // слот в фоне — подождём visibility; старт/online всё равно могут вызвать при visible
         if (reason === 'slot') return;
       }
 
-      syncingRef.current = true;
+      syncing = true;
       try {
-        const result = await checkAndSyncCatalog();
-        if (!cancelled && result.status === 'applied') {
-          notifyRef.current?.(result.version);
+        const result = await checkAndSyncCatalog({ storeId });
+        if (isCurrent() && result.status === 'applied') {
+          notifyRef.current?.(result.version, storeId);
         }
       } finally {
-        syncingRef.current = false;
+        syncing = false;
       }
     };
 
@@ -71,7 +85,7 @@ export function CatalogSyncHost() {
       document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('online', onOnline);
     };
-  }, []);
+  }, [isWorkspaceReady, workspace?.storeId]);
 
   return null;
 }

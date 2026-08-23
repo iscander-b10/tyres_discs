@@ -5,8 +5,8 @@ import { buildTireShowcase } from './buildTireShowcase';
 import { buildDiscShowcase } from './buildDiscShowcase';
 
 const cache = {
-  tires: { version: null, payload: null, promise: null },
-  discs: { version: null, payload: null, promise: null },
+  tires: { workspace: null, version: null, payload: null, promise: null },
+  discs: { workspace: null, version: null, payload: null, promise: null },
 };
 
 const loadTirePayload = async () => {
@@ -36,27 +36,36 @@ const loadDiscPayload = async () => {
 export const getCatalogShowcase = async ({
   kind,
   catalogDataVersion = 0,
+  workspaceResetKey = 'guest',
   now = new Date(),
 } = {}) => {
   const bucketKey = kind === 'discs' ? 'discs' : 'tires';
   const bucket = cache[bucketKey];
+  const cacheVersion = `${workspaceResetKey}:${catalogDataVersion}`;
 
+  if (bucket.workspace !== workspaceResetKey) {
+    bucket.workspace = workspaceResetKey;
+    bucket.payload = null;
+    bucket.promise = null;
+  }
   if (bucket.version !== catalogDataVersion) {
     bucket.version = catalogDataVersion;
     bucket.promise = null;
   }
 
   if (!bucket.promise) {
-    const versionAtStart = catalogDataVersion;
+    const versionAtStart = cacheVersion;
     bucket.promise = (async () => {
       const payload =
         bucketKey === 'tires' ? await loadTirePayload() : await loadDiscPayload();
-      if (bucket.version === versionAtStart) {
+      if (
+        `${bucket.workspace}:${bucket.version}` === versionAtStart
+      ) {
         bucket.payload = payload;
       }
       return payload;
     })().catch((error) => {
-      if (bucket.version === versionAtStart) {
+      if (`${bucket.workspace}:${bucket.version}` === versionAtStart) {
         bucket.promise = null;
       }
       throw error;

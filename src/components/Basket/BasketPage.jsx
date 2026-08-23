@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Checkbox, Typography } from 'antd';
+import { Button, Checkbox, Spin, Typography } from 'antd';
 import { CloseOutlined } from '@ant-design/icons';
 import { useLocation } from 'react-router-dom';
 import { useAppShell } from '../../app/AppShellContext';
 import { PATHS } from '../../app/paths';
+import { useAuth } from '../../auth/AuthContext';
 import { useCart } from '../../cart/CartContext';
 import {
   getUnitSellingPrice,
@@ -31,9 +32,18 @@ const formatMoney = (value) => {
 
 function BasketPage() {
   const { clientMode: isClientMode, continueSelection } = useAppShell();
+  const { isWorkspaceReady } = useAuth();
   const { pathname } = useLocation();
   const isActive = pathname === PATHS.basket;
-  const { items, totals, increment, decrement, removeItem, clear } = useCart();
+  const {
+    items,
+    isLoaded,
+    totals,
+    increment,
+    decrement,
+    removeItem,
+    clear,
+  } = useCart();
   const [modalItemKey, setModalItemKey] = useState(null);
   const modalItem = useMemo(
     () => items.find((item) => item.key === modalItemKey) ?? null,
@@ -53,6 +63,14 @@ function BasketPage() {
     const keys = itemKeysSignature ? itemKeysSignature.split('|').filter(Boolean) : [];
     setSelected(new Set(keys));
   }, [isActive, itemKeysSignature]);
+
+  if (!isWorkspaceReady || !isLoaded) {
+    return (
+      <section className="basket-page basket-page--empty" aria-busy="true">
+        <Spin size="large" tip="Загружаем корзину" />
+      </section>
+    );
+  }
 
   const allSelected = items.length > 0 && selected.size === items.length;
   const hasSelection = selected.size > 0;
