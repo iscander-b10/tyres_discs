@@ -4,7 +4,11 @@ import { ShoppingCartOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { PATHS } from '../../../app/paths';
 import { useCart } from '../../../cart/CartContext';
-import { getCartItemKey, getDefaultCartQty, parseStock } from '../../../cart/cartUtils';
+import {
+  getCartItemKey,
+  isCatalogItemSellable,
+  parseStock,
+} from '../../../cart/cartUtils';
 import CartQtyControls from '../CartQtyControls/CartQtyControls';
 import './AddToCartControl.scss';
 
@@ -13,8 +17,7 @@ function AddToCartControl({ item, onGoToCart, className = '', block = true }) {
   const { addItem, getItem, increment, decrement, removeItem } = useCart();
   const key = getCartItemKey(item);
   const cartLine = getItem(key);
-  const stock = parseStock(item?.amount);
-  const canAdd = stock > 0 && getDefaultCartQty(item?.amount) > 0;
+  const canAdd = isCatalogItemSellable(item);
 
   const handleGoToCart = (e) => {
     e.stopPropagation();

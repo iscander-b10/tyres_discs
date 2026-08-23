@@ -12,6 +12,7 @@ import {
   getDefaultCartQty,
   getUnitB2bPrice,
   getUnitSellingPrice,
+  isCatalogItemSellable,
   parseStock,
   snapshotCartItem,
 } from './cartUtils';
@@ -62,11 +63,10 @@ export function CartProvider({ children }) {
   }, [items]);
 
   const addItem = useCallback((item, qty) => {
-    const key = getCartItemKey(item);
-    if (!key) return false;
+    if (!isCatalogItemSellable(item)) return false;
 
+    const key = getCartItemKey(item);
     const stock = parseStock(item?.amount);
-    if (stock <= 0) return false;
 
     const initialQty =
       qty != null ? clampCartQty(qty, stock) : getDefaultCartQty(item.amount);

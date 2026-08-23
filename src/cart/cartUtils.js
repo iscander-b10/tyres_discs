@@ -9,10 +9,26 @@ export const getCartItemKey = (item) => {
   return null;
 };
 
+/**
+ * Строгая нормализация числа для корзины: вся строка должна быть числом.
+ * Допускает десятичную запятую и окружающие пробелы.
+ */
+const parseStrictNumber = (value) => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
+  }
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (!/^[+-]?(?:\d+(?:[.,]\d+)?|\d*[.,]\d+)$/.test(trimmed)) return null;
+  const num = Number(trimmed.replace(',', '.'));
+  return Number.isFinite(num) ? num : null;
+};
+
 export const parseStock = (amount) => {
   if (amount == null || amount === '') return 0;
-  const num = typeof amount === 'number' ? amount : Number(String(amount).replace(',', '.'));
-  if (!Number.isFinite(num) || num <= 0) return 0;
+  const num = parseStrictNumber(amount);
+  if (num == null || num <= 0) return 0;
   return Math.floor(num);
 };
 
@@ -23,28 +39,41 @@ export const getDefaultCartQty = (amount) => {
   return Math.min(4, stock);
 };
 
+const parsePositivePrice = (raw) => {
+  if (raw == null || raw === '') return 0;
+  const num = parseStrictNumber(raw);
+  return num != null && num > 0 ? num : 0;
+};
+
+/**
+ * Цена продажи: сначала sellingPrice, при невалидном — fallback на price.
+ * Невалидный sellingPrice не блокирует валидный price.
+ */
 export const getUnitSellingPrice = (item) => {
   if (!item) return 0;
-  const raw = item.sellingPrice ?? item.price;
-  if (raw == null || raw === '') return 0;
-  const num = typeof raw === 'number' ? raw : Number(String(raw).replace(',', '.'));
-  return Number.isFinite(num) && num > 0 ? num : 0;
+  const selling = parsePositivePrice(item.sellingPrice);
+  if (selling > 0) return selling;
+  return parsePositivePrice(item.price);
 };
 
 export const getUnitB2bPrice = (item) => {
   if (!item) return 0;
-  const raw = item.price;
-  if (raw == null || raw === '') return 0;
-  const num = typeof raw === 'number' ? raw : Number(String(raw).replace(',', '.'));
-  return Number.isFinite(num) && num > 0 ? num : 0;
+  return parsePositivePrice(item.price);
 };
 
 export const getUnitWebsitePrice = (item) => {
   if (!item) return 0;
-  const raw = item.websitePrice;
-  if (raw == null || raw === '') return 0;
-  const num = typeof raw === 'number' ? raw : Number(String(raw).replace(',', '.'));
-  return Number.isFinite(num) && num > 0 ? num : 0;
+  return parsePositivePrice(item.websitePrice);
+};
+
+/**
+ * Товар можно добавить в корзину только при stock > 0 и положительной цене.
+ */
+export const isCatalogItemSellable = (item) => {
+  if (!item) return false;
+  if (!getCartItemKey(item)) return false;
+  if (parseStock(item.amount) <= 0) return false;
+  return getUnitSellingPrice(item) > 0;
 };
 
 export const clampCartQty = (qty, maxStock) => {
