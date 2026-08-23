@@ -2,7 +2,6 @@ import { SHOWCASE_CONFIG } from './showcaseConfig';
 import {
   resolveIkonSeasonModelKey,
   isExcludedIkonModel,
-  ikonSlotsForLimit,
   pickMixedSeasonHits,
 } from './ikonSeasonHits';
 import { buildTireShowcase } from './buildTireShowcase';
@@ -53,6 +52,7 @@ describe('ikon season shelf', () => {
     expect(isExcludedIkonModel('Character Eco SUV')).toBe(true);
     expect(isExcludedIkonModel('Nordman 7')).toBe(true);
     expect(isExcludedIkonModel('Nordman RS2')).toBe(true);
+    expect(isExcludedIkonModel('Character Eco C2')).toBe(true);
     expect(
       resolveIkonSeasonModelKey(
         mk({ title: 'Ikon Character Ice 8 95T', season: 'w' }),
@@ -73,19 +73,58 @@ describe('ikon season shelf', () => {
     ).toBe('Autograph Snow 5');
     expect(
       resolveIkonSeasonModelKey(
+        mk({ title: 'Ikon Autograph Ice 10 95T', season: 'w' }),
+        winterWl
+      )
+    ).toBe('Autograph Ice 10');
+    expect(
+      resolveIkonSeasonModelKey(
+        mk({ title: 'Ikon Autograph Snow 3 94T', season: 'w' }),
+        winterWl
+      )
+    ).toBe('Autograph Snow 3');
+    expect(
+      resolveIkonSeasonModelKey(
         mk({ title: 'Ikon Nordman 7 99T', season: 'w' }),
         winterWl
       )
     ).toBeNull();
   });
 
-  test('slot formula ~1/3', () => {
-    expect(ikonSlotsForLimit(12)).toBe(4);
-    expect(ikonSlotsForLimit(15)).toBe(5);
-    expect(ikonSlotsForLimit(18)).toBe(6);
+  test('Character Eco C2 does not match Character Eco; plain Eco does', () => {
+    expect(
+      resolveIkonSeasonModelKey(
+        mk({ title: 'Ikon Character Eco C2 91H' }),
+        summerWl
+      )
+    ).toBeNull();
+    expect(
+      resolveIkonSeasonModelKey(
+        mk({ title: 'Character Eco C2', model: 'Character Eco C2' }),
+        summerWl
+      )
+    ).toBeNull();
+    expect(
+      resolveIkonSeasonModelKey(mk({ title: 'Ikon Character Eco 91H' }), summerWl)
+    ).toBe('Character Eco');
+    expect(
+      resolveIkonSeasonModelKey(
+        mk({ title: 'Ikon Character Eco', model: 'Character Eco' }),
+        summerWl
+      )
+    ).toBe('Character Eco');
   });
 
-  test('summer mix: unique Ikon ~1/3, no C3/SUV, fill others', () => {
+  test('winter whitelist has 8 models without Snow Pro', () => {
+    expect(winterWl).toHaveLength(8);
+    expect(winterWl).toContain('Autograph Ice 10');
+    expect(winterWl).toContain('Autograph Snow 3');
+    expect(winterWl).toContain('Autograph Snow 5');
+    expect(winterWl.some((m) => /pro/i.test(m))).toBe(false);
+    expect(summerWl).toHaveLength(6);
+  });
+
+  test('summer mix: all whitelist Ikon + others up to limit, shuffled', () => {
     const summerPool = [
       mk({ id: 1, title: 'Ikon Character Eco 91H', diameter: 'R15' }),
       mk({ id: 2, title: 'Ikon Character Eco 91H', diameter: 'R16' }),
@@ -95,6 +134,7 @@ describe('ikon season shelf', () => {
       mk({ id: 6, title: 'Ikon Character Ultra 94W', diameter: 'R17' }),
       mk({ id: 7, title: 'Ikon Autograph Ultra 2 94W', diameter: 'R18' }),
       mk({ id: 8, title: 'Ikon Autograph Eco C3 104R', model: 'Autograph Eco C3' }),
+      mk({ id: 9, title: 'Ikon Character Eco C2 91H', model: 'Character Eco C2' }),
       mk({
         id: 10,
         brand: 'Michelin',
@@ -179,28 +219,56 @@ describe('ikon season shelf', () => {
     const mixed = pickMixedSeasonHits({
       pool: summerPool,
       season: 's',
-      limit: 15,
+      limit: 30,
       whitelist: summerWl,
     });
-    expect(mixed).toHaveLength(15);
-    expect(mixed.filter((i) => i.brand === 'Ikon')).toHaveLength(5);
-    expect(mixed.some((i) => /Eco C3|SUV/i.test(i.title))).toBe(false);
+    // 6 unique Ikon whitelist + 12 unique others (Michelin collapsed) = 18
+    expect(mixed).toHaveLength(18);
+    expect(mixed.filter((i) => i.brand === 'Ikon')).toHaveLength(6);
+    expect(mixed.some((i) => i.brand !== 'Ikon')).toBe(true);
+    expect(mixed.some((i) => /Eco C3|Eco C2|SUV/i.test(i.title))).toBe(false);
     expect(mixed.filter((i) => /Character Eco/i.test(i.title))).toHaveLength(1);
 
     const fewIkon = pickMixedSeasonHits({
       pool: summerPool.filter(
-        (i) => i.brand !== 'Ikon' || /Character Eco/i.test(i.title)
+        (i) => i.brand !== 'Ikon' || /Character Eco 91H/i.test(i.title)
       ),
       season: 's',
-      limit: 12,
+      limit: 30,
       whitelist: summerWl,
     });
-    expect(fewIkon).toHaveLength(12);
     expect(fewIkon.filter((i) => i.brand === 'Ikon')).toHaveLength(1);
+    expect(fewIkon.some((i) => i.brand !== 'Ikon')).toBe(true);
+    expect(fewIkon.length).toBeGreaterThan(1);
   });
 
-  test('buildTireShowcase summer/winter same shelf shape and quota', () => {
-    const summerPool = Array.from({ length: 24 }, (_, i) => {
+  test('does not pad with extra Ikon when others exist but are short', () => {
+    const pool = [
+      mk({ id: 1, title: 'Ikon Character Eco 91H' }),
+      mk({ id: 2, title: 'Ikon Autograph Eco 3 91V', diameter: 'R17' }),
+      mk({
+        id: 10,
+        brand: 'Michelin',
+        title: 'Michelin Primacy 4 91V',
+        model: 'Primacy 4',
+      }),
+      // Non-whitelist Ikon must not fill remaining slots while others exist
+      mk({ id: 99, title: 'Ikon Character SomeOther 91H', model: 'Character SomeOther' }),
+    ];
+    const mixed = pickMixedSeasonHits({
+      pool,
+      season: 's',
+      limit: 30,
+      whitelist: summerWl,
+    });
+    expect(mixed.filter((i) => i.brand === 'Ikon')).toHaveLength(2);
+    expect(mixed.some((i) => i.brand === 'Michelin')).toBe(true);
+    expect(mixed.some((i) => /SomeOther/i.test(i.title))).toBe(false);
+    expect(mixed).toHaveLength(3);
+  });
+
+  test('buildTireShowcase summer/winter target 30 with mix', () => {
+    const summerPool = Array.from({ length: 40 }, (_, i) => {
       if (i < 6) {
         const titles = [
           'Ikon Character Eco 91H',
@@ -236,11 +304,9 @@ describe('ikon season shelf', () => {
     expect(summer.shelves[0].id).toBe('season-hits');
     expect(summer.shelves[0].title).toBe('Сейчас в сезоне');
     const sItems = summer.shelves[0].items;
-    expect(sItems.length).toBeGreaterThanOrEqual(12);
-    expect(sItems.length).toBeLessThanOrEqual(18);
-    expect(sItems.filter((i) => i.brand === 'Ikon')).toHaveLength(
-      Math.round(sItems.length / 3)
-    );
+    expect(sItems).toHaveLength(30);
+    expect(sItems.filter((i) => i.brand === 'Ikon')).toHaveLength(6);
+    expect(sItems.some((i) => i.brand !== 'Ikon')).toBe(true);
 
     const winterPool = [
       mk({
@@ -269,7 +335,21 @@ describe('ikon season shelf', () => {
         season: 'w',
         spikes: true,
       }),
-      ...Array.from({ length: 16 }, (_, i) =>
+      mk({
+        id: 105,
+        title: 'Ikon Autograph Ice 10 95T',
+        season: 'w',
+        spikes: true,
+        diameter: 'R18',
+      }),
+      mk({
+        id: 106,
+        title: 'Ikon Autograph Snow 3 94T',
+        season: 'w',
+        spikes: false,
+        diameter: 'R15',
+      }),
+      ...Array.from({ length: 28 }, (_, i) =>
         mk({
           id: 200 + i,
           brand: `WBrand${i}`,
@@ -290,11 +370,9 @@ describe('ikon season shelf', () => {
     expect(winter.shelves).toHaveLength(1);
     expect(winter.shelves[0].title).toBe('Сейчас в сезоне');
     const wItems = winter.shelves[0].items;
-    expect(wItems.length).toBeGreaterThanOrEqual(12);
-    expect(wItems.length).toBeLessThanOrEqual(18);
-    // В моке только 4 уникальных Ikon — квота ≤⅓, дырки добираются others.
+    expect(wItems).toHaveLength(30);
     const wIkon = wItems.filter((i) => i.brand === 'Ikon');
-    expect(wIkon.length).toBe(4);
-    expect(wIkon.length).toBeLessThanOrEqual(Math.round(wItems.length / 3));
+    expect(wIkon.length).toBe(6);
+    expect(wItems.some((i) => i.brand !== 'Ikon')).toBe(true);
   });
 });

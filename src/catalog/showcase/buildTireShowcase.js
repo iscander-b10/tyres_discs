@@ -9,7 +9,7 @@ const clampCount = ({ min, max }, available) => {
 
 /**
  * Чистые правила витрины шин (без JSX).
- * Полка «Сейчас в сезоне»: ~⅓ уникальных Ikon + ~⅔ остальных (Шинсервис).
+ * Полка «Сейчас в сезоне»: уникальные Ikon (whitelist) + остальные (Шинсервис), до 30.
  * @param {{ candidates: object[], isEmpty: boolean, now?: Date }} input
  */
 export const buildTireShowcase = ({

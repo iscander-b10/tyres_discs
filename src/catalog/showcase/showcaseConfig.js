@@ -31,11 +31,11 @@ export const SHOWCASE_CONFIG = {
       { label: '225/55 R19', width: 225, profile: 55, diameter: 'R19' },
       { label: '235/55 R19', width: 235, profile: 55, diameter: 'R19' },
     ],
-    /** Увеличено, чтобы квота ~⅓ Ikon давала ~4–6 слотов. */
-    seasonHitsCount: { min: 12, max: 18 },
+    /** Цель полки «Сейчас в сезоне»: ровно до 30 карточек (clamp по наличию). */
+    seasonHitsCount: { min: 30, max: 30 },
     /**
      * Whitelist Ikon для партнёрского блока полки «Сейчас в сезоне».
-     * SUV/SUF/SAV, Eco C3 и Nordman (старые имена → Character) отсекаются в `ikonSeasonHits.js`.
+     * SUV/SUF/SAV, Eco C2/C3 и Nordman отсекаются в `ikonSeasonHits.js`.
      */
     ikonSeasonModelsSummer: [
       'Character Eco',
@@ -45,14 +45,15 @@ export const SHOWCASE_CONFIG = {
       'Character Ultra',
       'Autograph Ultra 2',
     ],
-    /** Зимние: Character Ice/Snow + Autograph (Nordman в прайсе больше не используем). */
+    /** Зимние: Character Ice/Snow + Autograph Ice/Snow (Nordman не используем). */
     ikonSeasonModelsWinter: [
       'Character Ice 8',
       'Character Ice 7',
       'Character Ice 5',
       'Character Snow 2',
       'Autograph Ice 9',
-      'Autograph Snow Pro 3',
+      'Autograph Ice 10',
+      'Autograph Snow 3',
       'Autograph Snow 5',
     ],
     /**

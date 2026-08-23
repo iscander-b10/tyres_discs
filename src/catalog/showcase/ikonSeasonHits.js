@@ -2,12 +2,6 @@ import { isIkonBrand } from '../../components/shared/ikonPromoBadges';
 import { resolveCatalogModel } from '../../components/shared/catalogCopy';
 import { pickTopDiverse, scoreCatalogItem } from './scoring';
 
-/** ~⅓ слотов под Ikon (фиксируем round). */
-export const ikonSlotsForLimit = (limit) => {
-  if (limit <= 0) return 0;
-  return Math.round(limit / 3);
-};
-
 export const normalizeIkonModelText = (value) =>
   String(value || '')
     .toLowerCase()
@@ -15,13 +9,27 @@ export const normalizeIkonModelText = (value) =>
     .replace(/\s+/g, ' ')
     .trim();
 
-const EXCLUDED_IKON_RE = /\b(?:suv|suf|sav|eco\s*c\s*3|nordman)\b/i;
+const EXCLUDED_IKON_RE = /\b(?:suv|suf|sav|eco\s*c\s*[23]|nordman)\b/i;
 
 export const isExcludedIkonModel = (modelText) =>
   EXCLUDED_IKON_RE.test(normalizeIkonModelText(modelText));
 
 const modelTextOf = (item) =>
   resolveCatalogModel(item) || String(item?.title || '').trim();
+
+/** Хвост после ключа whitelist: только индексы нагрузки/скорости, не модельные токены (C2, SUV…). */
+const isAllowedWhitelistTail = (rest) => {
+  if (!rest) return true;
+  return rest
+    .split(/\s+/)
+    .every((token) => /^\d{2,3}(?:\/\d{2,3})?[a-z]?$/i.test(token));
+};
+
+const matchesWhitelistKey = (normalized, needle) => {
+  if (normalized === needle) return true;
+  if (!normalized.startsWith(`${needle} `)) return false;
+  return isAllowedWhitelistTail(normalized.slice(needle.length).trim());
+};
 
 /**
  * Сопоставляет карточку с ключом whitelist (длинные ключи важнее).
@@ -45,9 +53,7 @@ export const resolveIkonSeasonModelKey = (item, whitelist = []) => {
   for (const key of ranked) {
     const needle = normalizeIkonModelText(key);
     if (!needle) continue;
-    if (normalized === needle || normalized.startsWith(`${needle} `)) {
-      return key;
-    }
+    if (matchesWhitelistKey(normalized, needle)) return key;
   }
 
   return null;
@@ -117,9 +123,19 @@ const pickWithSizeSpread = (grouped, limit, scoreFn) => {
   return picked;
 };
 
+/** Fisher–Yates: порядок полки вперемешку (Ikon не блоком в начале). */
+export const shuffleItems = (items) => {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+};
+
 /**
- * Уникальные Ikon для партнёрской квоты.
- * Лето: только whitelist. Зима: whitelist, затем любые уникальные модели без SUV/C3.
+ * Уникальные Ikon из whitelist (1 модель = 1 карточка, разброс diameter).
+ * `allowAnyUnique` — только fallback, когда в пуле нет не-Ikon.
  */
 export const pickUniqueIkonHits = (
   pool,
@@ -155,7 +171,6 @@ export const pickUniqueIkonHits = (
     if (item.id != null && usedIds.has(item.id)) return false;
     const model = normalizeIkonModelText(modelTextOf(item));
     if (!model || usedModels.has(model)) return false;
-    // Уже в whitelist-группе — не дублируем другим ключом
     if (resolveIkonSeasonModelKey(item, whitelist)) return false;
     return true;
   });
@@ -206,8 +221,8 @@ export const pickWinterDiverse = (pool, limit, scoreFn = scoreCatalogItem) => {
 };
 
 /**
- * Сборка полки: сначала Ikon (~⅓), затем others (~⅔).
- * Порядок: блок Ikon, затем others.
+ * Полка до `limit`: уникальные Ikon из whitelist + остальные (brand+model), затем shuffle.
+ * Сверх whitelist Ikon не добиваем, пока в пуле есть хотя бы один не-Ikon.
  */
 export const pickMixedSeasonHits = ({
   pool,
@@ -218,14 +233,16 @@ export const pickMixedSeasonHits = ({
 }) => {
   if (!Array.isArray(pool) || limit <= 0) return [];
 
-  const ikonCap = ikonSlotsForLimit(limit);
-
   const ikonPool = pool.filter((item) => isIkonBrand(item));
   const otherPool = pool.filter((item) => !isIkonBrand(item));
 
+  const ikonCap = Math.min(
+    limit,
+    Array.isArray(whitelist) ? whitelist.length : 0
+  );
   const ikonPicked = pickUniqueIkonHits(ikonPool, whitelist, ikonCap, {
     scoreFn,
-    allowAnyUnique: season === 'w',
+    allowAnyUnique: false,
   });
 
   const uniqueOthers = collapseUniqueBrandModel(otherPool, scoreFn);
@@ -237,7 +254,7 @@ export const pickMixedSeasonHits = ({
 
   let result = [...ikonPicked, ...othersPicked];
 
-  // Недобор others при пустом/исчерпанном other-пуле — добираем уникальным Ikon сверх квоты.
+  // Нет ни одного не-Ikon в сезонном пуле — единственный допустимый fallback «только Ikon».
   if (result.length < limit && uniqueOthers.length === 0) {
     const usedIds = new Set(result.map((item) => item.id).filter((id) => id != null));
     const usedModels = new Set(
@@ -258,5 +275,5 @@ export const pickMixedSeasonHits = ({
     result = [...result, ...moreIkon];
   }
 
-  return result.slice(0, limit);
+  return shuffleItems(result.slice(0, limit));
 };

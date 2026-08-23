@@ -179,7 +179,8 @@ describe('preferred Ikon candidates', () => {
       limit: 6,
       whitelist: summerWl,
     });
-    expect(mixed[0].brand).toBe('Ikon');
+    expect(mixed.some((i) => i.brand === 'Ikon')).toBe(true);
+    expect(mixed.some((i) => i.brand !== 'Ikon')).toBe(true);
     expect(mixed.filter((i) => /Character Eco/i.test(i.title))).toHaveLength(1);
 
     const winterPool = [
@@ -223,5 +224,6 @@ describe('preferred Ikon candidates', () => {
       1
     );
     expect(winterMixed.some((i) => i.brand === 'Ikon')).toBe(true);
+    expect(winterMixed.some((i) => i.brand === 'Gislaved')).toBe(true);
   });
 });
