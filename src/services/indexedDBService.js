@@ -61,6 +61,85 @@ const sortDiscNumericValues = (values) =>
     return numA - numB;
   });
 
+const isValidCatalogKey = (value) =>
+  (typeof value === 'string' && value.trim().length > 0) ||
+  (typeof value === 'number' && Number.isFinite(value));
+
+const isStructuredCloneableFallback = (value, seen = new Set()) => {
+  if (
+    value === null ||
+    value === undefined ||
+    ['string', 'number', 'boolean', 'bigint'].includes(typeof value)
+  ) {
+    return true;
+  }
+  if (['function', 'symbol'].includes(typeof value)) return false;
+  if (seen.has(value)) return true;
+  if (
+    value instanceof WeakMap ||
+    value instanceof WeakSet ||
+    value instanceof Promise
+  ) {
+    return false;
+  }
+
+  seen.add(value);
+  try {
+    return Reflect.ownKeys(value).every(
+      (key) =>
+        typeof key !== 'symbol' &&
+        isStructuredCloneableFallback(value[key], seen)
+    );
+  } catch {
+    return false;
+  }
+};
+
+const canBeStoredInIndexedDB = (value) => {
+  try {
+    if (typeof globalThis.structuredClone === 'function') {
+      globalThis.structuredClone(value);
+      return true;
+    }
+    return isStructuredCloneableFallback(value);
+  } catch {
+    return false;
+  }
+};
+
+const prepareCatalogItems = (items, entityName) => {
+  if (!Array.isArray(items)) {
+    throw new TypeError(`Данные ${entityName} должны быть массивом`);
+  }
+  if (items.length === 0) {
+    return { validItems: [], supplier: null, skipped: 0 };
+  }
+
+  const individuallyValid = items.filter(
+    (item) =>
+      item !== null &&
+      typeof item === 'object' &&
+      !Array.isArray(item) &&
+      isValidCatalogKey(item.id) &&
+      isValidCatalogKey(item.supplier) &&
+      canBeStoredInIndexedDB(item)
+  );
+  const supplier = individuallyValid[0]?.supplier;
+  const validItems = individuallyValid.filter(
+    (item) => item.supplier === supplier
+  );
+
+  if (validItems.length === 0) {
+    throw new Error(`Все входные ${entityName} некорректны`);
+  }
+
+  return {
+    validItems,
+    supplier,
+    skipped: items.length - validItems.length,
+  };
+};
+
 const matchesTireDiameter = (itemDiameter, filterDiameter) => {
   if (!isActiveFilterValue(filterDiameter)) return true;
   return String(itemDiameter) === String(filterDiameter);
@@ -271,62 +350,82 @@ class IndexedDBService {
   }
 
   async saveTires(tires) {
-    if (!this.db) {
-      await this.openDatabase();
+    return this.saveCatalogItems({
+      items: tires,
+      dbProperty: 'db',
+      openDatabase: () => this.openDatabase(),
+      storeName: 'tires',
+      entityName: 'шины',
+    });
+  }
+
+  async saveCatalogItems({
+    items,
+    dbProperty,
+    openDatabase,
+    storeName,
+    entityName,
+  }) {
+    const { validItems, supplier, skipped } = prepareCatalogItems(
+      items,
+      entityName
+    );
+    if (validItems.length === 0) {
+      return { saved: 0, skipped: 0 };
     }
 
-    if (!tires || !Array.isArray(tires) || tires.length === 0) {
-      return Promise.resolve();
-    }
-
-    const supplier = tires[0]?.supplier;
-    if (!supplier) {
-      throw new Error('Не указан поставщик в данных шин');
+    if (!this[dbProperty]) {
+      await openDatabase();
     }
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(['tires'], 'readwrite');
-      const store = transaction.objectStore('tires');
-      const addErrors = [];
+      const transaction = this[dbProperty].transaction(
+        [storeName],
+        'readwrite'
+      );
+      const store = transaction.objectStore(storeName);
+      let abortCause = null;
 
-      transaction.onerror = () =>
-        reject(transaction.error || new Error('Ошибка транзакции IndexedDB при сохранении шин'));
-
-      transaction.oncomplete = () => {
-        if (addErrors.length > 0) {
-          reject(new Error(`Не удалось добавить ${addErrors.length} шин`));
-        } else {
-          resolve();
+      const abortTransaction = (error) => {
+        abortCause = error;
+        try {
+          transaction.abort();
+        } catch {
+          // Если транзакция уже aborting, итоговая ошибка придёт через onabort.
         }
       };
 
-      const clearRequest = store.index('supplier').openCursor(IDBKeyRange.only(supplier));
+      transaction.oncomplete = () =>
+        resolve({ saved: validItems.length, skipped });
+      transaction.onabort = () =>
+        reject(
+          abortCause ||
+            transaction.error ||
+            new Error(`Транзакция IndexedDB для ${entityName} отменена`)
+        );
 
-      clearRequest.onsuccess = () => {
-        const cursor = clearRequest.result;
-        if (cursor) {
-          cursor.delete();
-          cursor.continue();
-          return;
-        }
+      try {
+        const clearRequest = store
+          .index('supplier')
+          .openCursor(IDBKeyRange.only(supplier));
 
-        tires.forEach((tire) => {
-          // put вместо add: не падаем на дублях id, а перезаписываем
-          const addRequest = store.put(tire);
-          addRequest.onerror = (event) => {
-            // иначе любая ошибка request по умолчанию абортит всю транзакцию
-            event?.preventDefault?.();
-            event?.stopPropagation?.();
-            addErrors.push({
-              tire: tire.title || tire.id,
-              error: addRequest.error,
-            });
-          };
-        });
-      };
+        clearRequest.onsuccess = () => {
+          try {
+            const cursor = clearRequest.result;
+            if (cursor) {
+              cursor.delete();
+              cursor.continue();
+              return;
+            }
 
-      clearRequest.onerror = () =>
-        reject(clearRequest.error || new Error('Ошибка IndexedDB при очистке шин поставщика'));
+            validItems.forEach((item) => store.put(item));
+          } catch (error) {
+            abortTransaction(error);
+          }
+        };
+      } catch (error) {
+        abortTransaction(error);
+      }
     });
   }
 
@@ -523,61 +622,12 @@ class IndexedDBService {
   }
 
   async saveDiscs(discs) {
-    if (!this.discDb) {
-      await this.openDiscDatabase();
-    }
-
-    if (!discs || !Array.isArray(discs) || discs.length === 0) {
-      return Promise.resolve();
-    }
-
-    const supplier = discs[0]?.supplier;
-    if (!supplier) {
-      throw new Error('Не указан поставщик в данных дисков');
-    }
-
-    return new Promise((resolve, reject) => {
-      const transaction = this.discDb.transaction(['discs'], 'readwrite');
-      const store = transaction.objectStore('discs');
-      const addErrors = [];
-
-      transaction.onerror = () =>
-        reject(transaction.error || new Error('Ошибка транзакции IndexedDB при сохранении дисков'));
-
-      transaction.oncomplete = () => {
-        if (addErrors.length > 0) {
-          reject(new Error(`Не удалось добавить ${addErrors.length} дисков`));
-        } else {
-          resolve();
-        }
-      };
-
-      const clearRequest = store.index('supplier').openCursor(IDBKeyRange.only(supplier));
-
-      clearRequest.onsuccess = () => {
-        const cursor = clearRequest.result;
-        if (cursor) {
-          cursor.delete();
-          cursor.continue();
-          return;
-        }
-
-        discs.forEach((disc) => {
-          // put вместо add: не падаем на дублях id, а перезаписываем
-          const addRequest = store.put(disc);
-          addRequest.onerror = (event) => {
-            event?.preventDefault?.();
-            event?.stopPropagation?.();
-            addErrors.push({
-              disc: disc.title || disc.id,
-              error: addRequest.error,
-            });
-          };
-        });
-      };
-
-      clearRequest.onerror = () =>
-        reject(clearRequest.error || new Error('Ошибка IndexedDB при очистке дисков поставщика'));
+    return this.saveCatalogItems({
+      items: discs,
+      dbProperty: 'discDb',
+      openDatabase: () => this.openDiscDatabase(),
+      storeName: 'discs',
+      entityName: 'диски',
     });
   }
 
