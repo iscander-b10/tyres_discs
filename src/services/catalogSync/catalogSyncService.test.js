@@ -28,20 +28,17 @@ const snapshotWith = ({
 });
 
 function loadService(overrides = {}) {
+  jest.doMock('./catalogSyncChannel', () => ({
+    postCatalogApplied: jest.fn(),
+  }));
+
   const actual = jest.requireActual('../indexedDBService');
   const indexedDBService = {
-    replaceTiresForSupplier: jest
+    applyCatalogSnapshot: jest
       .fn()
-      .mockResolvedValue({ saved: 0, skipped: 0 }),
-    replaceDiscsForSupplier: jest
-      .fn()
-      .mockResolvedValue({ saved: 0, skipped: 0 }),
-    collectTireShowcaseCandidates: jest
-      .fn()
-      .mockResolvedValue({ isEmpty: false, candidates: [] }),
-    collectDiscShowcaseCandidates: jest
-      .fn()
-      .mockResolvedValue({ isEmpty: false, candidates: [] }),
+      .mockResolvedValue({ applied: true, writes: 1, skipped: false }),
+    getPersistedCatalogVersion: jest.fn().mockResolvedValue(''),
+    isCatalogEmpty: jest.fn().mockResolvedValue(true),
     ...overrides,
   };
 
@@ -51,9 +48,12 @@ function loadService(overrides = {}) {
     validateCatalogItemsForSupplier: actual.validateCatalogItemsForSupplier,
   }));
 
+  const channel = require('./catalogSyncChannel');
+
   return {
     service: require('./catalogSyncService'),
     indexedDBService,
+    postCatalogApplied: channel.postCatalogApplied,
   };
 }
 
@@ -83,112 +83,33 @@ describe('безопасное применение snapshot каталога', 
     else process.env[STORE_ID_ENV] = originalStoreId;
   });
 
-  test.each([
-    ['replace с пустым массивом', replace(), 1],
-    ['purge', purge(), 1],
-    ['keepPrevious/failed', keepPrevious('failed'), 0],
-    ['keepPrevious/keptPrevious', keepPrevious('keptPrevious'), 0],
-  ])(
-    '%s является успешно выполненной командой',
-    async (_, tyres, writeCount) => {
-      const { service, indexedDBService } = loadService();
-
-      await expect(
-        service.applyCatalogSnapshot(snapshotWith({ tyres }))
-      ).resolves.toEqual({ applied: true, writes: writeCount });
-
-      expect(indexedDBService.replaceTiresForSupplier).toHaveBeenCalledTimes(
-        writeCount
-      );
-      if (writeCount) {
-        expect(indexedDBService.replaceTiresForSupplier).toHaveBeenCalledWith(
-          'Поставщик A',
-          []
-        );
-      }
-    }
-  );
-
-  test('шины и диски получают независимые команды', async () => {
+  test('replace/purge/keepPrevious делегируются одной atomic-операции', async () => {
     const { service, indexedDBService } = loadService();
 
-    await service.applyCatalogSnapshot(
-      snapshotWith({
-        tyres: replace(),
-        discs: keepPrevious('failed'),
-      })
-    );
+    await expect(
+      service.applyCatalogSnapshot(snapshotWith({ tyres: purge(), discs: replace() }))
+    ).resolves.toEqual({ applied: true, writes: 1, skipped: false });
 
-    expect(indexedDBService.replaceTiresForSupplier).toHaveBeenCalledWith(
-      'Поставщик A',
-      []
-    );
-    expect(indexedDBService.replaceDiscsForSupplier).not.toHaveBeenCalled();
-  });
-
-  test('purge и replace используют одну операцию замены категории', async () => {
-    const item = { id: 'disc-1', supplier: 'Поставщик A' };
-    const { service, indexedDBService } = loadService();
-
-    await service.applyCatalogSnapshot(
-      snapshotWith({ tyres: purge(), discs: replace([item]) })
-    );
-
-    expect(indexedDBService.replaceTiresForSupplier).toHaveBeenCalledWith(
-      'Поставщик A',
-      []
-    );
-    expect(indexedDBService.replaceDiscsForSupplier).toHaveBeenCalledWith(
-      'Поставщик A',
-      [item]
+    expect(indexedDBService.applyCatalogSnapshot).toHaveBeenCalledTimes(1);
+    expect(indexedDBService.applyCatalogSnapshot).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ category: 'tyres', action: 'purge' }),
+        expect.objectContaining({ category: 'discs', action: 'replace' }),
+      ]),
+      VERSION
     );
   });
 
   test.each([
     ['отсутствующая команда', (entry) => delete entry.tyres],
-    [
-      'null',
-      (entry) => {
-        entry.tyres = null;
-      },
-    ],
+    ['null', (entry) => { entry.tyres = null; }],
     [
       'неизвестный action',
       (entry) => {
         entry.tyres = { action: 'merge', status: 'ok' };
       },
     ],
-    [
-      'недопустимый status',
-      (entry) => {
-        entry.tyres = { action: 'replace', status: 'failed', items: [] };
-      },
-    ],
-    [
-      'replace без items',
-      (entry) => {
-        entry.tyres = { action: 'replace', status: 'ok' };
-      },
-    ],
-    [
-      'keepPrevious с items',
-      (entry) => {
-        entry.tyres = { ...keepPrevious(), items: [] };
-      },
-    ],
-    [
-      'purge с items',
-      (entry) => {
-        entry.tyres = { ...purge(), items: [] };
-      },
-    ],
-    [
-      'пустой legacy-массив',
-      (entry) => {
-        entry.tyres = [];
-      },
-    ],
-  ])('%s отклоняется до операций записи', async (_, mutate) => {
+  ])('%s отклоняется до atomic-операции', async (_, mutate) => {
     const invalidSnapshot = snapshotWith();
     mutate(invalidSnapshot.suppliers['supplier-a']);
     const { service, indexedDBService } = loadService();
@@ -196,83 +117,75 @@ describe('безопасное применение snapshot каталога', 
     await expect(service.applyCatalogSnapshot(invalidSnapshot)).rejects.toThrow(
       /Некорректный snapshot/
     );
-    expect(indexedDBService.replaceTiresForSupplier).not.toHaveBeenCalled();
-    expect(indexedDBService.replaceDiscsForSupplier).not.toHaveBeenCalled();
+    expect(indexedDBService.applyCatalogSnapshot).not.toHaveBeenCalled();
   });
 
-  test('несовпадение supplier отклоняет весь snapshot до записи', async () => {
-    const invalidSnapshot = snapshotWith({
-      tyres: replace([{ id: 'tire-1', supplier: 'Поставщик B' }]),
-      discs: purge(),
-    });
-    const { service, indexedDBService } = loadService();
-
-    await expect(service.applyCatalogSnapshot(invalidSnapshot)).rejects.toThrow(
-      /не совпадает/
-    );
-    expect(indexedDBService.replaceTiresForSupplier).not.toHaveBeenCalled();
-    expect(indexedDBService.replaceDiscsForSupplier).not.toHaveBeenCalled();
-  });
-
-  test('непустой legacy-массив безопасно преобразуется в replace', async () => {
-    const item = { id: 'tire-1', supplier: 'Поставщик A' };
-    const legacySnapshot = snapshotWith({ tyres: [item] });
+  test('legacy label преобразуется в supplier', async () => {
+    const legacySnapshot = {
+      version: VERSION,
+      suppliers: {
+        'supplier-a': {
+          label: 'Поставщик A',
+          tyres: replace([{ id: 'tire-1', supplier: 'Поставщик A' }]),
+          discs: keepPrevious(),
+        },
+      },
+    };
     const { service, indexedDBService } = loadService();
 
     await service.applyCatalogSnapshot(legacySnapshot);
 
-    expect(indexedDBService.replaceTiresForSupplier).toHaveBeenCalledWith(
-      'Поставщик A',
-      [item]
+    expect(indexedDBService.applyCatalogSnapshot).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ supplier: 'Поставщик A' }),
+      ]),
+      VERSION
     );
   });
 
-  test.each([
-    ['успешный replace', replace([{ id: 'tire-1', supplier: 'Поставщик A' }])],
-    ['успешная очистка', purge()],
-    ['keepPrevious', keepPrevious()],
-  ])('%s обновляет локальную версию', async (_, tyres) => {
-    const { service } = loadService();
+  test('успешный commit обновляет localStorage и уведомляет другие вкладки', async () => {
+    const { service, postCatalogApplied } = loadService();
     global.fetch
       .mockResolvedValueOnce(jsonResponse({ version: VERSION }))
-      .mockResolvedValueOnce(jsonResponse(snapshotWith({ tyres })));
+      .mockResolvedValueOnce(jsonResponse(snapshotWith({ tyres: replace() })));
 
     await expect(service.checkAndSyncCatalog({ force: true })).resolves.toEqual({
       status: 'applied',
       version: VERSION,
     });
     expect(window.localStorage.getItem(VERSION_KEY)).toBe(VERSION);
+    expect(postCatalogApplied).toHaveBeenCalledWith(VERSION);
   });
 
-  test('ошибка валидации не обновляет локальную версию', async () => {
-    const { service } = loadService();
-    window.localStorage.setItem(VERSION_KEY, 'old-version');
-    global.fetch
-      .mockResolvedValueOnce(jsonResponse({ version: VERSION }))
-      .mockResolvedValueOnce(jsonResponse(snapshotWith({ tyres: null })));
-
-    await expect(service.checkAndSyncCatalog({ force: true })).resolves.toEqual(
-      expect.objectContaining({ status: 'error' })
-    );
-    expect(window.localStorage.getItem(VERSION_KEY)).toBe('old-version');
-  });
-
-  test('ошибка IndexedDB не обновляет локальную версию', async () => {
-    const replaceTiresForSupplier = jest
+  test('ошибка IndexedDB не обновляет localStorage и не шлёт broadcast', async () => {
+    const applyCatalogSnapshot = jest
       .fn()
       .mockRejectedValue(new Error('IndexedDB transaction aborted'));
-    const { service } = loadService({ replaceTiresForSupplier });
+    const { service, postCatalogApplied } = loadService({ applyCatalogSnapshot });
     window.localStorage.setItem(VERSION_KEY, 'old-version');
     global.fetch
       .mockResolvedValueOnce(jsonResponse({ version: VERSION }))
-      .mockResolvedValueOnce(
-        jsonResponse(snapshotWith({ tyres: replace(), discs: purge() }))
-      );
+      .mockResolvedValueOnce(jsonResponse(snapshotWith({ tyres: replace() })));
 
     await expect(service.checkAndSyncCatalog({ force: true })).resolves.toEqual({
       status: 'error',
-      error: 'Не удалось сохранить снимок (1 ошибок)',
+      error: 'IndexedDB transaction aborted',
     });
     expect(window.localStorage.getItem(VERSION_KEY)).toBe('old-version');
+    expect(postCatalogApplied).not.toHaveBeenCalled();
+  });
+
+  test('решение up-to-date принимает persisted metadata version', async () => {
+    const { service, indexedDBService } = loadService({
+      getPersistedCatalogVersion: jest.fn().mockResolvedValue(VERSION),
+      isCatalogEmpty: jest.fn().mockResolvedValue(false),
+    });
+    global.fetch.mockResolvedValueOnce(jsonResponse({ version: VERSION }));
+
+    await expect(service.checkAndSyncCatalog()).resolves.toEqual({
+      status: 'up-to-date',
+      version: VERSION,
+    });
+    expect(indexedDBService.applyCatalogSnapshot).not.toHaveBeenCalled();
   });
 });

@@ -4,11 +4,13 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { DEFAULT_APP_HOME, PATHS } from './paths';
+import { subscribeCatalogApplied } from '../services/catalogSync/catalogSyncChannel';
 
 const CLIENT_MODE_STORAGE_KEY = 'ivanor-client-mode';
 
@@ -88,9 +90,33 @@ export function AppShellProvider({ children }) {
     navigate(PATHS.home);
   }, [isAuthenticated, navigate]);
 
+  const lastAppliedVersionRef = useRef('');
+
   const bumpCatalogDataVersion = useCallback(() => {
     setCatalogDataVersion((version) => version + 1);
   }, []);
+
+  const notifyCatalogApplied = useCallback(
+    (version) => {
+      if (version) {
+        lastAppliedVersionRef.current = version;
+      }
+      bumpCatalogDataVersion();
+    },
+    [bumpCatalogDataVersion]
+  );
+
+  useEffect(() => {
+    return subscribeCatalogApplied((version) => {
+      if (version && version === lastAppliedVersionRef.current) {
+        return;
+      }
+      if (version) {
+        lastAppliedVersionRef.current = version;
+      }
+      bumpCatalogDataVersion();
+    });
+  }, [bumpCatalogDataVersion]);
 
   const effectiveClientMode = isAuthenticated ? clientMode : true;
 
@@ -102,6 +128,7 @@ export function AppShellProvider({ children }) {
       handleBrandClick,
       catalogDataVersion,
       bumpCatalogDataVersion,
+      notifyCatalogApplied,
       sessionResetKey,
       lastBackgroundPath,
     }),
@@ -112,6 +139,7 @@ export function AppShellProvider({ children }) {
       handleBrandClick,
       catalogDataVersion,
       bumpCatalogDataVersion,
+      notifyCatalogApplied,
       sessionResetKey,
       lastBackgroundPath,
     ]

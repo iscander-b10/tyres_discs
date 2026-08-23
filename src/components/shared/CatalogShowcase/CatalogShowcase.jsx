@@ -28,7 +28,10 @@ const CatalogShowcase = ({
 
   useEffect(() => {
     const requestId = ++requestIdRef.current;
-    setStatus('loading');
+    const hasStaleShowcase = showcase !== null;
+    if (!hasStaleShowcase) {
+      setStatus('loading');
+    }
 
     getCatalogShowcase({
       kind,
@@ -41,8 +44,10 @@ const CatalogShowcase = ({
       })
       .catch(() => {
         if (requestId !== requestIdRef.current) return;
-        setShowcase(null);
-        setStatus('error');
+        if (!hasStaleShowcase) {
+          setShowcase(null);
+          setStatus('error');
+        }
       });
   }, [kind, catalogDataVersion]);
 

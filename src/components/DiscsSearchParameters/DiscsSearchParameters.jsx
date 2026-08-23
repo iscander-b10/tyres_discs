@@ -46,6 +46,7 @@ const DiscsSearchParameters = memo(() => {
   const [loadingOptions, setLoadingOptions] = useState(false);
   const brandSelectCloseOnMouseLeave = useCatalogSelectCloseOnMouseLeave();
   const loadRequestIdRef = useRef(0);
+  const searchRequestIdRef = useRef(0);
 
   const buildFiltersFromFormValues = (allValues = {}) => {
     const filters = {};
@@ -67,7 +68,7 @@ const DiscsSearchParameters = memo(() => {
     loadAvailableParameters(buildFiltersFromFormValues(form.getFieldsValue()));
     // Перезапуск активного поиска без сброса фильтров (после cloud/local обновления IDB)
     if (searchResults !== null) {
-      handleSearch(form.getFieldsValue());
+      handleSearch(form.getFieldsValue(), { background: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [catalogDataVersion]);
@@ -152,11 +153,15 @@ const DiscsSearchParameters = memo(() => {
     return loadAvailableParameters(buildFiltersFromFormValues(currentValues));
   };
 
-  const handleSearch = async (values) => {
-    setSearchResetKey((key) => key + 1);
-    setLoadingSearch(true);
-    setErrorSearch(null);
-    setSearchResults(null);
+  const handleSearch = async (values, { background = false } = {}) => {
+    const requestId = ++searchRequestIdRef.current;
+
+    if (!background) {
+      setSearchResetKey((key) => key + 1);
+      setLoadingSearch(true);
+      setErrorSearch(null);
+      setSearchResults(null);
+    }
 
     try {
       const searchParams = { ...values };
@@ -167,11 +172,24 @@ const DiscsSearchParameters = memo(() => {
       delete searchParams.onlyAmountFrom4;
 
       const dbResults = await indexedDBService.searchDiscs(searchParams);
+      if (requestId !== searchRequestIdRef.current) {
+        return;
+      }
       setSearchResults(dbResults);
+      if (background) {
+        setErrorSearch(null);
+      }
     } catch (err) {
-      setErrorSearch(err.message);
+      if (requestId !== searchRequestIdRef.current) {
+        return;
+      }
+      if (!background) {
+        setErrorSearch(err.message);
+      }
     } finally {
-      setLoadingSearch(false);
+      if (!background && requestId === searchRequestIdRef.current) {
+        setLoadingSearch(false);
+      }
     }
   };
 

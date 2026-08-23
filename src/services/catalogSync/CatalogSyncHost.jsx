@@ -11,9 +11,9 @@ import {
  * Монтировать внутри AppShellProvider.
  */
 export function CatalogSyncHost() {
-  const { bumpCatalogDataVersion } = useAppShell();
-  const bumpRef = useRef(bumpCatalogDataVersion);
-  bumpRef.current = bumpCatalogDataVersion;
+  const { notifyCatalogApplied } = useAppShell();
+  const notifyRef = useRef(notifyCatalogApplied);
+  notifyRef.current = notifyCatalogApplied;
   const syncingRef = useRef(false);
 
   useEffect(() => {
@@ -33,7 +33,7 @@ export function CatalogSyncHost() {
       try {
         const result = await checkAndSyncCatalog();
         if (!cancelled && result.status === 'applied') {
-          bumpRef.current?.();
+          notifyRef.current?.(result.version);
         }
       } finally {
         syncingRef.current = false;

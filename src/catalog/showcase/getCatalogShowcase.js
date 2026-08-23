@@ -43,7 +43,6 @@ export const getCatalogShowcase = async ({
 
   if (bucket.version !== catalogDataVersion) {
     bucket.version = catalogDataVersion;
-    bucket.payload = null;
     bucket.promise = null;
   }
 
@@ -64,7 +63,23 @@ export const getCatalogShowcase = async ({
     });
   }
 
-  const payload = await bucket.promise;
+  const payload = await (async () => {
+    if (bucket.promise) {
+      try {
+        return await bucket.promise;
+      } catch (error) {
+        if (bucket.payload) {
+          return bucket.payload;
+        }
+        throw error;
+      }
+    }
+    return bucket.payload;
+  })();
+
+  if (!payload) {
+    throw new Error('Не удалось загрузить данные витрины');
+  }
 
   if (bucketKey === 'tires') {
     return buildTireShowcase({

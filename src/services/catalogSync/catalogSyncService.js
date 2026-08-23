@@ -8,6 +8,7 @@
 import indexedDBService, {
   validateCatalogItemsForSupplier,
 } from '../indexedDBService';
+import { postCatalogApplied } from './catalogSyncChannel';
 
 const STORE_ID = (process.env.REACT_APP_STORE_ID || 'ElistaIvanor').trim();
 const LOCAL_VERSION_KEY = 'ivanor.catalog.cloudVersion';
@@ -114,13 +115,11 @@ export function msUntilNextSyncCheck(now = new Date()) {
 const CATEGORY_CONFIG = {
   tyres: {
     entityName: 'шины',
-    replace: (supplier, items) =>
-      indexedDBService.replaceTiresForSupplier(supplier, items),
+    category: 'tyres',
   },
   discs: {
     entityName: 'диски',
-    replace: (supplier, items) =>
-      indexedDBService.replaceDiscsForSupplier(supplier, items),
+    category: 'discs',
   },
 };
 
@@ -216,7 +215,11 @@ export function validateCatalogSnapshot(snapshot) {
       throw contractError(entryPath, 'описание поставщика должно быть объектом');
     }
     if (typeof entry.supplier !== 'string' || !entry.supplier.trim()) {
-      throw contractError(`${entryPath}.supplier`, 'непустая строка обязательна');
+      if (typeof entry.label === 'string' && entry.label.trim()) {
+        entry.supplier = entry.label.trim();
+      } else {
+        throw contractError(`${entryPath}.supplier`, 'непустая строка обязательна');
+      }
     }
 
     return Object.entries(CATEGORY_CONFIG).map(([category, config]) => {
@@ -238,43 +241,36 @@ export function validateCatalogSnapshot(snapshot) {
 }
 
 /**
- * Сначала валидирует snapshot целиком, затем применяет независимые команды.
- * TireDatabase и DiscDatabase не имеют общей транзакции: при runtime-ошибке
- * одной базы другая уже может быть изменена. Команды идемпотентны, а версия
- * записывается только после успешного завершения всех операций.
+ * Сначала валидирует snapshot целиком, затем применяет его одной транзакцией
+ * CatalogDatabase (tires + discs + metadata).
  */
 export async function applyCatalogSnapshot(snapshot) {
   const commands = validateCatalogSnapshot(snapshot);
-  const tasks = commands
-    .filter((command) => command.action !== 'keepPrevious')
-    .map((command) => {
-      const items = command.action === 'purge' ? [] : command.items;
-      return CATEGORY_CONFIG[command.category].replace(command.supplier, items);
-    });
-
-  const results = await Promise.allSettled(tasks);
-  const failed = results.filter((r) => r.status === 'rejected');
-  if (failed.length > 0) {
-    failed.forEach((r) => console.error('catalog sync save error:', r.reason));
-    throw new Error(`Не удалось сохранить снимок (${failed.length} ошибок)`);
+  const result = await indexedDBService.applyCatalogSnapshot(
+    commands,
+    snapshot.version
+  );
+  if (result.applied) {
+    setLocalCatalogVersion(snapshot.version);
+    postCatalogApplied(snapshot.version);
   }
-
-  return { applied: true, writes: tasks.length };
+  return result;
 }
 
 /** Локальный каталог пуст (после wipe IDB) — нужно качать snapshot даже при совпадении version. */
 async function isLocalCatalogEmpty() {
   try {
-    const tires = await indexedDBService.collectTireShowcaseCandidates({
-      candidateLimit: 1,
-    });
-    if (!tires?.isEmpty) return false;
-    const discs = await indexedDBService.collectDiscShowcaseCandidates({
-      candidateLimit: 1,
-    });
-    return Boolean(discs?.isEmpty);
+    return indexedDBService.isCatalogEmpty();
   } catch {
     return true;
+  }
+}
+
+async function getPersistedCatalogVersion() {
+  try {
+    return indexedDBService.getPersistedCatalogVersion();
+  } catch {
+    return '';
   }
 }
 
@@ -304,7 +300,7 @@ export async function checkAndSyncCatalog({ force = false } = {}) {
       return { status: 'skipped', error: 'meta empty' };
     }
 
-    const local = getLocalCatalogVersion();
+    const local = await getPersistedCatalogVersion();
     const catalogEmpty = await isLocalCatalogEmpty();
     if (!force && !catalogEmpty && local && meta.version <= local) {
       return { status: 'up-to-date', version: meta.version };
@@ -320,7 +316,6 @@ export async function checkAndSyncCatalog({ force = false } = {}) {
     }
 
     await applyCatalogSnapshot(snapshot);
-    setLocalCatalogVersion(snapshot.version);
 
     console.info('catalog sync applied', {
       storeId: STORE_ID,

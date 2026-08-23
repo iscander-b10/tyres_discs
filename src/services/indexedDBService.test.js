@@ -1,4 +1,9 @@
-import indexedDBService from './indexedDBService';
+import indexedDBService, {
+  CATALOG_METADATA_KEYS,
+  CATALOG_STORES,
+  LEGACY_MIGRATION_MARKER,
+  validateCatalogItemsForSupplier,
+} from './indexedDBService';
 
 const clone = (value) => {
   if (Array.isArray(value)) return value.map(clone);
@@ -16,25 +21,48 @@ const makeError = (name, message = name) => {
   return error;
 };
 
-function createFakeDatabase(initialItems, failure = null) {
-  let committedItems = clone(initialItems);
-  let transactionCount = 0;
+const metadataRecord = (key, value) => ({ key, value });
 
-  return {
+function createFakeCatalogDatabase(initialState = {}, failure = null) {
+  let committedState = {
+    tires: clone(initialState.tires || []),
+    discs: clone(initialState.discs || []),
+    metadata: clone(initialState.metadata || {}),
+  };
+  let transactionCount = 0;
+  let completedCount = 0;
+
+  const database = {
     get transactionCount() {
       return transactionCount;
     },
-    getItems() {
-      return clone(committedItems);
+    get completedCount() {
+      return completedCount;
     },
-    transaction() {
+    getTires() {
+      return clone(committedState.tires);
+    },
+    getDiscs() {
+      return clone(committedState.discs);
+    },
+    getMetadata(key) {
+      return committedState.metadata[key];
+    },
+    transaction(storeNames, mode = 'readwrite') {
       transactionCount += 1;
-      const stagedItems = new Map(
-        committedItems.map((item) => [item.id, clone(item)])
+      const hasMetadataWrite = storeNames.includes(CATALOG_STORES.metadata);
+      const stagedTires = new Map(
+        committedState.tires.map((item) => [item.id, clone(item)])
       );
-      let putIndex = 0;
+      const stagedDiscs = new Map(
+        committedState.discs.map((item) => [item.id, clone(item)])
+      );
+      const stagedMetadata = { ...committedState.metadata };
       let done = false;
       let pendingError = null;
+      let putIndex = 0;
+      let writeIndex = 0;
+      let writesStarted = false;
 
       const abort = (error) => {
         if (done) return;
@@ -42,14 +70,18 @@ function createFakeDatabase(initialItems, failure = null) {
         transaction.error = error || transaction.error;
         setTimeout(() => transaction.onabort?.());
       };
-      const complete = () => {
-        if (done) return;
-        if (pendingError) {
-          abort(pendingError);
+
+      const tryComplete = () => {
+        if (done || pendingError) {
           return;
         }
         done = true;
-        committedItems = Array.from(stagedItems.values());
+        committedState = {
+          tires: Array.from(stagedTires.values()),
+          discs: Array.from(stagedDiscs.values()),
+          metadata: { ...stagedMetadata },
+        };
+        completedCount += 1;
         setTimeout(() => transaction.oncomplete?.());
       };
 
@@ -58,291 +90,359 @@ function createFakeDatabase(initialItems, failure = null) {
         onabort: null,
         oncomplete: null,
         abort: () => abort(transaction.error || makeError('AbortError')),
-        objectStore: () => ({
-          index: () => ({
-            openCursor: (supplier) => {
-              const matchingIds = committedItems
-                .filter((item) => item.supplier === supplier)
-                .map((item) => item.id);
-              const request = { result: null, onsuccess: null };
-              let cursorIndex = 0;
-
-              const deliverCursor = () => {
-                if (done) return;
-                const id = matchingIds[cursorIndex];
-                if (id === undefined) {
-                  request.result = null;
-                  request.onsuccess?.();
-                  setTimeout(complete);
-                  return;
+        objectStore: (storeName) => {
+          if (storeName === CATALOG_STORES.metadata) {
+            return {
+              get: (key) => {
+                const request = { result: undefined, onsuccess: null, onerror: null };
+                if (failure?.type === 'metadata-get') {
+                  queueMicrotask(() => abort(failure.error));
+                  return request;
                 }
-
-                request.result = {
-                  delete: () => {
-                    if (failure?.type === 'delete') {
-                      pendingError = failure.error;
-                    } else {
-                      stagedItems.delete(id);
+                request.result = stagedMetadata[key]
+                  ? metadataRecord(key, stagedMetadata[key])
+                  : undefined;
+                queueMicrotask(() => {
+                  request.onsuccess?.();
+                  queueMicrotask(() => {
+                    if (!done && hasMetadataWrite && !writesStarted) {
+                      tryComplete();
                     }
-                    return {};
-                  },
-                  continue: () => {
-                    cursorIndex += 1;
-                    queueMicrotask(deliverCursor);
-                  },
-                };
-                request.onsuccess?.();
-              };
+                  });
+                });
+                return request;
+              },
+              put: (record) => {
+                if (failure?.type === 'metadata-put') {
+                  pendingError = failure.error;
+                  abort(failure.error);
+                  return {};
+                }
+                stagedMetadata[record.key] = record.value;
+                queueMicrotask(tryComplete);
+                return {};
+              },
+            };
+          }
 
-              queueMicrotask(deliverCursor);
-              return request;
+          const stagedMap =
+            storeName === CATALOG_STORES.discs ? stagedDiscs : stagedTires;
+
+          return {
+            index: () => ({
+              openCursor: (supplier) => {
+                writesStarted = true;
+                const request = { result: null, onsuccess: null, onerror: null };
+                let cursorIndex = 0;
+                const currentWriteIndex = writeIndex;
+                writeIndex += 1;
+
+                const deliverCursor = () => {
+                  if (done) return;
+                  const matchingIds = Array.from(stagedMap.values())
+                    .filter((item) => item.supplier === supplier)
+                    .map((item) => item.id);
+                  const id = matchingIds[cursorIndex];
+                  if (id === undefined) {
+                    request.result = null;
+                    cursorIndex = 0;
+                    queueMicrotask(() => {
+                      request.onsuccess?.();
+                      if (!hasMetadataWrite) {
+                        tryComplete();
+                      }
+                    });
+                    return;
+                  }
+
+                  request.result = {
+                    delete: () => {
+                      if (
+                        failure?.type === 'delete' &&
+                        failure.writeIndex === currentWriteIndex
+                      ) {
+                        throw failure.error;
+                      }
+                      stagedMap.delete(id);
+                      return {};
+                    },
+                    continue: () => {
+                      cursorIndex += 1;
+                      deliverCursor();
+                    },
+                  };
+                  queueMicrotask(() => request.onsuccess?.());
+                };
+
+                deliverCursor();
+                return request;
+              },
+            }),
+            put: (item) => {
+              const currentPutIndex = putIndex;
+              putIndex += 1;
+              if (failure?.type === 'put' && failure.putIndex === currentPutIndex) {
+                pendingError = failure.error;
+                abort(failure.error);
+                return {};
+              }
+              stagedMap.set(item.id, clone(item));
+              return {};
             },
-          }),
-          put: (item) => {
-            const currentPutIndex = putIndex;
-            putIndex += 1;
-            if (
-              failure?.type === 'put' &&
-              failure.putIndex === currentPutIndex
-            ) {
-              pendingError = failure.error;
-            } else {
-              stagedItems.set(item.id, clone(item));
-            }
-            return {};
-          },
-        }),
+          };
+        },
       };
 
       return transaction;
     },
   };
+
+  return database;
 }
 
-const catalogCases = [
-  {
-    label: 'шины',
-    save: (items) => indexedDBService.saveTires(items),
-    replace: (supplier, items) =>
-      indexedDBService.replaceTiresForSupplier(supplier, items),
-    setDatabase: (database) => {
-      indexedDBService.db = database;
-      indexedDBService.discDb = null;
-    },
-  },
-  {
-    label: 'диски',
-    save: (items) => indexedDBService.saveDiscs(items),
-    replace: (supplier, items) =>
-      indexedDBService.replaceDiscsForSupplier(supplier, items),
-    setDatabase: (database) => {
-      indexedDBService.discDb = database;
-      indexedDBService.db = null;
-    },
-  },
-];
+const mountCatalogDb = (database) => {
+  indexedDBService.catalogDb = database;
+  indexedDBService.db = database;
+  indexedDBService.discDb = database;
+  indexedDBService._migrationComplete = true;
+};
 
-describe.each(catalogCases)('безопасное сохранение: $label', ({ save, setDatabase }) => {
-  const oldSupplierItem = {
-    id: 'old-a',
-    supplier: 'Поставщик A',
-    model: 'Старая модель',
-  };
-  const otherSupplierItem = {
-    id: 'old-b',
-    supplier: 'Поставщик B',
-  };
-  const validItems = [
-    { id: 'new-1', supplier: 'Поставщик A' },
-    { id: 'new-2', supplier: 'Поставщик A', photoUrl: undefined },
-    { id: 'new-3', supplier: 'Поставщик A', price: null },
-  ];
+const supplierA = 'Поставщик A';
+const supplierB = 'Поставщик B';
 
+const tire = (id, supplier = supplierA) => ({ id, supplier });
+const disc = (id, supplier = supplierA) => ({ id, supplier });
+
+describe('CatalogDatabase: replace по supplier', () => {
   beforeAll(() => {
     global.IDBKeyRange = { only: (value) => value };
   });
 
-  test('полный успех заменяет данные поставщика и возвращает счётчики', async () => {
-    const database = createFakeDatabase([oldSupplierItem, otherSupplierItem]);
-    setDatabase(database);
-
-    await expect(save(validItems)).resolves.toEqual({ saved: 3, skipped: 0 });
-    expect(database.getItems()).toEqual(
-      expect.arrayContaining([otherSupplierItem, ...validItems])
-    );
-    expect(database.getItems()).not.toContainEqual(oldSupplierItem);
+  beforeEach(() => {
+    indexedDBService.catalogDb = null;
+    indexedDBService._migrationComplete = false;
+    indexedDBService._ensurePromise = null;
   });
 
-  test('один невалидный товар пропускается до транзакции', async () => {
-    const database = createFakeDatabase([oldSupplierItem]);
-    setDatabase(database);
-    const invalid = {
-      id: 'invalid',
-      supplier: 'Поставщик A',
-      callback: () => {},
-    };
-
-    await expect(save([validItems[0], invalid])).resolves.toEqual({
-      saved: 1,
-      skipped: 1,
+  test('полный успех заменяет данные поставщика', async () => {
+    const database = createFakeCatalogDatabase({
+      tires: [tire('old-a'), tire('old-b', supplierB)],
     });
-    expect(database.transactionCount).toBe(1);
-    expect(database.getItems()).toEqual([validItems[0]]);
-  });
-
-  test('все невалидные товары возвращают ошибку и не открывают транзакцию', async () => {
-    const database = createFakeDatabase([oldSupplierItem]);
-    setDatabase(database);
+    mountCatalogDb(database);
 
     await expect(
-      save([null, { supplier: 'Поставщик A' }, { id: 'x' }])
-    ).rejects.toThrow(/некорректны/);
-    expect(database.transactionCount).toBe(0);
-    expect(database.getItems()).toEqual([oldSupplierItem]);
+      indexedDBService.replaceTiresForSupplier(supplierA, [tire('new-1'), tire('new-2')])
+    ).resolves.toEqual({ saved: 2, skipped: 0 });
+
+    expect(database.getTires()).toEqual(
+      expect.arrayContaining([tire('new-1'), tire('new-2'), tire('old-b', supplierB)])
+    );
   });
 
-  test('товар без id пропускается, остальные сохраняются', async () => {
-    const database = createFakeDatabase([oldSupplierItem]);
-    setDatabase(database);
+  test('ошибка первого put отменяет транзакцию', async () => {
+    const error = makeError('UnknownError', 'put failed');
+    const database = createFakeCatalogDatabase(
+      { tires: [tire('old-a'), tire('old-b', supplierB)] },
+      { type: 'put', putIndex: 0, error }
+    );
+    mountCatalogDb(database);
 
     await expect(
-      save([{ supplier: 'Поставщик A' }, validItems[0]])
-    ).resolves.toEqual({ saved: 1, skipped: 1 });
-    expect(database.getItems()).toEqual([validItems[0]]);
-  });
-
-  test('товар другого поставщика пропускается', async () => {
-    const database = createFakeDatabase([oldSupplierItem, otherSupplierItem]);
-    setDatabase(database);
-
-    await expect(
-      save([validItems[0], { id: 'foreign', supplier: 'Поставщик B' }])
-    ).resolves.toEqual({ saved: 1, skipped: 1 });
-    expect(database.getItems()).toEqual(
-      expect.arrayContaining([validItems[0], otherSupplierItem])
-    );
-    expect(database.getItems()).not.toContainEqual({
-      id: 'foreign',
-      supplier: 'Поставщик B',
-    });
-  });
-
-  test.each([
-    ['первого', 0],
-    ['среднего', 1],
-    ['последнего', 2],
-  ])('ошибка %s put отменяет всю транзакцию', async (_, putIndex) => {
-    const error = makeError('UnknownError', `put ${putIndex}`);
-    const database = createFakeDatabase(
-      [oldSupplierItem, otherSupplierItem],
-      { type: 'put', putIndex, error }
-    );
-    setDatabase(database);
-
-    await expect(save(validItems)).rejects.toBe(error);
-    expect(database.getItems()).toEqual([oldSupplierItem, otherSupplierItem]);
-  });
-
-  test('ошибка удаления отменяет транзакцию и сохраняет старые данные', async () => {
-    const error = makeError('UnknownError', 'delete failed');
-    const database = createFakeDatabase(
-      [oldSupplierItem, otherSupplierItem],
-      { type: 'delete', error }
-    );
-    setDatabase(database);
-
-    await expect(save(validItems)).rejects.toBe(error);
-    expect(database.getItems()).toEqual([oldSupplierItem, otherSupplierItem]);
-  });
-
-  test('QuotaExceededError отменяет транзакцию и сохраняет старые данные', async () => {
-    const error = makeError('QuotaExceededError');
-    const database = createFakeDatabase(
-      [oldSupplierItem, otherSupplierItem],
-      { type: 'put', putIndex: 1, error }
-    );
-    setDatabase(database);
-
-    await expect(save(validItems)).rejects.toBe(error);
-    expect(database.getItems()).toEqual([oldSupplierItem, otherSupplierItem]);
+      indexedDBService.replaceTiresForSupplier(supplierA, [tire('new-1')])
+    ).rejects.toBe(error);
+    expect(database.getTires()).toEqual([tire('old-a'), tire('old-b', supplierB)]);
   });
 });
 
-describe.each(catalogCases)(
-  'явная замена категории: $label',
-  ({ replace, setDatabase }) => {
-    const supplier = 'Поставщик A';
-    const oldSupplierItems = Array.from({ length: 500 }, (_, index) => ({
-      id: `old-a-${index}`,
-      supplier,
-    }));
-    const otherSupplierItem = { id: 'old-b', supplier: 'Поставщик B' };
-
-    beforeAll(() => {
-      global.IDBKeyRange = { only: (value) => value };
-    });
-
-    test('пустая замена удаляет все 500 товаров только указанного поставщика', async () => {
-      const database = createFakeDatabase([
-        ...oldSupplierItems,
-        otherSupplierItem,
-      ]);
-      setDatabase(database);
-
-      await expect(replace(supplier, [])).resolves.toEqual({
-        saved: 0,
-        skipped: 0,
-      });
-      expect(database.transactionCount).toBe(1);
-      expect(database.getItems()).toEqual([otherSupplierItem]);
-    });
-
-    test('явный supplier не выводится из items', async () => {
-      const database = createFakeDatabase(oldSupplierItems);
-      setDatabase(database);
-
-      await expect(
-        replace(supplier, [{ id: 'foreign', supplier: 'Поставщик B' }])
-      ).rejects.toThrow(/не совпадает/);
-      expect(database.transactionCount).toBe(0);
-      expect(database.getItems()).toHaveLength(500);
-    });
-  }
-);
-
-describe('изоляция TireDatabase и DiscDatabase', () => {
-  const tireA = { id: 'tire-a', supplier: 'Поставщик A' };
-  const tireB = { id: 'tire-b', supplier: 'Поставщик B' };
-  const discA = { id: 'disc-a', supplier: 'Поставщик A' };
+describe('CatalogDatabase: applyCatalogSnapshot', () => {
+  const versionV1 = '2026-08-23T09:00:00Z';
+  const versionV2 = '2026-08-23T10:00:00Z';
 
   beforeAll(() => {
     global.IDBKeyRange = { only: (value) => value };
   });
 
-  test('очистка шин не изменяет диски', async () => {
-    const tireDatabase = createFakeDatabase([tireA, tireB]);
-    const discDatabase = createFakeDatabase([discA]);
-    indexedDBService.db = tireDatabase;
-    indexedDBService.discDb = discDatabase;
-
-    await indexedDBService.replaceTiresForSupplier('Поставщик A', []);
-
-    expect(tireDatabase.getItems()).toEqual([tireB]);
-    expect(discDatabase.getItems()).toEqual([discA]);
-    expect(discDatabase.transactionCount).toBe(0);
+  beforeEach(() => {
+    indexedDBService.catalogDb = null;
+    indexedDBService._migrationComplete = false;
+    indexedDBService._ensurePromise = null;
   });
 
-  test('замена дисков не изменяет шины', async () => {
-    const tireDatabase = createFakeDatabase([tireA]);
-    const discDatabase = createFakeDatabase([discA]);
-    const newDisc = { id: 'disc-new', supplier: 'Поставщик A' };
-    indexedDBService.db = tireDatabase;
-    indexedDBService.discDb = discDatabase;
+  const baseCommands = () => [
+    {
+      supplier: supplierA,
+      category: CATALOG_STORES.tires,
+      action: 'replace',
+      items: [tire('tire-a-new')],
+    },
+    {
+      supplier: supplierA,
+      category: CATALOG_STORES.discs,
+      action: 'replace',
+      items: [disc('disc-a-new')],
+    },
+  ];
 
-    await indexedDBService.replaceDiscsForSupplier('Поставщик A', [newDisc]);
+  test('полный успешный snapshot обновляет шины, диски и metadata', async () => {
+    const database = createFakeCatalogDatabase({
+      tires: [tire('tire-a-old')],
+      discs: [disc('disc-a-old')],
+      metadata: {
+        [CATALOG_METADATA_KEYS.snapshotVersion]: versionV1,
+      },
+    });
+    mountCatalogDb(database);
 
-    expect(tireDatabase.getItems()).toEqual([tireA]);
-    expect(tireDatabase.transactionCount).toBe(0);
-    expect(discDatabase.getItems()).toEqual([newDisc]);
+    await expect(
+      indexedDBService.applyCatalogSnapshot(baseCommands(), versionV2)
+    ).resolves.toEqual({ applied: true, writes: 2, skipped: false });
+
+    expect(database.getTires()).toEqual([tire('tire-a-new')]);
+    expect(database.getDiscs()).toEqual([disc('disc-a-new')]);
+    expect(database.getMetadata(CATALOG_METADATA_KEYS.snapshotVersion)).toBe(
+      versionV2
+    );
+  });
+
+  test('ошибка шин откатывает диски', async () => {
+    const error = makeError('UnknownError', 'tire put failed');
+    const database = createFakeCatalogDatabase(
+      {
+        tires: [tire('tire-a-old')],
+        discs: [disc('disc-a-old')],
+        metadata: { [CATALOG_METADATA_KEYS.snapshotVersion]: versionV1 },
+      },
+      { type: 'put', putIndex: 0, error }
+    );
+    mountCatalogDb(database);
+
+    await expect(
+      indexedDBService.applyCatalogSnapshot(baseCommands(), versionV2)
+    ).rejects.toBe(error);
+
+    expect(database.getTires()).toEqual([tire('tire-a-old')]);
+    expect(database.getDiscs()).toEqual([disc('disc-a-old')]);
+    expect(database.getMetadata(CATALOG_METADATA_KEYS.snapshotVersion)).toBe(
+      versionV1
+    );
+  });
+
+  test('purge и keepPrevious сохраняют семантику', async () => {
+    const database = createFakeCatalogDatabase({
+      tires: [tire('keep-me'), tire('remove-me', supplierB)],
+      discs: [disc('disc-keep')],
+      metadata: { [CATALOG_METADATA_KEYS.snapshotVersion]: versionV1 },
+    });
+    mountCatalogDb(database);
+
+    await indexedDBService.applyCatalogSnapshot(
+      [
+        {
+          supplier: supplierB,
+          category: CATALOG_STORES.tires,
+          action: 'purge',
+        },
+        {
+          supplier: supplierA,
+          category: CATALOG_STORES.tires,
+          action: 'keepPrevious',
+        },
+        {
+          supplier: supplierA,
+          category: CATALOG_STORES.discs,
+          action: 'keepPrevious',
+        },
+      ],
+      versionV2
+    );
+
+    expect(database.getTires()).toEqual([tire('keep-me')]);
+    expect(database.getDiscs()).toEqual([disc('disc-keep')]);
+  });
+
+  test('metadata version не меняется при abort', async () => {
+    const error = makeError('QuotaExceededError');
+    const database = createFakeCatalogDatabase(
+      {
+        tires: [tire('tire-a-old')],
+        discs: [disc('disc-a-old')],
+        metadata: { [CATALOG_METADATA_KEYS.snapshotVersion]: versionV1 },
+      },
+      { type: 'metadata-put', error }
+    );
+    mountCatalogDb(database);
+
+    await expect(
+      indexedDBService.applyCatalogSnapshot(baseCommands(), versionV2)
+    ).rejects.toBe(error);
+    expect(database.getMetadata(CATALOG_METADATA_KEYS.snapshotVersion)).toBe(
+      versionV1
+    );
+  });
+
+  test('повторное применение snapshot идемпотентно', async () => {
+    const database = createFakeCatalogDatabase({
+      tires: [tire('tire-a-old')],
+      discs: [disc('disc-a-old')],
+      metadata: { [CATALOG_METADATA_KEYS.snapshotVersion]: versionV2 },
+    });
+    mountCatalogDb(database);
+
+    await expect(
+      indexedDBService.applyCatalogSnapshot(baseCommands(), versionV2)
+    ).resolves.toEqual({ applied: false, writes: 0, skipped: true });
+    expect(database.getTires()).toEqual([tire('tire-a-old')]);
+  });
+
+  test('старый snapshot не перезаписывает более новую persisted version', async () => {
+    const database = createFakeCatalogDatabase({
+      tires: [tire('tire-v2')],
+      discs: [disc('disc-v2')],
+      metadata: { [CATALOG_METADATA_KEYS.snapshotVersion]: versionV2 },
+    });
+    mountCatalogDb(database);
+
+    await expect(
+      indexedDBService.applyCatalogSnapshot(baseCommands(), versionV1)
+    ).resolves.toEqual({ applied: false, writes: 0, skipped: true });
+    expect(database.getMetadata(CATALOG_METADATA_KEYS.snapshotVersion)).toBe(
+      versionV2
+    );
+  });
+});
+
+describe('CatalogDatabase: migration marker', () => {
+  test('marker записывается в metadata', async () => {
+    const database = createFakeCatalogDatabase();
+    mountCatalogDb(database);
+
+    await new Promise((resolve, reject) => {
+      const transaction = database.transaction(
+        [CATALOG_STORES.metadata],
+        'readwrite'
+      );
+      transaction.objectStore(CATALOG_STORES.metadata).put({
+        key: CATALOG_METADATA_KEYS.migrationMarker,
+        value: LEGACY_MIGRATION_MARKER,
+      });
+      transaction.oncomplete = () => resolve();
+      transaction.onabort = () => reject(transaction.error);
+    });
+
+    expect(database.getMetadata(CATALOG_METADATA_KEYS.migrationMarker)).toBe(
+      LEGACY_MIGRATION_MARKER
+    );
+  });
+});
+
+describe('validateCatalogItemsForSupplier', () => {
+  test('отклоняет товар другого поставщика', () => {
+    expect(() =>
+      validateCatalogItemsForSupplier(
+        [{ id: 'x', supplier: supplierB }],
+        supplierA,
+        'шины'
+      )
+    ).toThrow(/не совпадает/);
   });
 });

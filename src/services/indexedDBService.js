@@ -1,5 +1,115 @@
 import { mergePreferredShowcaseCandidates } from '../catalog/showcase/preferredCandidates';
 
+/** Единая схема каталога — единственный источник имён stores и metadata keys. */
+export const CATALOG_DB_NAME = 'CatalogDatabase';
+export const CATALOG_DB_VERSION = 1;
+export const CATALOG_STORES = {
+  tires: 'tires',
+  discs: 'discs',
+  metadata: 'metadata',
+};
+export const CATALOG_METADATA_KEYS = {
+  snapshotVersion: 'snapshotVersion',
+  migrationMarker: 'migrationMarker',
+  schemaVersion: 'schemaVersion',
+};
+export const LEGACY_DB_NAMES = {
+  tires: 'TireDatabase',
+  discs: 'DiscDatabase',
+};
+export const LEGACY_MIGRATION_MARKER = 'legacy-v1-completed';
+export const CATALOG_SCHEMA_VERSION = 1;
+
+const TIRE_INDEXES = [
+  ['supplier', 'supplier'],
+  ['brand', 'brand'],
+  ['model', 'model'],
+  ['title', 'title'],
+  ['photoUrl', 'photoUrl'],
+  ['width', 'width'],
+  ['profile', 'profile'],
+  ['diameter', 'diameter'],
+  ['season', 'season'],
+  ['spikes', 'spikes'],
+  ['price', 'price'],
+  ['amount', 'amount'],
+];
+
+const DISC_INDEXES = [
+  ['supplier', 'supplier'],
+  ['brand', 'brand'],
+  ['model', 'model'],
+  ['title', 'title'],
+  ['photoUrl', 'photoUrl'],
+  ['diameter', 'diameter'],
+  ['width', 'width'],
+  ['pcd', 'pcd'],
+  ['et', 'et'],
+  ['cb', 'cb'],
+  ['pn', 'pn'],
+  ['diskType', 'diskType'],
+  ['price', 'price'],
+  ['amount', 'amount'],
+];
+
+const ALL_CATALOG_STORES = [
+  CATALOG_STORES.tires,
+  CATALOG_STORES.discs,
+  CATALOG_STORES.metadata,
+];
+
+const compareCatalogVersions = (left, right) => {
+  if (!left && !right) return 0;
+  if (!left) return -1;
+  if (!right) return 1;
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
+};
+
+const readLegacyStore = (dbName, storeName) =>
+  new Promise((resolve, reject) => {
+    const request = indexedDB.open(dbName);
+    request.onerror = () => resolve([]);
+    request.onsuccess = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(storeName)) {
+        db.close();
+        resolve([]);
+        return;
+      }
+      const tx = db.transaction([storeName], 'readonly');
+      const getAllRequest = tx.objectStore(storeName).getAll();
+      getAllRequest.onsuccess = () => {
+        db.close();
+        resolve(getAllRequest.result || []);
+      };
+      getAllRequest.onerror = () => {
+        db.close();
+        reject(getAllRequest.error);
+      };
+    };
+  });
+
+const replaceSupplierItemsInStore = (store, supplier, items, onComplete, onError) => {
+  const clearRequest = store.index('supplier').openCursor(IDBKeyRange.only(supplier));
+  clearRequest.onerror = () => onError(clearRequest.error);
+  clearRequest.onsuccess = () => {
+    try {
+      const cursor = clearRequest.result;
+      if (cursor) {
+        cursor.delete();
+        cursor.continue();
+        return;
+      }
+      items.forEach((item) => store.put(item));
+      onComplete();
+    } catch (error) {
+      onError(error);
+    }
+  };
+};
+
 const isActiveFilterValue = (value) => {
   if (value === undefined || value === null || value === '') return false;
   if (Array.isArray(value)) return value.length > 0;
@@ -321,69 +431,314 @@ const collectShowcaseCandidatesFromStore = (
 
 class IndexedDBService {
   constructor() {
-    this.dbName = 'TireDatabase';
-    this.discDbName = 'DiscDatabase';
-    this.version = 2; // + индекс model
-    this.discVersion = 3; // + индекс model
+    this.catalogDb = null;
+    this._migrationComplete = false;
+    this._ensurePromise = null;
+    /** @deprecated тестовый shim */
     this.db = null;
+    /** @deprecated тестовый shim */
     this.discDb = null;
   }
 
-  async openDatabase() {
+  async ensureCatalogReady() {
+    if (this.catalogDb && this._migrationComplete) {
+      return this.catalogDb;
+    }
+    if (!this._ensurePromise) {
+      this._ensurePromise = this._doEnsureCatalogReady();
+    }
+    try {
+      return await this._ensurePromise;
+    } finally {
+      this._ensurePromise = null;
+    }
+  }
+
+  async _doEnsureCatalogReady() {
+    await this.openCatalogDatabase();
+    const migrated = await this._isMigrationComplete();
+    if (migrated) {
+      this._migrationComplete = true;
+      return this.catalogDb;
+    }
+
+    const [legacyTires, legacyDiscs] = await Promise.all([
+      readLegacyStore(LEGACY_DB_NAMES.tires, CATALOG_STORES.tires),
+      readLegacyStore(LEGACY_DB_NAMES.discs, CATALOG_STORES.discs),
+    ]);
+
+    await this._runLegacyMigrationTransaction(legacyTires, legacyDiscs);
+    this._migrationComplete = true;
+    return this.catalogDb;
+  }
+
+  async openCatalogDatabase() {
+    if (this.catalogDb) {
+      return this.catalogDb;
+    }
+
     return new Promise((resolve, reject) => {
-      
-      const request = indexedDB.open(this.dbName, this.version);
-      
-      request.onerror = () => {
-        reject(request.error);
-      };
-      
+      const request = indexedDB.open(CATALOG_DB_NAME, CATALOG_DB_VERSION);
+
+      request.onerror = () => reject(request.error);
+
       request.onsuccess = () => {
-        this.db = request.result;
-        resolve(this.db);
+        this.catalogDb = request.result;
+        this.db = this.catalogDb;
+        this.discDb = this.catalogDb;
+        resolve(this.catalogDb);
       };
-      
+
       request.onupgradeneeded = (event) => {
         const db = event.target.result;
         const transaction = event.target.transaction;
 
-        let tireStore;
-        if (!db.objectStoreNames.contains('tires')) {
-          tireStore = db.createObjectStore('tires', {
-            keyPath: 'id'
-          });
-        } else {
-          tireStore = transaction.objectStore('tires');
-        }
-
-        const ensureTireIndex = (name, keyPath) => {
-          if (!tireStore.indexNames.contains(name)) {
-            tireStore.createIndex(name, keyPath, { unique: false });
+        const ensureStore = (storeName, keyPath, indexes) => {
+          let store;
+          if (!db.objectStoreNames.contains(storeName)) {
+            store = db.createObjectStore(storeName, { keyPath });
+          } else {
+            store = transaction.objectStore(storeName);
           }
+          indexes.forEach(([name, keyPathValue]) => {
+            if (!store.indexNames.contains(name)) {
+              store.createIndex(name, keyPathValue, { unique: false });
+            }
+          });
+          return store;
         };
 
-        ensureTireIndex('supplier', 'supplier');
-        ensureTireIndex('brand', 'brand');
-        ensureTireIndex('model', 'model');
-        ensureTireIndex('title', 'title');
-        ensureTireIndex('photoUrl', 'photoUrl');
-        ensureTireIndex('width', 'width');
-        ensureTireIndex('profile', 'profile');
-        ensureTireIndex('diameter', 'diameter');
-        ensureTireIndex('season', 'season');
-        ensureTireIndex('spikes', 'spikes');
-        ensureTireIndex('price', 'price');
-        ensureTireIndex('amount', 'amount');
+        ensureStore(CATALOG_STORES.tires, 'id', TIRE_INDEXES);
+        ensureStore(CATALOG_STORES.discs, 'id', DISC_INDEXES);
+        if (!db.objectStoreNames.contains(CATALOG_STORES.metadata)) {
+          db.createObjectStore(CATALOG_STORES.metadata, { keyPath: 'key' });
+        }
       };
+    });
+  }
+
+  /** @deprecated используйте ensureCatalogReady */
+  async openDatabase() {
+    return this.ensureCatalogReady();
+  }
+
+  /** @deprecated используйте ensureCatalogReady */
+  async openDiscDatabase() {
+    return this.ensureCatalogReady();
+  }
+
+  async _isMigrationComplete() {
+    await this.openCatalogDatabase();
+    return new Promise((resolve, reject) => {
+      const transaction = this.catalogDb.transaction(
+        [CATALOG_STORES.metadata],
+        'readonly'
+      );
+      const request = transaction
+        .objectStore(CATALOG_STORES.metadata)
+        .get(CATALOG_METADATA_KEYS.migrationMarker);
+      request.onsuccess = () => {
+        resolve(request.result?.value === LEGACY_MIGRATION_MARKER);
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async _runLegacyMigrationTransaction(legacyTires, legacyDiscs) {
+    const legacyVersion = this._readLegacyLocalStorageVersion();
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.catalogDb.transaction(
+        ALL_CATALOG_STORES,
+        'readwrite'
+      );
+      const metadataStore = transaction.objectStore(CATALOG_STORES.metadata);
+      const tiresStore = transaction.objectStore(CATALOG_STORES.tires);
+      const discsStore = transaction.objectStore(CATALOG_STORES.discs);
+      let abortCause = null;
+
+      const abortTransaction = (error) => {
+        abortCause = error;
+        try {
+          transaction.abort();
+        } catch {
+          /* ignore */
+        }
+      };
+
+      transaction.oncomplete = () => resolve();
+      transaction.onabort = () =>
+        reject(
+          abortCause ||
+            transaction.error ||
+            new Error('Миграция каталога отменена')
+        );
+
+      const markerRequest = metadataStore.get(
+        CATALOG_METADATA_KEYS.migrationMarker
+      );
+      markerRequest.onerror = () => abortTransaction(markerRequest.error);
+      markerRequest.onsuccess = () => {
+        if (markerRequest.result?.value === LEGACY_MIGRATION_MARKER) {
+          return;
+        }
+
+        try {
+          legacyTires.forEach((item) => tiresStore.put(item));
+          legacyDiscs.forEach((item) => discsStore.put(item));
+          metadataStore.put({
+            key: CATALOG_METADATA_KEYS.migrationMarker,
+            value: LEGACY_MIGRATION_MARKER,
+          });
+          metadataStore.put({
+            key: CATALOG_METADATA_KEYS.schemaVersion,
+            value: CATALOG_SCHEMA_VERSION,
+          });
+          if (legacyVersion) {
+            metadataStore.put({
+              key: CATALOG_METADATA_KEYS.snapshotVersion,
+              value: legacyVersion,
+            });
+          }
+        } catch (error) {
+          abortTransaction(error);
+        }
+      };
+    });
+  }
+
+  _readLegacyLocalStorageVersion() {
+    try {
+      return window.localStorage.getItem('ivanor.catalog.cloudVersion') || '';
+    } catch {
+      return '';
+    }
+  }
+
+  async getPersistedCatalogVersion() {
+    await this.ensureCatalogReady();
+    return new Promise((resolve, reject) => {
+      const transaction = this.catalogDb.transaction(
+        [CATALOG_STORES.metadata],
+        'readonly'
+      );
+      const request = transaction
+        .objectStore(CATALOG_STORES.metadata)
+        .get(CATALOG_METADATA_KEYS.snapshotVersion);
+      request.onsuccess = () => resolve(request.result?.value || '');
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async isCatalogEmpty() {
+    await this.ensureCatalogReady();
+    const [tires, discs] = await Promise.all([
+      this.collectTireShowcaseCandidates({ candidateLimit: 1 }),
+      this.collectDiscShowcaseCandidates({ candidateLimit: 1 }),
+    ]);
+    return Boolean(tires?.isEmpty && discs?.isEmpty);
+  }
+
+  /**
+   * Атомарно применяет полный snapshot в одной readwrite-транзакции.
+   * @param {Array<{ supplier: string, category: 'tyres'|'discs', action: string, items?: array }>} commands
+   * @param {string} version
+   */
+  async applyCatalogSnapshot(commands, version) {
+    await this.ensureCatalogReady();
+
+    const writes = commands
+      .filter((command) => command.action !== 'keepPrevious')
+      .map((command) => ({
+        supplier: command.supplier,
+        category: command.category,
+        items: command.action === 'purge' ? [] : command.items,
+      }));
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.catalogDb.transaction(
+        ALL_CATALOG_STORES,
+        'readwrite'
+      );
+      const tiresStore = transaction.objectStore(CATALOG_STORES.tires);
+      const discsStore = transaction.objectStore(CATALOG_STORES.discs);
+      const metadataStore = transaction.objectStore(CATALOG_STORES.metadata);
+      let abortCause = null;
+      let writeIndex = 0;
+      let skippedDueToVersion = false;
+
+      const abortTransaction = (error) => {
+        abortCause = error;
+        try {
+          transaction.abort();
+        } catch {
+          /* ignore */
+        }
+      };
+
+      transaction.oncomplete = () => {
+        if (skippedDueToVersion) {
+          resolve({ applied: false, writes: 0, skipped: true });
+          return;
+        }
+        resolve({ applied: true, writes: writes.length, skipped: false });
+      };
+      transaction.onabort = () =>
+        reject(
+          abortCause ||
+            transaction.error ||
+            new Error('Транзакция snapshot каталога отменена')
+        );
+
+      const processNextWrite = () => {
+        if (writeIndex >= writes.length) {
+          try {
+            metadataStore.put({
+              key: CATALOG_METADATA_KEYS.snapshotVersion,
+              value: version,
+            });
+          } catch (error) {
+            abortTransaction(error);
+          }
+          return;
+        }
+
+        const write = writes[writeIndex];
+        const store =
+          write.category === CATALOG_STORES.discs ? discsStore : tiresStore;
+
+        replaceSupplierItemsInStore(
+          store,
+          write.supplier,
+          write.items,
+          () => {
+            writeIndex += 1;
+            processNextWrite();
+          },
+          abortTransaction
+        );
+      };
+
+      const versionRequest = metadataStore.get(
+        CATALOG_METADATA_KEYS.snapshotVersion
+      );
+      versionRequest.onerror = () => abortTransaction(versionRequest.error);
+      versionRequest.onsuccess = () => {
+        const currentVersion = versionRequest.result?.value || '';
+        if (compareCatalogVersions(version, currentVersion) <= 0) {
+          skippedDueToVersion = true;
+          return;
+        }
+        processNextWrite();
+      };
+
     });
   }
 
   async saveTires(tires) {
     return this.saveCatalogItems({
       items: tires,
-      dbProperty: 'db',
-      openDatabase: () => this.openDatabase(),
-      storeName: 'tires',
+      storeName: CATALOG_STORES.tires,
       entityName: 'шины',
     });
   }
@@ -392,20 +747,29 @@ class IndexedDBService {
     return this.replaceCatalogItems({
       supplier,
       items: tires,
-      dbProperty: 'db',
-      openDatabase: () => this.openDatabase(),
-      storeName: 'tires',
+      storeName: CATALOG_STORES.tires,
       entityName: 'шины',
     });
   }
 
-  async saveCatalogItems({
-    items,
-    dbProperty,
-    openDatabase,
-    storeName,
-    entityName,
-  }) {
+  async saveDiscs(discs) {
+    return this.saveCatalogItems({
+      items: discs,
+      storeName: CATALOG_STORES.discs,
+      entityName: 'диски',
+    });
+  }
+
+  async replaceDiscsForSupplier(supplier, discs) {
+    return this.replaceCatalogItems({
+      supplier,
+      items: discs,
+      storeName: CATALOG_STORES.discs,
+      entityName: 'диски',
+    });
+  }
+
+  async saveCatalogItems({ items, storeName, entityName }) {
     const { validItems, supplier, skipped } = prepareCatalogItems(
       items,
       entityName
@@ -418,8 +782,6 @@ class IndexedDBService {
       supplier,
       items: validItems,
       skipped,
-      dbProperty,
-      openDatabase,
       storeName,
       entityName,
     });
@@ -429,22 +791,14 @@ class IndexedDBService {
     supplier,
     items,
     skipped = 0,
-    dbProperty,
-    openDatabase,
     storeName,
     entityName,
   }) {
     validateCatalogItemsForSupplier(items, supplier, entityName);
-
-    if (!this[dbProperty]) {
-      await openDatabase();
-    }
+    await this.ensureCatalogReady();
 
     return new Promise((resolve, reject) => {
-      const transaction = this[dbProperty].transaction(
-        [storeName],
-        'readwrite'
-      );
+      const transaction = this.catalogDb.transaction([storeName], 'readwrite');
       const store = transaction.objectStore(storeName);
       let abortCause = null;
 
@@ -453,7 +807,7 @@ class IndexedDBService {
         try {
           transaction.abort();
         } catch {
-          // Если транзакция уже aborting, итоговая ошибка придёт через onabort.
+          /* ignore */
         }
       };
 
@@ -466,99 +820,97 @@ class IndexedDBService {
             new Error(`Транзакция IndexedDB для ${entityName} отменена`)
         );
 
-      try {
-        const clearRequest = store
-          .index('supplier')
-          .openCursor(IDBKeyRange.only(supplier));
-
-        clearRequest.onsuccess = () => {
-          try {
-            const cursor = clearRequest.result;
-            if (cursor) {
-              cursor.delete();
-              cursor.continue();
-              return;
-            }
-
-            items.forEach((item) => store.put(item));
-          } catch (error) {
-            abortTransaction(error);
-          }
-        };
-      } catch (error) {
-        abortTransaction(error);
-      }
+      replaceSupplierItemsInStore(
+        store,
+        supplier,
+        items,
+        () => {},
+        abortTransaction
+      );
     });
   }
 
   async searchTires(filters) {
-  if (!this.db) await this.openDatabase();
-
-  return new Promise((resolve, reject) => {
-    const transaction = this.db.transaction(['tires'], 'readonly');
-    const store = transaction.objectStore('tires');
-    
-    let request;
-    const filterCount = Object.keys(filters).filter((key) => isActiveFilterValue(filters[key])).length;
-    const singleBrand = getSingleBrandForIndex(filters.brand);
-
-    if (filterCount === 0) {
-      request = store.openCursor();
-    } else if (isActiveFilterValue(filters.diameter)) {
-      // diameter хранится строкой ("R15"); индекс надёжен по типу
-      request = store.index('diameter').openCursor(IDBKeyRange.only(filters.diameter));
-    } else if (isActiveFilterValue(filters.season)) {
-      // width/profile в store могут быть number|string — не используем IDBKeyRange.only по ним
-      request = store.index('season').openCursor(IDBKeyRange.only(filters.season));
-    } else if (singleBrand) {
-      request = store.index('brand').openCursor(IDBKeyRange.only(singleBrand));
-    } else if (isActiveFilterValue(filters.supplier)) {
-      request = store.index('supplier').openCursor(IDBKeyRange.only(filters.supplier));
-    } else {
-      // spikes / width / profile / minAmount / runflat — полный скан + matches
-      request = store.openCursor();
-    }
-    
-    const results = [];
-
-    request.onsuccess = () => {
-      const cursor = request.result;
-      if (cursor) {
-        const tire = cursor.value;
-        const tireAmountNumber = Number(tire.amount);
-        const minAmountNumber = filters.minAmount === undefined || filters.minAmount === null ? null : Number(filters.minAmount);
-        
-        const matches = (
-          matchesTireParameterFilters(tire, filters) &&
-          matchesBrandFilter(tire.brand, filters.brand) &&
-          (!filters.supplier || tire.supplier === filters.supplier) &&
-          (filters.spikes === undefined || tire.spikes === filters.spikes) &&
-          (filters.runflat !== true || tire.runflat === true) &&
-          (minAmountNumber === null || (!Number.isNaN(tireAmountNumber) && tireAmountNumber >= minAmountNumber))
-        );
-        
-        if (matches) {
-          results.push(tire);
-        }
-        
-        cursor.continue();
-      } else {
-        resolve(results);
-      }
-    };
-
-    request.onerror = () => reject(request.error);
-  });
-}
-
-  async getAvailableParameterOptions(filters = {}) {
-    if (!this.db) {
-      await this.openDatabase();
-    }
+    await this.ensureCatalogReady();
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(['tires'], 'readonly');
-      const store = transaction.objectStore('tires');
+      const transaction = this.catalogDb.transaction(
+        [CATALOG_STORES.tires],
+        'readonly'
+      );
+      const store = transaction.objectStore(CATALOG_STORES.tires);
+
+      let request;
+      const filterCount = Object.keys(filters).filter((key) =>
+        isActiveFilterValue(filters[key])
+      ).length;
+      const singleBrand = getSingleBrandForIndex(filters.brand);
+
+      if (filterCount === 0) {
+        request = store.openCursor();
+      } else if (isActiveFilterValue(filters.diameter)) {
+        request = store
+          .index('diameter')
+          .openCursor(IDBKeyRange.only(filters.diameter));
+      } else if (isActiveFilterValue(filters.season)) {
+        request = store
+          .index('season')
+          .openCursor(IDBKeyRange.only(filters.season));
+      } else if (singleBrand) {
+        request = store.index('brand').openCursor(IDBKeyRange.only(singleBrand));
+      } else if (isActiveFilterValue(filters.supplier)) {
+        request = store
+          .index('supplier')
+          .openCursor(IDBKeyRange.only(filters.supplier));
+      } else {
+        request = store.openCursor();
+      }
+
+      const results = [];
+
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (cursor) {
+          const tire = cursor.value;
+          const tireAmountNumber = Number(tire.amount);
+          const minAmountNumber =
+            filters.minAmount === undefined || filters.minAmount === null
+              ? null
+              : Number(filters.minAmount);
+
+          const matches =
+            matchesTireParameterFilters(tire, filters) &&
+            matchesBrandFilter(tire.brand, filters.brand) &&
+            (!filters.supplier || tire.supplier === filters.supplier) &&
+            (filters.spikes === undefined || tire.spikes === filters.spikes) &&
+            (filters.runflat !== true || tire.runflat === true) &&
+            (minAmountNumber === null ||
+              (!Number.isNaN(tireAmountNumber) &&
+                tireAmountNumber >= minAmountNumber));
+
+          if (matches) {
+            results.push(tire);
+          }
+
+          cursor.continue();
+        } else {
+          resolve(results);
+        }
+      };
+
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async getAvailableParameterOptions(filters = {}) {
+    await this.ensureCatalogReady();
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.catalogDb.transaction(
+        [CATALOG_STORES.tires],
+        'readonly'
+      );
+      const store = transaction.objectStore(CATALOG_STORES.tires);
       const request = store.getAll();
 
       request.onsuccess = () => {
@@ -573,10 +925,15 @@ class IndexedDBService {
           if (filters.season && item.season !== filters.season) return;
 
           const matchWidth = matchesTireNumericField(item.width, filters.width);
-          const matchProfile = matchesTireNumericField(item.profile, filters.profile);
-          const matchDiameter = matchesTireDiameter(item.diameter, filters.diameter);
+          const matchProfile = matchesTireNumericField(
+            item.profile,
+            filters.profile
+          );
+          const matchDiameter = matchesTireDiameter(
+            item.diameter,
+            filters.diameter
+          );
 
-          // Опции поля X — без фильтра по X
           if (matchProfile && matchDiameter) {
             addUniqueValue(widths, normalizeNumericFieldValue(item.width));
           }
@@ -587,7 +944,6 @@ class IndexedDBService {
             addUniqueValue(diameters, item.diameter);
           }
 
-          // brands/suppliers — по полному совпадению выбранных размеров
           if (matchWidth && matchProfile && matchDiameter) {
             addUniqueValue(seasons, item.season);
             addUniqueValue(brands, item.brand);
@@ -609,128 +965,42 @@ class IndexedDBService {
     });
   }
 
-  // Методы для работы с дисками
-  async openDiscDatabase() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(this.discDbName, this.discVersion);
-      
-      request.onerror = () => {
-        reject(request.error);
-      };
-      
-      request.onsuccess = () => {
-        this.discDb = request.result;
-        resolve(this.discDb);
-      };
-      
-      request.onupgradeneeded = (event) => {
-        const db = event.target.result;
-        const transaction = event.target.transaction;
-        
-        let discStore;
-        if (!db.objectStoreNames.contains('discs')) {
-          discStore = db.createObjectStore('discs', { 
-            keyPath: 'id'
-          });
-        } else {
-          discStore = transaction.objectStore('discs');
-        }
-      
-        // Создаем индексы, если они еще не существуют
-        if (!discStore.indexNames.contains('supplier')) {
-          discStore.createIndex('supplier', 'supplier', { unique: false });
-        }
-        if (!discStore.indexNames.contains('brand')) {
-          discStore.createIndex('brand', 'brand', { unique: false });
-        }
-        if (!discStore.indexNames.contains('model')) {
-          discStore.createIndex('model', 'model', { unique: false });
-        }
-        if (!discStore.indexNames.contains('title')) {
-          discStore.createIndex('title', 'title', { unique: false });
-        }
-        if (!discStore.indexNames.contains('photoUrl')) {
-          discStore.createIndex('photoUrl', 'photoUrl', { unique: false });
-        }
-        if (!discStore.indexNames.contains('diameter')) {
-          discStore.createIndex('diameter', 'diameter', { unique: false });
-        }
-        if (!discStore.indexNames.contains('width')) {
-          discStore.createIndex('width', 'width', { unique: false });
-        }
-        if (!discStore.indexNames.contains('pcd')) {
-          discStore.createIndex('pcd', 'pcd', { unique: false });
-        }
-        if (!discStore.indexNames.contains('et')) {
-          discStore.createIndex('et', 'et', { unique: false });
-        }
-        if (!discStore.indexNames.contains('cb')) {
-          discStore.createIndex('cb', 'cb', { unique: false });
-        }
-        if (!discStore.indexNames.contains('pn')) {
-          discStore.createIndex('pn', 'pn', { unique: false });
-        }
-        if (!discStore.indexNames.contains('diskType')) {
-          discStore.createIndex('diskType', 'diskType', { unique: false });
-        }
-        if (!discStore.indexNames.contains('price')) {
-          discStore.createIndex('price', 'price', { unique: false });
-        }
-        if (!discStore.indexNames.contains('amount')) {
-          discStore.createIndex('amount', 'amount', { unique: false });
-        }
-      };
-    });
-  }
-
-  async saveDiscs(discs) {
-    return this.saveCatalogItems({
-      items: discs,
-      dbProperty: 'discDb',
-      openDatabase: () => this.openDiscDatabase(),
-      storeName: 'discs',
-      entityName: 'диски',
-    });
-  }
-
-  async replaceDiscsForSupplier(supplier, discs) {
-    return this.replaceCatalogItems({
-      supplier,
-      items: discs,
-      dbProperty: 'discDb',
-      openDatabase: () => this.openDiscDatabase(),
-      storeName: 'discs',
-      entityName: 'диски',
-    });
-  }
-
   async searchDiscs(filters) {
-    if (!this.discDb) await this.openDiscDatabase();
+    await this.ensureCatalogReady();
 
     return new Promise((resolve, reject) => {
-      const transaction = this.discDb.transaction(['discs'], 'readonly');
-      const store = transaction.objectStore('discs');
-      
+      const transaction = this.catalogDb.transaction(
+        [CATALOG_STORES.discs],
+        'readonly'
+      );
+      const store = transaction.objectStore(CATALOG_STORES.discs);
+
       let request;
-      const filterCount = Object.keys(filters).filter((key) => isActiveFilterValue(filters[key])).length;
+      const filterCount = Object.keys(filters).filter((key) =>
+        isActiveFilterValue(filters[key])
+      ).length;
       const singleBrand = getSingleBrandForIndex(filters.brand);
 
       if (filterCount === 0) {
         request = store.openCursor();
       } else if (isActiveFilterValue(filters.diameter)) {
-        // diameter хранится строкой ("R15")
-        request = store.index('diameter').openCursor(IDBKeyRange.only(filters.diameter));
+        request = store
+          .index('diameter')
+          .openCursor(IDBKeyRange.only(filters.diameter));
       } else if (isActiveFilterValue(filters.diskType)) {
-        request = store.index('diskType').openCursor(IDBKeyRange.only(filters.diskType));
+        request = store
+          .index('diskType')
+          .openCursor(IDBKeyRange.only(filters.diskType));
       } else if (singleBrand) {
         request = store.index('brand').openCursor(IDBKeyRange.only(singleBrand));
       } else if (isActiveFilterValue(filters.supplier)) {
-        request = store.index('supplier').openCursor(IDBKeyRange.only(filters.supplier));
+        request = store
+          .index('supplier')
+          .openCursor(IDBKeyRange.only(filters.supplier));
       } else {
-        // pn/pcd/width/cb/et могут быть number|string — не используем IDBKeyRange.only
         request = store.openCursor();
       }
-      
+
       const results = [];
 
       request.onsuccess = () => {
@@ -738,17 +1008,21 @@ class IndexedDBService {
         if (cursor) {
           const disc = cursor.value;
           const discAmountNumber = Number(disc.amount);
-          const minAmountNumber = filters.minAmount === undefined || filters.minAmount === null ? null : Number(filters.minAmount);
-          
-          const matches = (
+          const minAmountNumber =
+            filters.minAmount === undefined || filters.minAmount === null
+              ? null
+              : Number(filters.minAmount);
+
+          const matches =
             matchesDiscParameterFilters(disc, filters) &&
-            (minAmountNumber === null || (!Number.isNaN(discAmountNumber) && discAmountNumber >= minAmountNumber))
-          );
-          
+            (minAmountNumber === null ||
+              (!Number.isNaN(discAmountNumber) &&
+                discAmountNumber >= minAmountNumber));
+
           if (matches) {
             results.push(disc);
           }
-          
+
           cursor.continue();
         } else {
           resolve(results);
@@ -759,35 +1033,39 @@ class IndexedDBService {
     });
   }
 
-  /**
-   * Кандидаты для автовитрины шин: без полного getAll в React.
-   * Обычно ограничен `options.supplier` (полки только из Шинсервиса).
-   * `options.preferItem` — приоритетный пул (Ikon) в начале candidates.
-   */
   async collectTireShowcaseCandidates(options = {}) {
-    if (!this.db) await this.openDatabase();
-    const transaction = this.db.transaction(['tires'], 'readonly');
-    return collectShowcaseCandidatesFromStore(transaction.objectStore('tires'), options);
+    await this.ensureCatalogReady();
+    const transaction = this.catalogDb.transaction(
+      [CATALOG_STORES.tires],
+      'readonly'
+    );
+    return collectShowcaseCandidatesFromStore(
+      transaction.objectStore(CATALOG_STORES.tires),
+      options
+    );
   }
 
-  /**
-   * Кандидаты для автовитрины дисков: ранний лимит.
-   * Обычно ограничен `options.supplier` (полки только из Шинсервиса).
-   */
   async collectDiscShowcaseCandidates(options = {}) {
-    if (!this.discDb) await this.openDiscDatabase();
-    const transaction = this.discDb.transaction(['discs'], 'readonly');
-    return collectShowcaseCandidatesFromStore(transaction.objectStore('discs'), options);
+    await this.ensureCatalogReady();
+    const transaction = this.catalogDb.transaction(
+      [CATALOG_STORES.discs],
+      'readonly'
+    );
+    return collectShowcaseCandidatesFromStore(
+      transaction.objectStore(CATALOG_STORES.discs),
+      options
+    );
   }
 
   async getAvailableDiscParameterOptions(filters = {}) {
-    if (!this.discDb) {
-      await this.openDiscDatabase();
-    }
+    await this.ensureCatalogReady();
 
     return new Promise((resolve, reject) => {
-      const transaction = this.discDb.transaction(['discs'], 'readonly');
-      const store = transaction.objectStore('discs');
+      const transaction = this.catalogDb.transaction(
+        [CATALOG_STORES.discs],
+        'readonly'
+      );
+      const store = transaction.objectStore(CATALOG_STORES.discs);
       const request = store.getAll();
 
       request.onsuccess = () => {
@@ -802,37 +1080,113 @@ class IndexedDBService {
         const diskTypes = new Set();
 
         request.result.forEach((item) => {
-          const matchSupplier = matchesDiscStringField(item.supplier, filters.supplier);
-          const matchDiameter = matchesTireDiameter(item.diameter, filters.diameter);
+          const matchSupplier = matchesDiscStringField(
+            item.supplier,
+            filters.supplier
+          );
+          const matchDiameter = matchesTireDiameter(
+            item.diameter,
+            filters.diameter
+          );
           const matchPcd = matchesTireNumericField(item.pcd, filters.pcd);
           const matchPn = matchesTireNumericField(item.pn, filters.pn);
-          const matchDiskType = matchesDiscStringField(item.diskType, filters.diskType);
-          const matchWidth = matchesDiscRange(item.width, filters.widthFrom, filters.widthTo);
-          const matchCb = matchesDiscRange(item.cb, filters.cbFrom, filters.cbTo);
-          const matchEt = matchesDiscRange(item.et, filters.etFrom, filters.etTo);
+          const matchDiskType = matchesDiscStringField(
+            item.diskType,
+            filters.diskType
+          );
+          const matchWidth = matchesDiscRange(
+            item.width,
+            filters.widthFrom,
+            filters.widthTo
+          );
+          const matchCb = matchesDiscRange(
+            item.cb,
+            filters.cbFrom,
+            filters.cbTo
+          );
+          const matchEt = matchesDiscRange(
+            item.et,
+            filters.etFrom,
+            filters.etTo
+          );
 
-          // Опции поля X — без фильтра по X (диапазоны width/cb/et считаются парой)
-          if (matchSupplier && matchPcd && matchPn && matchDiskType && matchWidth && matchCb && matchEt) {
+          if (
+            matchSupplier &&
+            matchPcd &&
+            matchPn &&
+            matchDiskType &&
+            matchWidth &&
+            matchCb &&
+            matchEt
+          ) {
             addUniqueValue(diameters, item.diameter);
           }
-          if (matchSupplier && matchDiameter && matchPcd && matchDiskType && matchWidth && matchCb && matchEt) {
+          if (
+            matchSupplier &&
+            matchDiameter &&
+            matchPcd &&
+            matchDiskType &&
+            matchWidth &&
+            matchCb &&
+            matchEt
+          ) {
             addUniqueValue(pnValues, normalizeNumericFieldValue(item.pn));
           }
-          if (matchSupplier && matchDiameter && matchPn && matchDiskType && matchWidth && matchCb && matchEt) {
+          if (
+            matchSupplier &&
+            matchDiameter &&
+            matchPn &&
+            matchDiskType &&
+            matchWidth &&
+            matchCb &&
+            matchEt
+          ) {
             addUniqueValue(pcdValues, normalizeNumericFieldValue(item.pcd));
           }
-          if (matchSupplier && matchDiameter && matchPcd && matchPn && matchDiskType && matchCb && matchEt) {
+          if (
+            matchSupplier &&
+            matchDiameter &&
+            matchPcd &&
+            matchPn &&
+            matchDiskType &&
+            matchCb &&
+            matchEt
+          ) {
             addUniqueValue(widths, normalizeNumericFieldValue(item.width));
           }
-          if (matchSupplier && matchDiameter && matchPcd && matchPn && matchDiskType && matchWidth && matchEt) {
+          if (
+            matchSupplier &&
+            matchDiameter &&
+            matchPcd &&
+            matchPn &&
+            matchDiskType &&
+            matchWidth &&
+            matchEt
+          ) {
             addUniqueValue(cbValues, normalizeNumericFieldValue(item.cb));
           }
-          if (matchSupplier && matchDiameter && matchPcd && matchPn && matchDiskType && matchWidth && matchCb) {
+          if (
+            matchSupplier &&
+            matchDiameter &&
+            matchPcd &&
+            matchPn &&
+            matchDiskType &&
+            matchWidth &&
+            matchCb
+          ) {
             addUniqueValue(etValues, normalizeNumericFieldValue(item.et));
           }
 
-          // brands/suppliers — по полному совпадению выбранных фильтров
-          if (matchSupplier && matchDiameter && matchPcd && matchPn && matchDiskType && matchWidth && matchCb && matchEt) {
+          if (
+            matchSupplier &&
+            matchDiameter &&
+            matchPcd &&
+            matchPn &&
+            matchDiskType &&
+            matchWidth &&
+            matchCb &&
+            matchEt
+          ) {
             addUniqueValue(brands, item.brand);
             addUniqueValue(suppliers, item.supplier);
             addUniqueValue(diskTypes, item.diskType);
@@ -855,7 +1209,6 @@ class IndexedDBService {
       request.onerror = () => reject(request.error);
     });
   }
-
 }
 
 const indexedDBService = new IndexedDBService();
