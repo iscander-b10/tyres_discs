@@ -34,7 +34,11 @@ function BasketPage() {
   const { pathname } = useLocation();
   const isActive = pathname === PATHS.basket;
   const { items, totals, increment, decrement, removeItem, clear } = useCart();
-  const [modalItem, setModalItem] = useState(null);
+  const [modalItemKey, setModalItemKey] = useState(null);
+  const modalItem = useMemo(
+    () => items.find((item) => item.key === modalItemKey) ?? null,
+    [items, modalItemKey]
+  );
 
   const itemKeysSignature = useMemo(
     () => items.map((row) => row.key).join('|'),
@@ -162,7 +166,7 @@ function BasketPage() {
                     type="button"
                     className="basket-line__media"
                     data-supplier={item.supplier || undefined}
-                    onClick={() => setModalItem(item)}
+                    onClick={() => setModalItemKey(item.key)}
                     aria-label={`Открыть ${item.title}`}
                   >
                     <img
@@ -194,7 +198,7 @@ function BasketPage() {
                       <button
                         type="button"
                         className="basket-line__info"
-                        onClick={() => setModalItem(item)}
+                        onClick={() => setModalItemKey(item.key)}
                       >
                         <Text className="basket-line__name">{item.title}</Text>
                         {item.sizeTitle ? (
@@ -218,7 +222,7 @@ function BasketPage() {
                         <button
                           type="button"
                           className="basket-line__prices-hit"
-                          onClick={() => setModalItem(item)}
+                          onClick={() => setModalItemKey(item.key)}
                         >
                           <CatalogPriceStrip
                             item={item}
@@ -323,8 +327,9 @@ function BasketPage() {
 
       <CatalogItemModalWindow
         isOpen={Boolean(modalItem)}
-        onClose={() => setModalItem(null)}
+        onClose={() => setModalItemKey(null)}
         item={modalItem}
+        category={modalItem?.category}
         isClientMode={isClientMode}
       />
     </section>

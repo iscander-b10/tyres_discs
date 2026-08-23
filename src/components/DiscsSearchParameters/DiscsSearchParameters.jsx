@@ -227,6 +227,7 @@ const DiscsSearchParameters = memo(() => {
     <CatalogItemCard
       key={disc.id}
       item={disc}
+      category="discs"
       isClientMode={clientMode}
       cardClassName="item-card"
       ModalComponent={CatalogItemModalWindow}

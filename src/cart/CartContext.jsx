@@ -14,38 +14,52 @@ import {
   getUnitSellingPrice,
   isCatalogItemSellable,
   parseStock,
+  reconcileCartItems,
   snapshotCartItem,
 } from './cartUtils';
 
 const LEGACY_CART_KEY = 'ivanor.cart.v1';
+const CART_STORAGE_VERSION = 2;
 
 export function getCartStorageKey(mode = 'staff') {
-  return mode === 'demo' ? 'cart.demo.v1' : 'cart.staff.v1';
+  return mode === 'demo' ? 'cart.demo.v2' : 'cart.staff.v2';
 }
-
-function migrateLegacyCart() {
-  const newKey = getCartStorageKey('staff');
-  try {
-    if (!localStorage.getItem(newKey)) {
-      const legacy = localStorage.getItem(LEGACY_CART_KEY);
-      if (legacy) localStorage.setItem(newKey, legacy);
-    }
-  } catch {
-    /* ignore quota / private mode */
-  }
-}
-
-migrateLegacyCart();
 
 const CartContext = createContext(null);
 
-const readStoredItems = () => {
+const readItemsFromRawStorage = (raw) => {
+  if (!raw) return null;
   try {
-    const raw = localStorage.getItem(getCartStorageKey('staff'));
-    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((row) => row && typeof row.key === 'string' && row.key);
+    if (Array.isArray(parsed)) return parsed;
+    if (
+      parsed?.version === CART_STORAGE_VERSION &&
+      Array.isArray(parsed.items)
+    ) {
+      return parsed.items;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+};
+
+export const readStoredItems = () => {
+  try {
+    const storageKeys = [
+      getCartStorageKey('staff'),
+      'cart.staff.v1',
+      LEGACY_CART_KEY,
+    ];
+    for (const key of storageKeys) {
+      const items = readItemsFromRawStorage(localStorage.getItem(key));
+      if (items) {
+        return items.filter(
+          (row) => row && typeof row.key === 'string' && row.key
+        );
+      }
+    }
+    return [];
   } catch {
     return [];
   }
@@ -56,16 +70,19 @@ export function CartProvider({ children }) {
 
   useEffect(() => {
     try {
-      localStorage.setItem(getCartStorageKey('staff'), JSON.stringify(items));
+      localStorage.setItem(
+        getCartStorageKey('staff'),
+        JSON.stringify({ version: CART_STORAGE_VERSION, items })
+      );
     } catch {
       /* ignore quota / private mode */
     }
   }, [items]);
 
-  const addItem = useCallback((item, qty) => {
-    if (!isCatalogItemSellable(item)) return false;
+  const addItem = useCallback((item, category, qty) => {
+    if (!isCatalogItemSellable(item, category)) return false;
 
-    const key = getCartItemKey(item);
+    const key = getCartItemKey(item, category);
     const stock = parseStock(item?.amount);
 
     const initialQty =
@@ -78,15 +95,28 @@ export function CartProvider({ children }) {
         return prev.map((row) =>
           row.key === key
             ? {
-                ...snapshotCartItem(item, clampCartQty(row.quantity, stock)),
+                ...snapshotCartItem(
+                  item,
+                  category,
+                  clampCartQty(row.quantity, stock)
+                ),
                 quantity: clampCartQty(row.quantity, stock),
                 maxStock: stock,
               }
             : row
         );
       }
-      return [...prev, snapshotCartItem(item, initialQty)];
+      return [...prev, snapshotCartItem(item, category, initialQty)];
     });
+    return true;
+  }, []);
+
+  const lastReconciledVersionRef = React.useRef('');
+
+  const reconcileCatalog = useCallback(({ version, results }) => {
+    if (!version || version <= lastReconciledVersionRef.current) return false;
+    lastReconciledVersionRef.current = version;
+    setItems((currentItems) => reconcileCartItems(currentItems, results));
     return true;
   }, []);
 
@@ -158,6 +188,7 @@ export function CartProvider({ children }) {
       decrement,
       removeItem,
       clear,
+      reconcileCatalog,
       getItem,
       totalQuantity,
       totals,
@@ -169,6 +200,7 @@ export function CartProvider({ children }) {
       decrement,
       removeItem,
       clear,
+      reconcileCatalog,
       getItem,
       totalQuantity,
       totals,

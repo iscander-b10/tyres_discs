@@ -1,12 +1,17 @@
-/** Stable cart line key — catalog items already use unique `id` per supplier. */
-export const getCartItemKey = (item) => {
+export const CART_CATEGORIES = Object.freeze({
+  tyres: 'tyres',
+  discs: 'discs',
+});
+
+export const isCartCategory = (category) =>
+  category === CART_CATEGORIES.tyres || category === CART_CATEGORIES.discs;
+
+/** Stable cart line key. IDs are unique only inside a catalog category. */
+export const getCartItemKey = (item, category = item?.category) => {
   if (!item) return null;
-  if (item.id != null && String(item.id).trim() !== '') return String(item.id);
-  if (item.key != null && String(item.key).trim() !== '') return String(item.key);
-  const supplier = item.supplier != null ? String(item.supplier) : '';
-  const code = item.code != null ? String(item.code) : '';
-  if (supplier || code) return `${supplier}::${code}`;
-  return null;
+  if (!isCartCategory(category)) return null;
+  if (item.id == null || String(item.id).trim() === '') return null;
+  return `${category}:${String(item.id)}`;
 };
 
 /**
@@ -69,9 +74,9 @@ export const getUnitWebsitePrice = (item) => {
 /**
  * Товар можно добавить в корзину только при stock > 0 и положительной цене.
  */
-export const isCatalogItemSellable = (item) => {
+export const isCatalogItemSellable = (item, category = item?.category) => {
   if (!item) return false;
-  if (!getCartItemKey(item)) return false;
+  if (!getCartItemKey(item, category)) return false;
   if (parseStock(item.amount) <= 0) return false;
   return getUnitSellingPrice(item) > 0;
 };
@@ -84,32 +89,75 @@ export const clampCartQty = (qty, maxStock) => {
   return n;
 };
 
-export const snapshotCartItem = (item, quantity) => {
-  const key = getCartItemKey(item);
+export const snapshotCartItem = (item, category, quantity) => {
+  const key = getCartItemKey(item, category);
   const maxStock = parseStock(item?.amount);
   return {
+    ...item,
     key,
+    category,
     quantity: clampCartQty(quantity, maxStock || quantity),
     maxStock,
-    id: item.id ?? null,
-    code: item.code ?? null,
-    title: item.title ?? '',
-    sizeTitle: item.sizeTitle ?? null,
-    color: item.color ?? null,
-    photoUrl: item.photoUrl ?? null,
-    supplier: item.supplier ?? null,
-    price: item.price ?? null,
-    websitePrice: item.websitePrice ?? null,
-    sellingPrice: item.sellingPrice ?? null,
-    amount: item.amount ?? null,
-    brand: item.brand ?? null,
-    model: item.model ?? null,
-    width: item.width ?? null,
-    profile: item.profile ?? null,
-    diameter: item.diameter ?? null,
-    loadIndex: item.loadIndex ?? null,
-    speedIndex: item.speedIndex ?? null,
-    season: item.season ?? null,
-    runflat: item.runflat ?? null,
+    id: String(item.id),
   };
+};
+
+const matchesLegacyIdentity = (line, item) => {
+  if (!line?.supplier || !line?.code) return false;
+  return (
+    String(item?.supplier ?? '') === String(line.supplier) &&
+    String(item?.code ?? '') === String(line.code)
+  );
+};
+
+const resolveCatalogMatch = (line, result) => {
+  if (isCartCategory(line.category)) {
+    return {
+      category: line.category,
+      item: result.matches?.[line.category] ?? null,
+    };
+  }
+
+  const candidates = Object.entries(result.matches || {}).filter(
+    ([category, item]) => isCartCategory(category) && item
+  );
+  if (candidates.length === 1) {
+    return { category: candidates[0][0], item: candidates[0][1] };
+  }
+  if (candidates.length !== 2) return null;
+
+  const identityMatches = candidates.filter(([, item]) =>
+    matchesLegacyIdentity(line, item)
+  );
+  if (identityMatches.length !== 1) return null;
+  return { category: identityMatches[0][0], item: identityMatches[0][1] };
+};
+
+/**
+ * Pure cart reconciliation. Lines absent from the read scope are preserved:
+ * they may have been added while IndexedDB was being read.
+ */
+export const reconcileCartItems = (currentItems, catalogResults) => {
+  const resultsByRequestKey = new Map(
+    (catalogResults || []).map((result) => [result.requestKey, result])
+  );
+
+  return currentItems.flatMap((line) => {
+    const requestKey = line.category
+      ? getCartItemKey(line, line.category)
+      : line.key;
+    const result = resultsByRequestKey.get(requestKey);
+    if (!result) return [line];
+
+    const match = resolveCatalogMatch(line, result);
+    if (!match || !isCatalogItemSellable(match.item, match.category)) return [];
+
+    return [
+      snapshotCartItem(
+        match.item,
+        match.category,
+        clampCartQty(line.quantity, match.item.amount)
+      ),
+    ];
+  });
 };

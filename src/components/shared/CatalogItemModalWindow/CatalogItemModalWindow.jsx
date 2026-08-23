@@ -16,7 +16,13 @@ import {
 } from '../catalogCopy';
 import './CatalogItemModalWindow.scss';
 
-const CatalogItemModalWindow = ({ isOpen, onClose, item, isClientMode = false }) => {
+const CatalogItemModalWindow = ({
+  isOpen,
+  onClose,
+  item,
+  category,
+  isClientMode = false,
+}) => {
   const dialogRef = useRef(null);
   const closeBtnRef = useRef(null);
   const previouslyFocusedRef = useRef(null);
@@ -183,6 +189,7 @@ const CatalogItemModalWindow = ({ isOpen, onClose, item, isClientMode = false })
 
               <AddToCartControl
                 item={item}
+                category={category}
                 className="product-modal__cart-control"
                 onGoToCart={() => {
                   onClose?.();

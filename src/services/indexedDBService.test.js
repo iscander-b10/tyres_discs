@@ -446,3 +446,128 @@ describe('validateCatalogItemsForSupplier', () => {
     ).toThrow(/не совпадает/);
   });
 });
+
+const createCartReadDatabase = ({
+  tires = [],
+  discs = [],
+  version = '',
+  failureStore = null,
+} = {}) => {
+  const values = {
+    [CATALOG_STORES.tires]: new Map(tires.map((item) => [item.id, item])),
+    [CATALOG_STORES.discs]: new Map(discs.map((item) => [item.id, item])),
+  };
+  let transactionCount = 0;
+  let lastTransaction = null;
+
+  return {
+    get transactionCount() {
+      return transactionCount;
+    },
+    get lastTransaction() {
+      return lastTransaction;
+    },
+    transaction(storeNames, mode) {
+      transactionCount += 1;
+      let pending = 0;
+      let aborted = false;
+      const transaction = {
+        error: null,
+        oncomplete: null,
+        onabort: null,
+        abort() {
+          aborted = true;
+          queueMicrotask(() => transaction.onabort?.());
+        },
+        objectStore(storeName) {
+          return {
+            get(key) {
+              pending += 1;
+              const request = { result: undefined, error: null };
+              queueMicrotask(() => {
+                if (aborted) return;
+                if (failureStore === storeName) {
+                  request.error = makeError('UnknownError', 'read failed');
+                  request.onerror?.();
+                  return;
+                }
+                request.result =
+                  storeName === CATALOG_STORES.metadata
+                    ? version
+                      ? metadataRecord(key, version)
+                      : undefined
+                    : values[storeName].get(key);
+                request.onsuccess?.();
+                pending -= 1;
+                if (pending === 0) {
+                  queueMicrotask(() => {
+                    if (!aborted) transaction.oncomplete?.();
+                  });
+                }
+              });
+              return request;
+            },
+          };
+        },
+      };
+      lastTransaction = { storeNames, mode };
+      return transaction;
+    },
+  };
+};
+
+describe('CatalogDatabase: batch cart read', () => {
+  test('читает обе категории и версию одной readonly-транзакцией', async () => {
+    const database = createCartReadDatabase({
+      tires: [{ id: 'same', title: 'Шина' }],
+      discs: [{ id: 'same', title: 'Диск' }],
+      version: '2026-08-23T10:00:00Z',
+    });
+    mountCatalogDb(database);
+
+    const result = await indexedDBService.readCartCatalogItems([
+      { requestKey: 'same', category: null, id: 'same' },
+      { requestKey: 'tyres:missing', category: 'tyres', id: 'missing' },
+    ]);
+
+    expect(database.transactionCount).toBe(1);
+    expect(database.lastTransaction).toEqual({
+      storeNames: [
+        CATALOG_STORES.tires,
+        CATALOG_STORES.discs,
+        CATALOG_STORES.metadata,
+      ],
+      mode: 'readonly',
+    });
+    expect(result).toEqual({
+      version: '2026-08-23T10:00:00Z',
+      results: [
+        {
+          requestKey: 'same',
+          matches: {
+            tyres: { id: 'same', title: 'Шина' },
+            discs: { id: 'same', title: 'Диск' },
+          },
+        },
+        {
+          requestKey: 'tyres:missing',
+          matches: { tyres: null, discs: null },
+        },
+      ],
+    });
+  });
+
+  test('ошибка request отклоняет всю операцию', async () => {
+    const database = createCartReadDatabase({
+      version: '2026-08-23T10:00:00Z',
+      failureStore: CATALOG_STORES.tires,
+    });
+    mountCatalogDb(database);
+
+    await expect(
+      indexedDBService.readCartCatalogItems([
+        { requestKey: 'tyres:x', category: 'tyres', id: 'x' },
+      ])
+    ).rejects.toThrow('read failed');
+  });
+});

@@ -221,6 +221,7 @@ const TiresSearchParameters = memo(() => {
     <CatalogItemCard
       key={tire.id}
       item={tire}
+      category="tyres"
       isClientMode={clientMode}
       cardClassName="item-card"
       ModalComponent={CatalogItemModalWindow}

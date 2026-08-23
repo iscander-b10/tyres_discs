@@ -630,6 +630,71 @@ class IndexedDBService {
     });
   }
 
+  /**
+   * Reads the confirmed catalog version and all requested cart records from
+   * one readonly transaction. Unknown-category references are checked in both
+   * product stores for legacy cart migration.
+   */
+  async readCartCatalogItems(references) {
+    await this.ensureCatalogReady();
+    const normalizedReferences = Array.isArray(references) ? references : [];
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.catalogDb.transaction(ALL_CATALOG_STORES, 'readonly');
+      const metadataStore = transaction.objectStore(CATALOG_STORES.metadata);
+      const stores = {
+        tyres: transaction.objectStore(CATALOG_STORES.tires),
+        discs: transaction.objectStore(CATALOG_STORES.discs),
+      };
+      const results = normalizedReferences.map((reference) => ({
+        requestKey: reference.requestKey,
+        matches: { tyres: null, discs: null },
+      }));
+      let version = '';
+      let abortCause = null;
+
+      const abortTransaction = (error) => {
+        abortCause = error;
+        try {
+          transaction.abort();
+        } catch {
+          reject(error);
+        }
+      };
+
+      transaction.oncomplete = () => resolve({ version, results });
+      transaction.onabort = () =>
+        reject(
+          abortCause ||
+            transaction.error ||
+            new Error('Транзакция чтения корзины отменена')
+        );
+
+      const versionRequest = metadataStore.get(
+        CATALOG_METADATA_KEYS.snapshotVersion
+      );
+      versionRequest.onsuccess = () => {
+        version = versionRequest.result?.value || '';
+      };
+      versionRequest.onerror = () => abortTransaction(versionRequest.error);
+
+      normalizedReferences.forEach((reference, index) => {
+        const categories =
+          reference.category === 'tyres' || reference.category === 'discs'
+            ? [reference.category]
+            : ['tyres', 'discs'];
+
+        categories.forEach((category) => {
+          const request = stores[category].get(reference.id);
+          request.onsuccess = () => {
+            results[index].matches[category] = request.result ?? null;
+          };
+          request.onerror = () => abortTransaction(request.error);
+        });
+      });
+    });
+  }
+
   async isCatalogEmpty() {
     await this.ensureCatalogReady();
     const [tires, discs] = await Promise.all([

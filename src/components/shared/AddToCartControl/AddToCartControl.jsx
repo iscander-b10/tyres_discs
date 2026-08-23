@@ -4,6 +4,7 @@ import { ShoppingCartOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { PATHS } from '../../../app/paths';
 import { useCart } from '../../../cart/CartContext';
+import indexedDBService from '../../../services/indexedDBService';
 import {
   getCartItemKey,
   isCatalogItemSellable,
@@ -12,12 +13,33 @@ import {
 import CartQtyControls from '../CartQtyControls/CartQtyControls';
 import './AddToCartControl.scss';
 
-function AddToCartControl({ item, onGoToCart, className = '', block = true }) {
+function AddToCartControl({
+  item,
+  category,
+  onGoToCart,
+  className = '',
+  block = true,
+}) {
   const navigate = useNavigate();
   const { addItem, getItem, increment, decrement, removeItem } = useCart();
-  const key = getCartItemKey(item);
+  const key = getCartItemKey(item, category);
   const cartLine = getItem(key);
-  const canAdd = isCatalogItemSellable(item);
+  const canAdd = isCatalogItemSellable(item, category);
+
+  const handleAdd = async (event) => {
+    event.stopPropagation();
+    if (!key || !canAdd) return;
+
+    try {
+      const catalogRead = await indexedDBService.readCartCatalogItems([
+        { requestKey: key, category, id: String(item.id) },
+      ]);
+      const currentItem = catalogRead.results[0]?.matches?.[category];
+      addItem(currentItem, category);
+    } catch {
+      // A failed read must not add a stale snapshot.
+    }
+  };
 
   const handleGoToCart = (e) => {
     e.stopPropagation();
@@ -71,10 +93,7 @@ function AddToCartControl({ item, onGoToCart, className = '', block = true }) {
         icon={<ShoppingCartOutlined aria-hidden />}
         disabled={!canAdd}
         block={block}
-        onClick={(e) => {
-          e.stopPropagation();
-          addItem(item);
-        }}
+        onClick={handleAdd}
         aria-label={canAdd ? 'Добавить в корзину' : 'Нет в наличии'}
       >
         В корзину

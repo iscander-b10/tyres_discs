@@ -19,6 +19,7 @@ const { Text } = Typography;
 
 const CatalogItemCard = ({
   item,
+  category,
   isClientMode = false,
   cardClassName = 'item-card',
   ModalComponent,
@@ -49,6 +50,7 @@ const CatalogItemCard = ({
     isOpen: isModalOpen,
     onClose: handleCloseModal,
     isClientMode,
+    category,
     [modalItemPropName]: item,
   };
 
@@ -182,7 +184,11 @@ const CatalogItemCard = ({
                 className="item-price-strip"
               />
 
-              <AddToCartControl item={item} className="item-cart-control" />
+              <AddToCartControl
+                item={item}
+                category={category}
+                className="item-cart-control"
+              />
             </Flex>
           }
         />

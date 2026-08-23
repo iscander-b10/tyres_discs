@@ -34,6 +34,7 @@ export function AppShellProvider({ children }) {
   const navigate = useNavigate();
   const [clientMode, setClientModeState] = useState(getInitialClientMode);
   const [catalogDataVersion, setCatalogDataVersion] = useState(0);
+  const [catalogSnapshotVersion, setCatalogSnapshotVersion] = useState('');
   const [sessionResetKey, setSessionResetKey] = useState(0);
   const [lastCatalogPath, setLastCatalogPath] = useState(DEFAULT_APP_HOME);
   const [lastBackgroundPath, setLastBackgroundPath] = useState(DEFAULT_APP_HOME);
@@ -100,6 +101,9 @@ export function AppShellProvider({ children }) {
     (version) => {
       if (version) {
         lastAppliedVersionRef.current = version;
+        setCatalogSnapshotVersion((current) =>
+          version > current ? version : current
+        );
       }
       bumpCatalogDataVersion();
     },
@@ -113,6 +117,9 @@ export function AppShellProvider({ children }) {
       }
       if (version) {
         lastAppliedVersionRef.current = version;
+        setCatalogSnapshotVersion((current) =>
+          version > current ? version : current
+        );
       }
       bumpCatalogDataVersion();
     });
@@ -127,6 +134,7 @@ export function AppShellProvider({ children }) {
       continueSelection,
       handleBrandClick,
       catalogDataVersion,
+      catalogSnapshotVersion,
       bumpCatalogDataVersion,
       notifyCatalogApplied,
       sessionResetKey,
@@ -138,6 +146,7 @@ export function AppShellProvider({ children }) {
       continueSelection,
       handleBrandClick,
       catalogDataVersion,
+      catalogSnapshotVersion,
       bumpCatalogDataVersion,
       notifyCatalogApplied,
       sessionResetKey,

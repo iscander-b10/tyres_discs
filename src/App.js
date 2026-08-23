@@ -23,6 +23,7 @@ import {
 } from './app/paths';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import { CartProvider } from './cart/CartContext';
+import { CartReconciliationHost } from './cart/CartReconciliationHost';
 import SiteHeader from './components/SiteHeader/SiteHeader';
 import SiteFooter from './components/SiteFooter/SiteFooter';
 import TiresSearchParameters from './components/TiresSearchParameters/TiresSearchParameters';
@@ -188,6 +189,7 @@ function App({ appearance = 'light', onAppearanceChange }) {
         <AppShellProvider>
           <CartProvider>
             <CatalogSyncHost />
+            <CartReconciliationHost />
             <AppReady>
               <Routes>
                 <Route
