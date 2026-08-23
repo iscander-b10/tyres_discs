@@ -6,6 +6,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "esbuild src/handler.js --bundle --platform=node --target=node20 --format=cjs --outfile=dist/index.js",
+    "test": "node --experimental-default-type=module --test src/*.test.js",
     "pack": "npm run build && node scripts/pack.js"
   },
   "dependencies": {

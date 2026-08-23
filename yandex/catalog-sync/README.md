@@ -21,6 +21,7 @@
 
 ```json
 {
+  "schemaVersion": 1,
   "storeId": "ElistaIvanor",
   "version": "2026-08-20T08:00:00+03:00",
   "slot": "08:00",
@@ -46,13 +47,33 @@
     "shinservice": {
       "key": "shinservice",
       "label": "Шинсервис",
+      "supplier": "Шинсервис",
       "ok": true,
-      "tyres": [ /* записи как в IndexedDB */ ],
-      "discs": []
+      "tyres": {
+        "action": "replace",
+        "status": "ok",
+        "items": [ /* записи как в IndexedDB */ ]
+      },
+      "discs": {
+        "action": "replace",
+        "status": "ok",
+        "items": [ /* записи как в IndexedDB */ ]
+      }
     }
   }
 }
 ```
+
+Команды категорий:
+
+- `replace` — заменить категорию поставщика переданными `items`;
+- `keepPrevious` — оставить локальные данные, если предыдущего payload в snapshot нет;
+- `purge` — подтверждённое очищение категории.
+
+Пустой результат upstream не считается подтверждённым очищением. Функция сохраняет
+предыдущий materialized payload и помечает поставщика как неуспешного. Благодаря этому
+одиночный пустой ответ не удаляет каталог, а последний snapshot остаётся пригодным для
+загрузки в чистую IndexedDB.
 
 ## 1. Bucket Object Storage
 

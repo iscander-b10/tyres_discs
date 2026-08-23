@@ -522,7 +522,8 @@ function normalizeOptionalNumericField(value, path, field, collector) {
 
 /**
  * Консервативная нормализация diameter:
- * trim, r/c → верхний регистр; неоднозначное значение → null + warning.
+ * trim, r/c → верхний регистр; целые и дробные (R17.5, R22.5);
+ * неоднозначное значение → null + warning (товар не отбрасывается).
  */
 export function normalizeDiameter(value, path, collector) {
   if (value == null || value === '') return null;
@@ -537,19 +538,18 @@ export function normalizeDiameter(value, path, collector) {
     return null;
   }
 
-  const trimmed = String(value).trim();
+  const trimmed = String(value).trim().replace(',', '.');
   if (!trimmed) return null;
 
-  // Уже нормализованные формы: R16, R13C, 16, 13C
-  const match = trimmed.match(/^([Rr])?\s*(\d{1,3})\s*([Cc])?$/);
+  // R16, R13C, R17.5, R22.5, 16, 17.5, 13C
+  const match = trimmed.match(/^([Rr])?\s*(\d{1,3}(?:\.\d+)?)\s*([Cc])?$/);
   if (match) {
     const cargo = match[3] ? 'C' : '';
     return `R${match[2]}${cargo}`;
   }
 
-  // Допускаем уже сложные безопасные строки вроде R15 без угадывания flotation
   const upperized = trimmed.replace(/[rc]/gi, (ch) => ch.toUpperCase());
-  if (/^R\d{1,3}C?$/i.test(upperized)) {
+  if (/^R\d{1,3}(?:\.\d+)?C?$/i.test(upperized)) {
     return upperized.replace(/^r/i, 'R').replace(/c$/i, 'C');
   }
 

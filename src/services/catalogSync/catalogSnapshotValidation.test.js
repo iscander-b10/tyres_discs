@@ -435,6 +435,43 @@ describe('validateAndNormalizeCatalogSnapshot — tires', () => {
     expect(item.sizeTitle).toBe('31x10.5R15');
   });
 
+  test('дробный diameter R17.5 / R22.5 сохраняется (не null)', () => {
+    const { commands, report } = validateAndNormalizeCatalogSnapshot(
+      snapshotOf({
+        schemaVersion: 1,
+        tyres: replace([
+          tyreItem({
+            id: 't-175',
+            code: 'c-175',
+            diameter: 'R17.5',
+            sizeTitle: '215/75R17.5',
+          }),
+          tyreItem({
+            id: 't-225',
+            code: 'c-225',
+            diameter: 'r22,5',
+            sizeTitle: '295/80R22.5',
+          }),
+          tyreItem({
+            id: 't-num',
+            code: 'c-num',
+            diameter: 17.5,
+            sizeTitle: '215/75R17.5',
+          }),
+        ]),
+      })
+    );
+    expect(report.valid).toBe(true);
+    expect(report.warnings.some((w) => w.code === 'INVALID_DIAMETER')).toBe(
+      false
+    );
+    expect(commands[0].items.map((i) => i.diameter)).toEqual([
+      'R17.5',
+      'R22.5',
+      'R17.5',
+    ]);
+  });
+
   test('неизвестные season/spikes/runflat → null + warning', () => {
     const { commands, report } = validateAndNormalizeCatalogSnapshot(
       snapshotOf({
