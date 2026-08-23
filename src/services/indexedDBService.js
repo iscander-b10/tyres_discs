@@ -97,14 +97,51 @@ const isStructuredCloneableFallback = (value, seen = new Set()) => {
 
 const canBeStoredInIndexedDB = (value) => {
   try {
-    if (typeof globalThis.structuredClone === 'function') {
-      globalThis.structuredClone(value);
+    if (
+      typeof window !== 'undefined' &&
+      typeof window.structuredClone === 'function'
+    ) {
+      window.structuredClone(value);
       return true;
     }
     return isStructuredCloneableFallback(value);
   } catch {
     return false;
   }
+};
+
+const isValidCatalogItem = (item) =>
+  item !== null &&
+  typeof item === 'object' &&
+  !Array.isArray(item) &&
+  isValidCatalogKey(item.id) &&
+  isValidCatalogKey(item.supplier) &&
+  canBeStoredInIndexedDB(item);
+
+export const validateCatalogItemsForSupplier = (
+  items,
+  supplier,
+  entityName = 'товары'
+) => {
+  if (!isValidCatalogKey(supplier)) {
+    throw new TypeError(`Поставщик для категории «${entityName}» обязателен`);
+  }
+  if (!Array.isArray(items)) {
+    throw new TypeError(`Данные ${entityName} должны быть массивом`);
+  }
+
+  items.forEach((item, index) => {
+    if (!isValidCatalogItem(item)) {
+      throw new TypeError(
+        `Некорректный товар ${entityName} с индексом ${index}`
+      );
+    }
+    if (item.supplier !== supplier) {
+      throw new Error(
+        `Поставщик товара ${entityName} с индексом ${index} не совпадает с явным supplier`
+      );
+    }
+  });
 };
 
 const prepareCatalogItems = (items, entityName) => {
@@ -115,15 +152,7 @@ const prepareCatalogItems = (items, entityName) => {
     return { validItems: [], supplier: null, skipped: 0 };
   }
 
-  const individuallyValid = items.filter(
-    (item) =>
-      item !== null &&
-      typeof item === 'object' &&
-      !Array.isArray(item) &&
-      isValidCatalogKey(item.id) &&
-      isValidCatalogKey(item.supplier) &&
-      canBeStoredInIndexedDB(item)
-  );
+  const individuallyValid = items.filter(isValidCatalogItem);
   const supplier = individuallyValid[0]?.supplier;
   const validItems = individuallyValid.filter(
     (item) => item.supplier === supplier
@@ -359,6 +388,17 @@ class IndexedDBService {
     });
   }
 
+  async replaceTiresForSupplier(supplier, tires) {
+    return this.replaceCatalogItems({
+      supplier,
+      items: tires,
+      dbProperty: 'db',
+      openDatabase: () => this.openDatabase(),
+      storeName: 'tires',
+      entityName: 'шины',
+    });
+  }
+
   async saveCatalogItems({
     items,
     dbProperty,
@@ -373,6 +413,28 @@ class IndexedDBService {
     if (validItems.length === 0) {
       return { saved: 0, skipped: 0 };
     }
+
+    return this.replaceCatalogItems({
+      supplier,
+      items: validItems,
+      skipped,
+      dbProperty,
+      openDatabase,
+      storeName,
+      entityName,
+    });
+  }
+
+  async replaceCatalogItems({
+    supplier,
+    items,
+    skipped = 0,
+    dbProperty,
+    openDatabase,
+    storeName,
+    entityName,
+  }) {
+    validateCatalogItemsForSupplier(items, supplier, entityName);
 
     if (!this[dbProperty]) {
       await openDatabase();
@@ -396,7 +458,7 @@ class IndexedDBService {
       };
 
       transaction.oncomplete = () =>
-        resolve({ saved: validItems.length, skipped });
+        resolve({ saved: items.length, skipped });
       transaction.onabort = () =>
         reject(
           abortCause ||
@@ -418,7 +480,7 @@ class IndexedDBService {
               return;
             }
 
-            validItems.forEach((item) => store.put(item));
+            items.forEach((item) => store.put(item));
           } catch (error) {
             abortTransaction(error);
           }
@@ -623,6 +685,17 @@ class IndexedDBService {
 
   async saveDiscs(discs) {
     return this.saveCatalogItems({
+      items: discs,
+      dbProperty: 'discDb',
+      openDatabase: () => this.openDiscDatabase(),
+      storeName: 'discs',
+      entityName: 'диски',
+    });
+  }
+
+  async replaceDiscsForSupplier(supplier, discs) {
+    return this.replaceCatalogItems({
+      supplier,
       items: discs,
       dbProperty: 'discDb',
       openDatabase: () => this.openDiscDatabase(),

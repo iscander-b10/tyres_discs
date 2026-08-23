@@ -5,7 +5,9 @@
  * Без UI-кнопки и без toast-уведомлений — только console при отладке.
  */
 
-import indexedDBService from '../indexedDBService';
+import indexedDBService, {
+  validateCatalogItemsForSupplier,
+} from '../indexedDBService';
 
 const STORE_ID = (process.env.REACT_APP_STORE_ID || 'ElistaIvanor').trim();
 const LOCAL_VERSION_KEY = 'ivanor.catalog.cloudVersion';
@@ -109,24 +111,146 @@ export function msUntilNextSyncCheck(now = new Date()) {
   return deltaMin * 60 * 1000 - nowSec * 1000;
 }
 
-/**
- * @param {object} snapshot
- */
-export async function applyCatalogSnapshot(snapshot) {
-  const entries = Object.values(snapshot?.suppliers || {});
-  const tasks = [];
+const CATEGORY_CONFIG = {
+  tyres: {
+    entityName: 'шины',
+    replace: (supplier, items) =>
+      indexedDBService.replaceTiresForSupplier(supplier, items),
+  },
+  discs: {
+    entityName: 'диски',
+    replace: (supplier, items) =>
+      indexedDBService.replaceDiscsForSupplier(supplier, items),
+  },
+};
 
-  for (const entry of entries) {
-    if (!entry) continue;
-    if (Array.isArray(entry.tyres) && entry.tyres.length > 0) {
-      tasks.push(indexedDBService.saveTires(entry.tyres));
+const hasOwn = (object, key) =>
+  Object.prototype.hasOwnProperty.call(object, key);
+
+const isRecord = (value) =>
+  value !== null && typeof value === 'object' && !Array.isArray(value);
+
+function contractError(path, message) {
+  return new Error(`Некорректный snapshot: ${path} — ${message}`);
+}
+
+function normalizeCategoryCommand(command, path, supplier, entityName) {
+  if (Array.isArray(command)) {
+    if (command.length === 0) {
+      throw contractError(
+        path,
+        'пустой legacy-массив неоднозначен; используйте явную команду'
+      );
     }
-    if (Array.isArray(entry.discs) && entry.discs.length > 0) {
-      tasks.push(indexedDBService.saveDiscs(entry.discs));
-    }
+    validateCatalogItemsForSupplier(command, supplier, entityName);
+    return { action: 'replace', status: 'ok', items: command };
   }
 
-  if (tasks.length === 0) return { saved: false };
+  if (!isRecord(command)) {
+    throw contractError(path, 'команда обязательна и не может быть null');
+  }
+
+  const { action, status } = command;
+  const hasItems = hasOwn(command, 'items');
+
+  if (action === 'replace') {
+    if (status !== 'ok') {
+      throw contractError(path, 'replace допускает только status "ok"');
+    }
+    if (!hasItems || !Array.isArray(command.items)) {
+      throw contractError(path, 'replace требует массив items');
+    }
+    validateCatalogItemsForSupplier(command.items, supplier, entityName);
+    return { action, status, items: command.items };
+  }
+
+  if (action === 'keepPrevious') {
+    if (!['failed', 'keptPrevious'].includes(status)) {
+      throw contractError(
+        path,
+        'keepPrevious допускает status "failed" или "keptPrevious"'
+      );
+    }
+    if (hasItems) {
+      throw contractError(path, 'keepPrevious не допускает поле items');
+    }
+    return { action, status };
+  }
+
+  if (action === 'purge') {
+    if (status !== 'ok') {
+      throw contractError(path, 'purge допускает только status "ok"');
+    }
+    if (hasItems) {
+      throw contractError(path, 'purge не допускает поле items');
+    }
+    return { action, status };
+  }
+
+  throw contractError(path, `неизвестный action "${String(action)}"`);
+}
+
+export function validateCatalogSnapshot(snapshot) {
+  if (
+    !isRecord(snapshot) ||
+    typeof snapshot.version !== 'string' ||
+    !snapshot.version
+  ) {
+    throw contractError('version', 'непустая строка обязательна');
+  }
+  if (!isRecord(snapshot.suppliers)) {
+    throw contractError('suppliers', 'объект поставщиков обязателен');
+  }
+
+  const supplierEntries = Object.entries(snapshot.suppliers);
+  if (supplierEntries.length === 0) {
+    throw contractError(
+      'suppliers',
+      'должен содержать хотя бы одного поставщика'
+    );
+  }
+
+  return supplierEntries.flatMap(([supplierKey, entry]) => {
+    const entryPath = `suppliers.${supplierKey}`;
+    if (!isRecord(entry)) {
+      throw contractError(entryPath, 'описание поставщика должно быть объектом');
+    }
+    if (typeof entry.supplier !== 'string' || !entry.supplier.trim()) {
+      throw contractError(`${entryPath}.supplier`, 'непустая строка обязательна');
+    }
+
+    return Object.entries(CATEGORY_CONFIG).map(([category, config]) => {
+      if (!hasOwn(entry, category)) {
+        throw contractError(`${entryPath}.${category}`, 'команда отсутствует');
+      }
+      return {
+        supplier: entry.supplier,
+        category,
+        ...normalizeCategoryCommand(
+          entry[category],
+          `${entryPath}.${category}`,
+          entry.supplier,
+          config.entityName
+        ),
+      };
+    });
+  });
+}
+
+/**
+ * Сначала валидирует snapshot целиком, затем применяет независимые команды.
+ * TireDatabase и DiscDatabase не имеют общей транзакции: при runtime-ошибке
+ * одной базы другая уже может быть изменена. Команды идемпотентны, а версия
+ * записывается только после успешного завершения всех операций.
+ */
+export async function applyCatalogSnapshot(snapshot) {
+  const commands = validateCatalogSnapshot(snapshot);
+  const tasks = commands
+    .filter((command) => command.action !== 'keepPrevious')
+    .map((command) => {
+      const items = command.action === 'purge' ? [] : command.items;
+      return CATEGORY_CONFIG[command.category].replace(command.supplier, items);
+    });
 
   const results = await Promise.allSettled(tasks);
   const failed = results.filter((r) => r.status === 'rejected');
@@ -135,7 +259,7 @@ export async function applyCatalogSnapshot(snapshot) {
     throw new Error(`Не удалось сохранить снимок (${failed.length} ошибок)`);
   }
 
-  return { saved: true };
+  return { applied: true, writes: tasks.length };
 }
 
 /** Локальный каталог пуст (после wipe IDB) — нужно качать snapshot даже при совпадении version. */

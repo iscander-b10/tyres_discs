@@ -88,13 +88,13 @@ function createFakeDatabase(initialItems, failure = null) {
                   },
                   continue: () => {
                     cursorIndex += 1;
-                    setTimeout(deliverCursor);
+                    queueMicrotask(deliverCursor);
                   },
                 };
                 request.onsuccess?.();
               };
 
-              setTimeout(deliverCursor);
+              queueMicrotask(deliverCursor);
               return request;
             },
           }),
@@ -123,6 +123,8 @@ const catalogCases = [
   {
     label: 'шины',
     save: (items) => indexedDBService.saveTires(items),
+    replace: (supplier, items) =>
+      indexedDBService.replaceTiresForSupplier(supplier, items),
     setDatabase: (database) => {
       indexedDBService.db = database;
       indexedDBService.discDb = null;
@@ -131,6 +133,8 @@ const catalogCases = [
   {
     label: 'диски',
     save: (items) => indexedDBService.saveDiscs(items),
+    replace: (supplier, items) =>
+      indexedDBService.replaceDiscsForSupplier(supplier, items),
     setDatabase: (database) => {
       indexedDBService.discDb = database;
       indexedDBService.db = null;
@@ -261,5 +265,84 @@ describe.each(catalogCases)('безопасное сохранение: $label',
 
     await expect(save(validItems)).rejects.toBe(error);
     expect(database.getItems()).toEqual([oldSupplierItem, otherSupplierItem]);
+  });
+});
+
+describe.each(catalogCases)(
+  'явная замена категории: $label',
+  ({ replace, setDatabase }) => {
+    const supplier = 'Поставщик A';
+    const oldSupplierItems = Array.from({ length: 500 }, (_, index) => ({
+      id: `old-a-${index}`,
+      supplier,
+    }));
+    const otherSupplierItem = { id: 'old-b', supplier: 'Поставщик B' };
+
+    beforeAll(() => {
+      global.IDBKeyRange = { only: (value) => value };
+    });
+
+    test('пустая замена удаляет все 500 товаров только указанного поставщика', async () => {
+      const database = createFakeDatabase([
+        ...oldSupplierItems,
+        otherSupplierItem,
+      ]);
+      setDatabase(database);
+
+      await expect(replace(supplier, [])).resolves.toEqual({
+        saved: 0,
+        skipped: 0,
+      });
+      expect(database.transactionCount).toBe(1);
+      expect(database.getItems()).toEqual([otherSupplierItem]);
+    });
+
+    test('явный supplier не выводится из items', async () => {
+      const database = createFakeDatabase(oldSupplierItems);
+      setDatabase(database);
+
+      await expect(
+        replace(supplier, [{ id: 'foreign', supplier: 'Поставщик B' }])
+      ).rejects.toThrow(/не совпадает/);
+      expect(database.transactionCount).toBe(0);
+      expect(database.getItems()).toHaveLength(500);
+    });
+  }
+);
+
+describe('изоляция TireDatabase и DiscDatabase', () => {
+  const tireA = { id: 'tire-a', supplier: 'Поставщик A' };
+  const tireB = { id: 'tire-b', supplier: 'Поставщик B' };
+  const discA = { id: 'disc-a', supplier: 'Поставщик A' };
+
+  beforeAll(() => {
+    global.IDBKeyRange = { only: (value) => value };
+  });
+
+  test('очистка шин не изменяет диски', async () => {
+    const tireDatabase = createFakeDatabase([tireA, tireB]);
+    const discDatabase = createFakeDatabase([discA]);
+    indexedDBService.db = tireDatabase;
+    indexedDBService.discDb = discDatabase;
+
+    await indexedDBService.replaceTiresForSupplier('Поставщик A', []);
+
+    expect(tireDatabase.getItems()).toEqual([tireB]);
+    expect(discDatabase.getItems()).toEqual([discA]);
+    expect(discDatabase.transactionCount).toBe(0);
+  });
+
+  test('замена дисков не изменяет шины', async () => {
+    const tireDatabase = createFakeDatabase([tireA]);
+    const discDatabase = createFakeDatabase([discA]);
+    const newDisc = { id: 'disc-new', supplier: 'Поставщик A' };
+    indexedDBService.db = tireDatabase;
+    indexedDBService.discDb = discDatabase;
+
+    await indexedDBService.replaceDiscsForSupplier('Поставщик A', [newDisc]);
+
+    expect(tireDatabase.getItems()).toEqual([tireA]);
+    expect(tireDatabase.transactionCount).toBe(0);
+    expect(discDatabase.getItems()).toEqual([newDisc]);
   });
 });
