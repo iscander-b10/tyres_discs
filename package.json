@@ -21,6 +21,11 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "test:ci": "react-scripts test --watchAll=false",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:gate": "node scripts/check-docs-sync.js",
+    "docs:check": "npm run docs:gate && npm run docs:build",
+    "docs:preview": "vitepress preview docs",
     "eject": "react-scripts eject",
     "predeploy": "npm run build && node -e \"require('fs').copyFileSync('build/index.html', 'build/404.html'); require('fs').writeFileSync('build/.nojekyll', '')\"",
     "deploy": "gh-pages -d build"
@@ -48,6 +53,9 @@
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
     "fake-indexeddb": "^4.0.2",
-    "gh-pages": "^6.3.0"
+    "gh-pages": "^6.3.0",
+    "mermaid": "^11.17.1",
+    "vitepress": "^1.6.4",
+    "vitepress-mermaid-plugin": "^3.0.0"
   }
 }
