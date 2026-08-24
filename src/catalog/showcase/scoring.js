@@ -1,3 +1,5 @@
+import { SHOWCASE_CONFIG } from './showcaseConfig';
+
 const toAmount = (item) => {
   const n = Number(item?.amount);
   return Number.isFinite(n) ? n : 0;
@@ -9,21 +11,31 @@ const toPrice = (item) => {
   return Number.isFinite(n) && n > 0 ? n : null;
 };
 
-/** Простой retail-score: наличие → фото → цена → бренд. */
-export const scoreCatalogItem = (item) => {
+/**
+ * Простой retail-score: наличие → фото → цена → бренд.
+ * Пороги/веса — из scoringCfg (по умолчанию SHOWCASE_CONFIG.scoring).
+ * Hard filter minAmount (tires/discs) ≠ soft scoring.amountHigh.
+ */
+export const scoreCatalogItem = (
+  item,
+  scoringCfg = SHOWCASE_CONFIG.scoring
+) => {
   let score = 0;
   const amount = toAmount(item);
+  const { amountHigh, amountLow, weights, priceBand } = scoringCfg;
 
-  if (amount >= 4) score += 40;
-  else if (amount >= 1) score += 22;
+  if (amount >= amountHigh) score += weights.amountHigh;
+  else if (amount >= amountLow) score += weights.amountLow;
 
-  if (item?.photoUrl) score += 14;
-  if (item?.brand) score += 6;
+  if (item?.photoUrl) score += weights.photo;
+  if (item?.brand) score += weights.brand;
 
   const price = toPrice(item);
   if (price != null) {
-    score += 18;
-    if (price >= 2500 && price <= 25000) score += 8;
+    score += weights.hasPrice;
+    if (price >= priceBand.min && price <= priceBand.max) {
+      score += weights.priceInBand;
+    }
   }
 
   return score;
@@ -36,7 +48,12 @@ export const scoreCatalogItem = (item) => {
  * @param {number} limit
  * @param {{ maxPerBrand?: number }} [opts]
  */
-export const pickTopDiverse = (items, scoreFn, limit, { maxPerBrand = 2 } = {}) => {
+export const pickTopDiverse = (
+  items,
+  scoreFn,
+  limit,
+  { maxPerBrand = SHOWCASE_CONFIG.diversity.maxPerBrand } = {}
+) => {
   if (!Array.isArray(items) || limit <= 0) return [];
 
   const ranked = items

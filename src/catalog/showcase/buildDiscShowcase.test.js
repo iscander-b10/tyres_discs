@@ -11,20 +11,22 @@ const mk = (over) => ({
   amount: over.amount ?? 8,
   photoUrl: 'x',
   sellingPrice: over.sellingPrice ?? 9000,
-  diskType: over.diskType ?? 'Литой',
-  supplier: over.supplier ?? 'Шинсервис',
+  diskType: over.diskType ?? SHOWCASE_CONFIG.discs.diskType,
+  supplier: over.supplier ?? SHOWCASE_CONFIG.showcaseSupplier,
   ...over,
 });
 
 describe('buildDiscShowcase', () => {
-  test('пул: только литые Шинсервиса с amount >= 4; на полке 15; seed стабилен', () => {
+  test('пул: только литые Шинсервиса с amount >= minAmount; на полке popularModelsCount; seed стабилен', () => {
+    const { minAmount, popularModelsCount, diskType } = SHOWCASE_CONFIG.discs;
+    const shelfLimit = popularModelsCount.max;
     const cast = Array.from({ length: 40 }, (_, i) =>
       mk({
         id: `cast-${i}`,
         brand: `Brand${i % 7}`,
         model: `M${i}`,
         diameter: `R${14 + (i % 5)}`,
-        amount: 4 + (i % 3),
+        amount: minAmount + (i % 3),
       })
     );
     const stamped = Array.from({ length: 10 }, (_, i) =>
@@ -34,7 +36,7 @@ describe('buildDiscShowcase', () => {
         amount: 10,
       })
     );
-    const lowStock = mk({ id: 'low', amount: 3 });
+    const lowStock = mk({ id: 'low', amount: minAmount - 1 });
     const otherSupplier = mk({
       id: 'other-sup',
       supplier: 'Другой',
@@ -53,19 +55,19 @@ describe('buildDiscShowcase', () => {
       seed: 'store-a|snap:v1',
     });
 
-    expect(SHOWCASE_CONFIG.discs.popularModelsCount).toEqual({
-      min: 15,
-      max: 15,
-    });
-    expect(SHOWCASE_CONFIG.discs.minAmount).toBe(4);
+    expect(popularModelsCount).toEqual({ min: 15, max: 15 });
+    expect(minAmount).toBe(4);
+    expect(diskType).toBe('Литой');
     expect(a.shelves).toHaveLength(1);
     expect(a.shelves[0].id).toBe('popular-models');
     expect(a.shelves[0].title).toBe('Литые диски в наличии');
-    expect(a.shelves[0].items).toHaveLength(15);
-    expect(a.shelves[0].items.every((i) => i.diskType === 'Литой')).toBe(true);
-    expect(a.shelves[0].items.every((i) => i.amount >= 4)).toBe(true);
+    expect(a.shelves[0].items).toHaveLength(shelfLimit);
+    expect(a.shelves[0].items.every((i) => i.diskType === diskType)).toBe(true);
+    expect(a.shelves[0].items.every((i) => i.amount >= minAmount)).toBe(true);
     expect(
-      a.shelves[0].items.every((i) => i.supplier === 'Шинсервис')
+      a.shelves[0].items.every(
+        (i) => i.supplier === SHOWCASE_CONFIG.showcaseSupplier
+      )
     ).toBe(true);
     expect(a.shelves[0].items.some((i) => i.id.startsWith('stamp-'))).toBe(
       false
@@ -81,7 +83,7 @@ describe('buildDiscShowcase', () => {
       isEmpty: false,
       seed: 'store-a|snap:v2',
     });
-    expect(c.shelves[0].items).toHaveLength(15);
+    expect(c.shelves[0].items).toHaveLength(shelfLimit);
     expect(c.shelves[0].items.map((i) => i.id)).not.toEqual(
       a.shelves[0].items.map((i) => i.id)
     );
@@ -91,9 +93,9 @@ describe('buildDiscShowcase', () => {
     ).toBe(true);
   });
 
-  test('пул < 15: показать все литые без добивки', () => {
+  test('пул < popularModelsCount: показать все литые без добивки', () => {
     const candidates = Array.from({ length: 7 }, (_, i) =>
-      mk({ id: `few-${i}`, amount: 4 })
+      mk({ id: `few-${i}`, amount: SHOWCASE_CONFIG.discs.minAmount })
     );
     const result = buildDiscShowcase({
       candidates,
@@ -104,19 +106,20 @@ describe('buildDiscShowcase', () => {
   });
 
   test('не использует pickTopDiverse: порядок = seeded shuffle пула', () => {
+    const shelfLimit = SHOWCASE_CONFIG.discs.popularModelsCount.max;
     const castPool = Array.from({ length: 20 }, (_, i) =>
       mk({
         id: i + 1,
         brand: 'SameBrand',
         model: `Dup${i}`,
-        amount: 4,
+        amount: SHOWCASE_CONFIG.discs.minAmount,
         // низкий score у первых id — pickTopDiverse взял бы «лучшие»
         photoUrl: i < 5 ? null : 'x',
         sellingPrice: i < 5 ? 100 : 9000,
       })
     );
     const seed = 'order-check';
-    const expected = shuffleItems(castPool, seed).slice(0, 15);
+    const expected = shuffleItems(castPool, seed).slice(0, shelfLimit);
     const built = buildDiscShowcase({
       candidates: castPool,
       isEmpty: false,

@@ -35,7 +35,7 @@ export const buildDiscShowcase = ({
   // Только литые Шинсервиса: штампы и чужие поставщики на полку не выводим.
   const castPool = stocked.filter(
     (item) =>
-      item.diskType === 'Литой' &&
+      item.diskType === cfg.diskType &&
       item.supplier === SHOWCASE_CONFIG.showcaseSupplier
   );
   const popularLimit = clampCount(cfg.popularModelsCount, castPool.length);

@@ -86,7 +86,30 @@ export const SHOWCASE_CONFIG = {
      * Лимит 15 — уже в buildDiscShowcase (seeded shuffle).
      */
     minAmount: 4,
+    /** Тип диска на полке «Литые диски в наличии». */
+    diskType: 'Литой',
   },
+  /**
+   * Soft retail-score (полка шин). Hard filter minAmount (tires/discs) ≠ soft scoring.amountHigh.
+   */
+  scoring: {
+    amountHigh: 4,
+    amountLow: 1,
+    weights: {
+      amountHigh: 40,
+      amountLow: 22,
+      photo: 14,
+      brand: 6,
+      hasPrice: 18,
+      priceInBand: 8,
+    },
+    priceBand: { min: 2500, max: 25000 },
+  },
+  diversity: {
+    maxPerBrand: 2,
+  },
+  /** JS 0-based months: мар–авг = лето (s), иначе зима (w). */
+  season: { summerMonthFrom: 2, summerMonthTo: 7 },
   copy: {
     seasonHits: 'Сейчас в сезоне',
     popularModels: 'Литые диски в наличии',
@@ -98,8 +121,9 @@ export const SHOWCASE_CONFIG = {
   },
 };
 
-/** Лето: мар–авг (месяцы 2–7); зима: сен–фев. */
+/** Лето: мар–авг; зима: сен–фев. Границы — SHOWCASE_CONFIG.season. */
 export const getCatalogSeasonFromDate = (date = new Date()) => {
   const month = date.getMonth();
-  return month >= 2 && month <= 7 ? 's' : 'w';
+  const { summerMonthFrom, summerMonthTo } = SHOWCASE_CONFIG.season;
+  return month >= summerMonthFrom && month <= summerMonthTo ? 's' : 'w';
 };

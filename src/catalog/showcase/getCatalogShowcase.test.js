@@ -6,6 +6,8 @@ jest.mock('../../services/indexedDBService', () => ({
   },
 }));
 
+import { SHOWCASE_CONFIG } from './showcaseConfig';
+
 const summerShelfCandidates = () =>
   Array.from({ length: 40 }, (_, i) => {
     if (i < 6) {
@@ -191,8 +193,8 @@ describe('getCatalogShowcase stale-while-revalidate', () => {
     expect(indexedDBService.collectDiscShowcaseCandidates).toHaveBeenCalledWith(
       expect.objectContaining({
         candidateLimit: Number.POSITIVE_INFINITY,
-        minAmount: 4,
-        supplier: 'Шинсервис',
+        minAmount: SHOWCASE_CONFIG.discs.minAmount,
+        supplier: SHOWCASE_CONFIG.showcaseSupplier,
       })
     );
   });
