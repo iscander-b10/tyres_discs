@@ -1,5 +1,6 @@
 import { hmacLogin, normalizeLogin, unwrapPassword, wrapPassword } from './crypto';
 import { getDeviceFingerprint } from './fingerprint';
+import { appLog } from '../utils/appLog';
 
 const LOGIN_KEY = 'auth.login.v1';
 const SECRET_KEY = 'auth.secret.v1';
@@ -67,7 +68,14 @@ export async function login(email, password, { isCurrent = alwaysCurrent } = {})
 
     writeStorage(LOGIN_KEY, loginName);
     writeStorage(SECRET_KEY, secret);
-  } catch {
+  } catch (error) {
+    appLog.error({
+      code: 'auth.infra_failed',
+      domain: 'auth',
+      message: 'Auth session persist failed',
+      error,
+      context: { op: 'login_persist' },
+    });
     if (isCurrent()) logout();
     return false;
   }

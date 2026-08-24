@@ -6,6 +6,7 @@
  */
 
 import indexedDBService from '../indexedDBService';
+import { appLog } from '../../utils/appLog';
 import { postCatalogApplied } from './catalogSyncChannel';
 import { withCatalogSyncLock } from './catalogSyncLock';
 import {
@@ -275,7 +276,34 @@ export async function checkAndSyncCatalog({
       if (isAbortError(err) || signal?.aborted) {
         return { status: 'skipped', error: 'aborted' };
       }
-      console.warn('catalog sync failed:', err?.message || err);
+
+      const report = err?.validationReport;
+      if (report && report.valid === false) {
+        const first = report.errors?.[0];
+        appLog.error({
+          code: 'catalog.snapshot_invalid',
+          domain: 'catalogSync',
+          message: 'Catalog snapshot validation failed',
+          error: err,
+          context: {
+            storeId,
+            validationPath: first?.path,
+            validationMessage: first?.message,
+            errorCount: Array.isArray(report.errors)
+              ? report.errors.length
+              : undefined,
+          },
+        });
+      } else {
+        appLog.error({
+          code: 'catalog.sync_failed',
+          domain: 'catalogSync',
+          message: 'Catalog sync failed',
+          error: err,
+          context: { storeId },
+        });
+      }
+
       return { status: 'error', error: err?.message || String(err) };
     }
   });

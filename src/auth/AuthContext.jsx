@@ -9,6 +9,7 @@ import React, {
 } from 'react';
 import { login as loginSession, logout as logoutSession, restore } from './session';
 import { createWorkspace } from './workspace';
+import { appLog } from '../utils/appLog';
 
 const AuthContext = createContext(null);
 
@@ -27,7 +28,14 @@ export function AuthProvider({ children }) {
         const restoredWorkspace = await createWorkspace(session.login);
         if (isCurrent()) setWorkspace(restoredWorkspace);
       })
-      .catch(() => {
+      .catch((error) => {
+        appLog.error({
+          code: 'auth.infra_failed',
+          domain: 'auth',
+          message: 'Auth restore path failed',
+          error,
+          context: { op: 'restore' },
+        });
         if (isCurrent()) {
           logoutSession();
           setWorkspace(null);
@@ -59,7 +67,14 @@ export function AuthProvider({ children }) {
       setWorkspace(nextWorkspace);
       setIsReady(true);
       return true;
-    } catch {
+    } catch (error) {
+      appLog.error({
+        code: 'auth.infra_failed',
+        domain: 'auth',
+        message: 'Auth signIn path failed',
+        error,
+        context: { op: 'signIn' },
+      });
       if (isCurrent()) {
         logoutSession();
         setWorkspace(null);

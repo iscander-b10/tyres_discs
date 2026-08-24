@@ -28,10 +28,22 @@ import {
 } from './cartStorage';
 import { createCartSync } from './cartSync';
 import { LegacyCartMigrationModal } from './LegacyCartMigrationModal';
+import { appLog, isQuotaExceededError } from '../utils/appLog';
 
 export { getCartStorageKey } from './cartStorage';
 
 const CartContext = createContext(null);
+
+const logCartPersistFailure = (error, op) => {
+  const quota = isQuotaExceededError(error);
+  appLog.error({
+    code: quota ? 'storage.quota_exceeded' : 'cart.persist_failed',
+    domain: quota ? 'storage' : 'cart',
+    message: quota ? 'Storage quota exceeded' : 'Cart persist failed',
+    error,
+    context: { op },
+  });
+};
 
 export function CartProvider({ children }) {
   const { workspace, isWorkspaceReady } = useAuth();
@@ -166,7 +178,8 @@ export function CartProviderCore({
           captured.storeId,
           nextEnvelope
         );
-      } catch {
+      } catch (error) {
+        logCartPersistFailure(error, 'commitItems');
         return false;
       }
       if (!isCapturedCurrent(captured)) return false;
@@ -265,7 +278,8 @@ export function CartProviderCore({
         envelope
       );
       return isCapturedCurrent(captured);
-    } catch {
+    } catch (error) {
+      logCartPersistFailure(error, 'flush');
       return false;
     }
   }, [isCapturedCurrent, storage]);
@@ -297,7 +311,8 @@ export function CartProviderCore({
       storage.removeItem(
         getCartStorageKey(captured.accountId, captured.storeId)
       );
-    } catch {
+    } catch (error) {
+      logCartPersistFailure(error, 'clear');
       return false;
     }
     if (!isCapturedCurrent(captured)) return false;

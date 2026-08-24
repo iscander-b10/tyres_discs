@@ -18,6 +18,10 @@ import {
 } from '../shared/catalogSearchSelectProps';
 import { useAppShell } from '../../app/AppShellContext';
 import { mapTireFormValuesToSearchFilters } from '../../catalog/search/searchFormFilters';
+import {
+  appLog,
+  isExpectedOperationalError,
+} from '../../utils/appLog';
 import './TiresSearchParameters.scss';
 
 const { Option } = Select;
@@ -161,6 +165,15 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
 
       return options;
     } catch (error) {
+      if (!isExpectedOperationalError(error)) {
+        appLog.warn({
+          code: 'search.options_failed',
+          domain: 'search',
+          message: 'Failed to load tire search options',
+          error,
+          context: { kind: 'tires' },
+        });
+      }
       // Оставляем предыдущие опции, чтобы UI не моргал пустыми списками
       return null;
     } finally {
@@ -227,6 +240,15 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
     } catch (err) {
       if (!isCurrentRequest()) {
         return;
+      }
+      if (!isExpectedOperationalError(err)) {
+        appLog.error({
+          code: 'search.failed',
+          domain: 'search',
+          message: 'Tire search failed',
+          error: err,
+          context: { kind: 'tires', background },
+        });
       }
       if (!background) {
         setErrorSearch(err.message);

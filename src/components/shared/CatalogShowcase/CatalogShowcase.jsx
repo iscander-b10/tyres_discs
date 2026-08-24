@@ -5,6 +5,10 @@ import {
   getCatalogShowcase,
   SHOWCASE_CONFIG,
 } from '../../../catalog/showcase';
+import {
+  appLog,
+  isExpectedOperationalError,
+} from '../../../utils/appLog';
 import ShowcaseShelf from './ShowcaseShelf';
 import ShowcaseSizeChips from './ShowcaseSizeChips';
 import { getShowcaseStaticChips } from './showcaseChips';
@@ -51,8 +55,23 @@ const CatalogShowcase = ({
         setShowcase(result);
         setStatus('ready');
       })
-      .catch(() => {
+      .catch((error) => {
         if (requestId !== requestIdRef.current) return;
+        if (!isExpectedOperationalError(error)) {
+          appLog.error({
+            code: 'showcase.load_failed',
+            domain: 'showcase',
+            message: 'Catalog showcase load failed',
+            error,
+            context: {
+              kind,
+              catalogDataVersion,
+              catalogSnapshotVersion,
+              workspaceResetKey,
+              hadStale: hasStaleShowcase,
+            },
+          });
+        }
         if (!hasStaleShowcase) {
           setShowcase(null);
           setStatus('error');

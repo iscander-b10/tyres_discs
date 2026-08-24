@@ -16,6 +16,10 @@ import {
 } from '../shared/catalogSearchSelectProps';
 import { useAppShell } from '../../app/AppShellContext';
 import { mapDiscFormValuesToSearchFilters } from '../../catalog/search/searchFormFilters';
+import {
+  appLog,
+  isExpectedOperationalError,
+} from '../../utils/appLog';
 import './DiscsSearchParameters.scss';
 
 const { Option } = Select;
@@ -156,6 +160,15 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
 
       return options;
     } catch (error) {
+      if (!isExpectedOperationalError(error)) {
+        appLog.warn({
+          code: 'search.options_failed',
+          domain: 'search',
+          message: 'Failed to load disc search options',
+          error,
+          context: { kind: 'discs' },
+        });
+      }
       // Оставляем предыдущие опции, чтобы UI не моргал пустыми списками
       return null;
     } finally {
@@ -245,6 +258,15 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
     } catch (err) {
       if (!isCurrentRequest()) {
         return;
+      }
+      if (!isExpectedOperationalError(err)) {
+        appLog.error({
+          code: 'search.failed',
+          domain: 'search',
+          message: 'Disc search failed',
+          error: err,
+          context: { kind: 'discs', background },
+        });
       }
       if (!background) {
         setErrorSearch(err.message);

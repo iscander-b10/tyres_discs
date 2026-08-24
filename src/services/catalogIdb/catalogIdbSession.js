@@ -34,6 +34,7 @@ import {
   matchesDiscSearchFilters,
   matchesTireSearchFilters,
 } from './catalogSearchFilters';
+import { appLog } from '../../utils/appLog';
 
 const LEGACY_CATALOG_VERSION_KEY = 'ivanor.catalog.cloudVersion';
 
@@ -263,8 +264,18 @@ class CatalogIdbSession {
     }
 
     return new Promise((resolve, reject) => {
-      if (typeof indexedDB === 'undefined' || typeof indexedDB.open !== 'function') {
+      const resolveUnavailable = () => {
+        appLog.error({
+          code: 'idb.unavailable',
+          domain: 'idb',
+          message: 'IndexedDB open returned null',
+          context: { op: 'open', storeId: this.activeStoreId },
+        });
         resolve(null);
+      };
+
+      if (typeof indexedDB === 'undefined' || typeof indexedDB.open !== 'function') {
+        resolveUnavailable();
         return;
       }
 
@@ -274,12 +285,19 @@ class CatalogIdbSession {
           getCatalogDatabaseName(this.activeStoreId),
           CATALOG_DB_VERSION
         );
-      } catch {
+      } catch (error) {
+        appLog.error({
+          code: 'idb.unavailable',
+          domain: 'idb',
+          message: 'IndexedDB open failed',
+          error,
+          context: { op: 'open', storeId: this.activeStoreId },
+        });
         resolve(null);
         return;
       }
 
-      request.onerror = () => resolve(null);
+      request.onerror = () => resolveUnavailable();
 
       request.onsuccess = () => {
         if (expectedGeneration !== this._generation) {

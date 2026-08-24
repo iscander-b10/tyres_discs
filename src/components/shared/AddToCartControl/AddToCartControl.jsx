@@ -11,6 +11,7 @@ import {
   isCatalogItemSellable,
   parseStock,
 } from '../../../cart/cartUtils';
+import { appLog } from '../../../utils/appLog';
 import CartQtyControls from '../CartQtyControls/CartQtyControls';
 import './AddToCartControl.scss';
 
@@ -61,8 +62,18 @@ function AddToCartControl({
       }
       const currentItem = catalogRead.results[0]?.matches?.[category];
       if (currentItem) addItem(currentItem, category);
-    } catch {
+    } catch (error) {
       // A failed read must not add a stale snapshot.
+      appLog.error({
+        code: 'cart.catalog_read_failed',
+        domain: 'cart',
+        message: 'Cart catalog read failed',
+        error,
+        context: {
+          category,
+          storeId: requestedStoreId,
+        },
+      });
     }
   };
 
