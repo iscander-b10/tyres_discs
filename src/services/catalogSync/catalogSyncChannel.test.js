@@ -1,8 +1,13 @@
-import { postCatalogApplied, subscribeCatalogApplied } from './catalogSyncChannel';
+import {
+  CATALOG_SYNC_EVENT_KEY,
+  postCatalogApplied,
+  subscribeCatalogApplied,
+} from './catalogSyncChannel';
 
 describe('catalogSyncChannel', () => {
   afterEach(() => {
     jest.restoreAllMocks();
+    window.localStorage.clear();
   });
 
   test('post/subscribe roundtrip через BroadcastChannel', () => {
@@ -64,6 +69,60 @@ describe('catalogSyncChannel', () => {
 
     expect(handler).toHaveBeenCalledTimes(1);
     expect(handler).toHaveBeenCalledWith('version-a');
+    unsubscribe();
+  });
+
+  test('LS-ping срабатывает без смены cloudVersion', () => {
+    delete global.BroadcastChannel;
+    const setItem = jest.spyOn(Storage.prototype, 'setItem');
+    const removeItem = jest.spyOn(Storage.prototype, 'removeItem');
+    const handler = jest.fn();
+    const unsubscribe = subscribeCatalogApplied(handler, 'store-a');
+
+    postCatalogApplied('same-version', 'store-a');
+
+    expect(setItem).toHaveBeenCalledWith(
+      CATALOG_SYNC_EVENT_KEY,
+      JSON.stringify({
+        type: 'catalog-applied',
+        storeId: 'store-a',
+        version: 'same-version',
+      })
+    );
+    expect(removeItem).toHaveBeenCalledWith(CATALOG_SYNC_EVENT_KEY);
+
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: CATALOG_SYNC_EVENT_KEY,
+        newValue: JSON.stringify({
+          type: 'catalog-applied',
+          storeId: 'store-a',
+          version: 'same-version',
+        }),
+      })
+    );
+
+    expect(handler).toHaveBeenCalledWith('same-version');
+    unsubscribe();
+  });
+
+  test('LS-ping фильтрует чужой storeId', () => {
+    delete global.BroadcastChannel;
+    const handler = jest.fn();
+    const unsubscribe = subscribeCatalogApplied(handler, 'store-a');
+
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: CATALOG_SYNC_EVENT_KEY,
+        newValue: JSON.stringify({
+          type: 'catalog-applied',
+          storeId: 'store-b',
+          version: 'v-b',
+        }),
+      })
+    );
+
+    expect(handler).not.toHaveBeenCalled();
     unsubscribe();
   });
 });

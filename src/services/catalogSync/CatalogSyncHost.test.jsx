@@ -16,6 +16,7 @@ jest.mock('../indexedDBService', () => ({
   default: {
     setActiveStore: jest.fn(),
     isActiveStore: jest.fn(),
+    getPersistedCatalogVersion: jest.fn(),
   },
 }));
 jest.mock('./catalogSyncService', () => ({
@@ -39,6 +40,7 @@ describe('CatalogSyncHost workspace lifecycle', () => {
   let notifyCatalogApplied;
   let activeStore;
   let generation;
+  let visibilityState;
 
   beforeEach(() => {
     global.IS_REACT_ACT_ENVIRONMENT = true;
@@ -49,6 +51,11 @@ describe('CatalogSyncHost workspace lifecycle', () => {
     notifyCatalogApplied = jest.fn();
     activeStore = null;
     generation = 0;
+    visibilityState = 'visible';
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => visibilityState,
+    });
 
     useAuth.mockImplementation(() => auth);
     useAppShell.mockReturnValue({ notifyCatalogApplied });
@@ -64,9 +71,11 @@ describe('CatalogSyncHost workspace lifecycle', () => {
       (storeId, expectedGeneration) =>
         storeId === activeStore && expectedGeneration === generation
     );
+    indexedDBService.getPersistedCatalogVersion.mockResolvedValue('');
   });
 
   afterEach(async () => {
+    jest.useRealTimers();
     await act(async () => root.unmount());
     container.remove();
     jest.clearAllMocks();
@@ -91,6 +100,9 @@ describe('CatalogSyncHost workspace lifecycle', () => {
     checkAndSyncCatalog
       .mockReturnValueOnce(oldSync.promise)
       .mockResolvedValueOnce({ status: 'up-to-date', version: 'v2' });
+    indexedDBService.getPersistedCatalogVersion
+      .mockResolvedValueOnce('old-version')
+      .mockResolvedValueOnce('v2');
     auth = {
       isWorkspaceReady: true,
       workspace: { accountId: 'account-a', storeId: 'store-a' },
@@ -106,13 +118,66 @@ describe('CatalogSyncHost workspace lifecycle', () => {
     await act(async () => {
       oldSync.resolve({ status: 'applied', version: 'old-version' });
       await oldSync.promise;
+      await Promise.resolve();
     });
 
-    expect(checkAndSyncCatalog).toHaveBeenCalledWith({ storeId: 'store-a' });
-    expect(checkAndSyncCatalog).toHaveBeenCalledWith({ storeId: 'store-b' });
+    expect(checkAndSyncCatalog).toHaveBeenCalledWith(
+      expect.objectContaining({ storeId: 'store-a', signal: expect.any(AbortSignal) })
+    );
+    expect(checkAndSyncCatalog).toHaveBeenCalledWith(
+      expect.objectContaining({ storeId: 'store-b', signal: expect.any(AbortSignal) })
+    );
     expect(notifyCatalogApplied).not.toHaveBeenCalledWith(
       'old-version',
       'store-a'
     );
+  });
+
+  test('бампит UI при up-to-date, если IDB-версия новее', async () => {
+    checkAndSyncCatalog.mockResolvedValue({
+      status: 'up-to-date',
+      version: '2026-08-24T10:00:00Z',
+    });
+    indexedDBService.getPersistedCatalogVersion.mockResolvedValue(
+      '2026-08-24T12:00:00Z'
+    );
+    auth = {
+      isWorkspaceReady: true,
+      workspace: { accountId: 'account-a', storeId: 'store-a' },
+    };
+
+    await render();
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(notifyCatalogApplied).toHaveBeenCalledWith(
+      '2026-08-24T12:00:00Z',
+      'store-a'
+    );
+  });
+
+  test('скрытый slot не запускает sync', async () => {
+    jest.useFakeTimers();
+    checkAndSyncCatalog.mockResolvedValue({
+      status: 'up-to-date',
+      version: 'v1',
+    });
+    indexedDBService.getPersistedCatalogVersion.mockResolvedValue('v1');
+    auth = {
+      isWorkspaceReady: true,
+      workspace: { accountId: 'account-a', storeId: 'store-a' },
+    };
+
+    await render();
+    expect(checkAndSyncCatalog).toHaveBeenCalledTimes(1);
+
+    visibilityState = 'hidden';
+    await act(async () => {
+      jest.advanceTimersByTime(60_000);
+      await Promise.resolve();
+    });
+
+    expect(checkAndSyncCatalog).toHaveBeenCalledTimes(1);
   });
 });

@@ -7,6 +7,7 @@
 
 import indexedDBService from '../indexedDBService';
 import { postCatalogApplied } from './catalogSyncChannel';
+import { withCatalogSyncLock } from './catalogSyncLock';
 import {
   getCatalogVersionKey,
   resolveCatalogStoreId,
@@ -191,70 +192,91 @@ async function getPersistedCatalogVersion() {
   }
 }
 
-async function fetchJson(url) {
-  const res = await fetch(url, { cache: 'no-store' });
+async function fetchJson(url, signal) {
+  const res = await fetch(url, { cache: 'no-store', signal });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
 
+function isAbortError(err) {
+  return (
+    err?.name === 'AbortError' ||
+    (typeof DOMException !== 'undefined' &&
+      err instanceof DOMException &&
+      err.name === 'AbortError')
+  );
+}
+
 /**
  * Сверка meta → при новой version скачать snapshot → IndexedDB.
+ * Один writer на origin+storeId через withCatalogSyncLock.
  * @returns {Promise<{ status: 'skipped'|'up-to-date'|'applied'|'offline'|'disabled'|'error', version?: string, error?: string }>}
  */
 export async function checkAndSyncCatalog({
   force = false,
   storeId: requestedStoreId,
+  signal,
 } = {}) {
   const storeId = resolveCatalogStoreId(requestedStoreId);
-  const generation = activateCatalogStore(storeId);
-  if (!isCatalogSyncConfigured(storeId)) {
-    return { status: 'disabled' };
-  }
 
-  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-    return { status: 'offline' };
-  }
-
-  try {
-    const meta = await fetchJson(metaUrl(storeId));
-    assertCatalogStoreActive(storeId, generation);
-    if (!meta?.version) {
-      return { status: 'skipped', error: 'meta empty' };
+  return withCatalogSyncLock(storeId, async () => {
+    const generation = activateCatalogStore(storeId);
+    if (!isCatalogSyncConfigured(storeId)) {
+      return { status: 'disabled' };
     }
 
-    const local = await getPersistedCatalogVersion();
-    assertCatalogStoreActive(storeId, generation);
-    const catalogEmpty = await isLocalCatalogEmpty();
-    assertCatalogStoreActive(storeId, generation);
-    if (!force && !catalogEmpty && local && meta.version <= local) {
-      return { status: 'up-to-date', version: meta.version };
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      return { status: 'offline' };
     }
 
-    const snapshot = await fetchJson(snapshotUrl(storeId));
-    assertCatalogStoreActive(storeId, generation);
-    if (!snapshot?.version) {
-      return { status: 'skipped', error: 'snapshot empty' };
+    if (signal?.aborted) {
+      return { status: 'skipped', error: 'aborted' };
     }
 
-    if (!force && !catalogEmpty && local && snapshot.version <= local) {
-      return { status: 'up-to-date', version: snapshot.version };
+    try {
+      const meta = await fetchJson(metaUrl(storeId), signal);
+      assertCatalogStoreActive(storeId, generation);
+      if (!meta?.version) {
+        return { status: 'skipped', error: 'meta empty' };
+      }
+
+      const local = await getPersistedCatalogVersion();
+      assertCatalogStoreActive(storeId, generation);
+      const catalogEmpty = await isLocalCatalogEmpty();
+      assertCatalogStoreActive(storeId, generation);
+      if (!force && !catalogEmpty && local && meta.version <= local) {
+        return { status: 'up-to-date', version: meta.version };
+      }
+
+      const snapshot = await fetchJson(snapshotUrl(storeId), signal);
+      assertCatalogStoreActive(storeId, generation);
+      if (!snapshot?.version) {
+        return { status: 'skipped', error: 'snapshot empty' };
+      }
+
+      if (!force && !catalogEmpty && local && snapshot.version <= local) {
+        return { status: 'up-to-date', version: snapshot.version };
+      }
+
+      await applyCatalogSnapshot(snapshot, { storeId, generation });
+
+      console.info('catalog sync applied', {
+        storeId,
+        version: snapshot.version,
+        slot: snapshot.slot,
+      });
+
+      return { status: 'applied', version: snapshot.version };
+    } catch (err) {
+      if (err?.name === 'StaleCatalogStoreError') {
+        return { status: 'skipped', error: 'stale store' };
+      }
+      if (isAbortError(err) || signal?.aborted) {
+        return { status: 'skipped', error: 'aborted' };
+      }
+      console.warn('catalog sync failed:', err?.message || err);
+      return { status: 'error', error: err?.message || String(err) };
     }
-
-    await applyCatalogSnapshot(snapshot, { storeId, generation });
-
-    console.info('catalog sync applied', {
-      storeId,
-      version: snapshot.version,
-      slot: snapshot.slot,
-    });
-
-    return { status: 'applied', version: snapshot.version };
-  } catch (err) {
-    if (err?.name === 'StaleCatalogStoreError') {
-      return { status: 'skipped', error: 'stale store' };
-    }
-    console.warn('catalog sync failed:', err?.message || err);
-    return { status: 'error', error: err?.message || String(err) };
-  }
+  });
 }

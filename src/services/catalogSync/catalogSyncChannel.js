@@ -5,6 +5,9 @@ import {
 
 const CHANNEL_NAME = 'ivanor.catalog.sync';
 
+/** Отдельный ключ ping (setItem + removeItem), как у корзины. */
+export const CATALOG_SYNC_EVENT_KEY = 'ivanor.catalog.sync.event';
+
 let channel = null;
 
 const getChannel = () => {
@@ -17,23 +20,41 @@ const getChannel = () => {
   return channel;
 };
 
+const pingLocalStorage = (payload) => {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    window.localStorage.setItem(
+      CATALOG_SYNC_EVENT_KEY,
+      JSON.stringify(payload)
+    );
+    window.localStorage.removeItem(CATALOG_SYNC_EVENT_KEY);
+  } catch {
+    /* ignore */
+  }
+};
+
 /**
  * Уведомляет другие вкладки об успешном commit snapshot.
+ * BroadcastChannel + LS-ping (даже если cloudVersion не изменился).
  * @param {string} version
  * @param {string} [storeId]
  */
 export function postCatalogApplied(version, storeId) {
   if (!version) return;
 
+  const payload = {
+    type: 'catalog-applied',
+    storeId: resolveCatalogStoreId(storeId),
+    version,
+  };
+
   try {
-    getChannel()?.postMessage({
-      type: 'catalog-applied',
-      storeId: resolveCatalogStoreId(storeId),
-      version,
-    });
+    getChannel()?.postMessage(payload);
   } catch {
     /* ignore */
   }
+
+  pingLocalStorage(payload);
 }
 
 /**
@@ -59,6 +80,20 @@ export function subscribeCatalogApplied(listener, storeId) {
   const onStorage = (event) => {
     if (event.key === storageKey && event.newValue) {
       listener(event.newValue);
+      return;
+    }
+    if (event.key !== CATALOG_SYNC_EVENT_KEY || !event.newValue) return;
+    try {
+      const data = JSON.parse(event.newValue);
+      if (
+        data?.type === 'catalog-applied' &&
+        data.storeId === expectedStoreId &&
+        data.version
+      ) {
+        listener(data.version);
+      }
+    } catch {
+      /* malformed foreign event */
     }
   };
 

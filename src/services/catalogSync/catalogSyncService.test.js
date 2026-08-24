@@ -331,7 +331,7 @@ describe('безопасное применение snapshot каталога', 
     await service.checkAndSyncCatalog({ storeId: 'store/a' });
     expect(global.fetch).toHaveBeenCalledWith(
       'https://catalog.example/v2/catalog/store%2Fa/meta',
-      { cache: 'no-store' }
+      expect.objectContaining({ cache: 'no-store' })
     );
   });
 
