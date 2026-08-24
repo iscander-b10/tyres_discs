@@ -36,14 +36,13 @@ export const buildTireShowcase = ({
 
   const stocked = candidates.filter((item) => isStocked(item, cfg.minAmount));
   const seasonPool = stocked.filter((item) => item.season === season);
-  const pool = seasonPool.length > 0 ? seasonPool : stocked;
 
-  const seasonHitsLimit = clampCount(cfg.seasonHitsCount, pool.length);
+  const seasonHitsLimit = clampCount(cfg.seasonHitsCount, seasonPool.length);
   const whitelist =
     season === 'w' ? cfg.ikonSeasonModelsWinter : cfg.ikonSeasonModelsSummer;
 
   const seasonHits = pickMixedSeasonHits({
-    pool,
+    pool: seasonPool,
     season,
     limit: seasonHitsLimit,
     whitelist,
