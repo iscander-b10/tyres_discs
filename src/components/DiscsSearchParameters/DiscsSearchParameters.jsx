@@ -51,12 +51,15 @@ const DiscsSearchParameters = memo(() => {
   const brandSelectCloseOnMouseLeave = useCatalogSelectCloseOnMouseLeave();
   const loadRequestIdRef = useRef(0);
   const searchRequestIdRef = useRef(0);
+  const loadingVisibleRequestRef = useRef(false);
+  const mountedRef = useRef(true);
   const workspaceKeyRef = useRef(workspaceResetKey);
   workspaceKeyRef.current = workspaceResetKey;
 
   useEffect(() => {
     loadRequestIdRef.current += 1;
     searchRequestIdRef.current += 1;
+    loadingVisibleRequestRef.current = false;
     setLoadingOptions(false);
     setLoadingSearch(false);
     setErrorSearch(null);
@@ -71,6 +74,12 @@ const DiscsSearchParameters = memo(() => {
     setAvailablePn([]);
     form.resetFields();
   }, [form, workspaceResetKey]);
+
+  useEffect(() => () => {
+    mountedRef.current = false;
+    loadRequestIdRef.current += 1;
+    searchRequestIdRef.current += 1;
+  }, []);
 
   const buildFiltersFromFormValues = (allValues = {}) => {
     const filters = {};
@@ -187,8 +196,13 @@ const DiscsSearchParameters = memo(() => {
   const handleSearch = async (values, { background = false } = {}) => {
     const requestId = ++searchRequestIdRef.current;
     const requestedWorkspaceKey = workspaceResetKey;
+    const isCurrentRequest = () =>
+      mountedRef.current &&
+      requestId === searchRequestIdRef.current &&
+      requestedWorkspaceKey === workspaceKeyRef.current;
 
     if (!background) {
+      loadingVisibleRequestRef.current = true;
       setSearchResetKey((key) => key + 1);
       setLoadingSearch(true);
       setErrorSearch(null);
@@ -204,10 +218,7 @@ const DiscsSearchParameters = memo(() => {
       delete searchParams.onlyAmountFrom4;
 
       const dbResults = await indexedDBService.searchDiscs(searchParams);
-      if (
-        requestId !== searchRequestIdRef.current ||
-        requestedWorkspaceKey !== workspaceKeyRef.current
-      ) {
+      if (!isCurrentRequest()) {
         return;
       }
       setSearchResults(dbResults);
@@ -215,10 +226,7 @@ const DiscsSearchParameters = memo(() => {
         setErrorSearch(null);
       }
     } catch (err) {
-      if (
-        requestId !== searchRequestIdRef.current ||
-        requestedWorkspaceKey !== workspaceKeyRef.current
-      ) {
+      if (!isCurrentRequest()) {
         return;
       }
       if (!background) {
@@ -226,10 +234,10 @@ const DiscsSearchParameters = memo(() => {
       }
     } finally {
       if (
-        !background &&
-        requestId === searchRequestIdRef.current &&
-        requestedWorkspaceKey === workspaceKeyRef.current
+        isCurrentRequest() &&
+        loadingVisibleRequestRef.current
       ) {
+        loadingVisibleRequestRef.current = false;
         setLoadingSearch(false);
       }
     }
