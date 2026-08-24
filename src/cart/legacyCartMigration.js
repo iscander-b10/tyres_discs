@@ -1,7 +1,7 @@
+import { resolveCatalogStoreId } from '../services/catalogSync/catalogStoreNamespace';
 import {
   createCartEnvelope,
   getCartStorageKey,
-  parseCartEnvelope,
   readCartEnvelope,
   validateCartItems,
   writeCartEnvelope,
@@ -35,7 +35,8 @@ const readLegacyItems = (raw) => {
 const getMarkerKey = (accountId, keys) =>
   `${MARKER_PREFIX}${accountId}.${keys.map(encodeURIComponent).join('.')}`;
 
-export function detectLegacyCart(storage, accountId) {
+export function detectLegacyCart(storage, accountId, storeId) {
+  const resolvedStoreId = resolveCatalogStoreId(storeId);
   const sources = [];
   try {
     LEGACY_CART_KEYS.forEach((key) => {
@@ -63,6 +64,7 @@ export function detectLegacyCart(storage, accountId) {
 
   return {
     accountId,
+    storeId: resolvedStoreId,
     keys,
     sources,
     markerKey,
@@ -102,12 +104,22 @@ const commitLegacyDecision = (storage, detection, decision) => {
 };
 
 export function migrateLegacyCart(storage, detection) {
-  if (!detection || detection.status !== 'valid' || !detection.items) {
+  if (
+    !detection ||
+    detection.status !== 'valid' ||
+    !detection.items ||
+    !detection.storeId
+  ) {
     throw new TypeError('Legacy cart cannot be migrated');
   }
 
-  const previousRaw = storage.getItem(getCartStorageKey(detection.accountId));
-  const previousEnvelope = parseCartEnvelope(previousRaw);
+  const cartKey = getCartStorageKey(detection.accountId, detection.storeId);
+  const previousEnvelope = readCartEnvelope(
+    storage,
+    detection.accountId,
+    detection.storeId
+  );
+  const previousRaw = storage.getItem(cartKey);
   const existingItems = previousEnvelope?.items ?? [];
   const existingKeys = new Set(existingItems.map((item) => item.key));
   const mergedItems = [
@@ -121,8 +133,17 @@ export function migrateLegacyCart(storage, detection) {
   });
 
   try {
-    writeCartEnvelope(storage, detection.accountId, envelope);
-    const verified = readCartEnvelope(storage, detection.accountId);
+    writeCartEnvelope(
+      storage,
+      detection.accountId,
+      detection.storeId,
+      envelope
+    );
+    const verified = readCartEnvelope(
+      storage,
+      detection.accountId,
+      detection.storeId
+    );
     if (
       !verified ||
       verified.revision !== envelope.revision ||
@@ -133,9 +154,9 @@ export function migrateLegacyCart(storage, detection) {
   } catch (error) {
     try {
       if (previousRaw == null) {
-        storage.removeItem(getCartStorageKey(detection.accountId));
+        storage.removeItem(cartKey);
       } else {
-        storage.setItem(getCartStorageKey(detection.accountId), previousRaw);
+        storage.setItem(cartKey, previousRaw);
       }
     } catch {
       /* best-effort rollback */
@@ -148,9 +169,9 @@ export function migrateLegacyCart(storage, detection) {
   } catch (error) {
     try {
       if (previousRaw == null) {
-        storage.removeItem(getCartStorageKey(detection.accountId));
+        storage.removeItem(cartKey);
       } else {
-        storage.setItem(getCartStorageKey(detection.accountId), previousRaw);
+        storage.setItem(cartKey, previousRaw);
       }
     } catch {
       /* best-effort rollback */

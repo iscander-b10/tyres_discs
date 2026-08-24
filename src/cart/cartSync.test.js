@@ -21,7 +21,7 @@ describe('cartSync', () => {
     };
   });
 
-  test('BroadcastChannel принимает только свой accountId', () => {
+  test('BroadcastChannel принимает только свой accountId и storeId', () => {
     const channels = [];
     class FakeBroadcastChannel {
       constructor(name) {
@@ -34,6 +34,7 @@ describe('cartSync', () => {
     const onEnvelope = jest.fn();
     const sync = createCartSync({
       accountId: 'a',
+      storeId: 'store-a',
       windowObject,
       storage: localStorage,
       BroadcastChannelClass: FakeBroadcastChannel,
@@ -42,22 +43,51 @@ describe('cartSync', () => {
     expect(channels[0].name).toBe(CART_SYNC_CHANNEL);
 
     channels[0].onmessage({
-      data: { accountId: 'b', envelope: envelope(1) },
+      data: { accountId: 'b', storeId: 'store-a', envelope: envelope(1) },
     });
     channels[0].onmessage({
-      data: { accountId: 'a', envelope: envelope(2) },
+      data: { accountId: 'a', storeId: 'store-b', envelope: envelope(2) },
     });
-    channels[0].onmessage({ data: { accountId: 'a', envelope: {} } });
+    channels[0].onmessage({
+      data: { accountId: 'a', storeId: 'store-a', envelope: envelope(3) },
+    });
+    channels[0].onmessage({
+      data: { accountId: 'a', storeId: 'store-a', envelope: {} },
+    });
 
     expect(onEnvelope).toHaveBeenCalledTimes(1);
-    expect(onEnvelope).toHaveBeenCalledWith(envelope(2));
-    sync.publish(envelope(3));
+    expect(onEnvelope).toHaveBeenCalledWith(envelope(3));
+    sync.publish(envelope(4));
     expect(channels[0].postMessage).toHaveBeenCalledWith({
       accountId: 'a',
-      envelope: envelope(3),
+      storeId: 'store-a',
+      envelope: envelope(4),
     });
     sync.close();
     expect(channels[0].close).toHaveBeenCalled();
+  });
+
+  test('игнорирует envelope с тем же accountId, но другим storeId', () => {
+    const onEnvelope = jest.fn();
+    const sync = createCartSync({
+      accountId: 'a',
+      storeId: 'store-a',
+      windowObject,
+      storage: localStorage,
+      BroadcastChannelClass: undefined,
+      onEnvelope,
+    });
+    const listener = [...listeners][0];
+    listener({
+      key: CART_SYNC_STORAGE_KEY,
+      newValue: JSON.stringify({
+        accountId: 'a',
+        storeId: 'store-b',
+        envelope: envelope(1),
+      }),
+    });
+    expect(onEnvelope).not.toHaveBeenCalled();
+    sync.close();
   });
 
   test('storage fallback публикует и принимает событие без ретрансляции', () => {
@@ -68,6 +98,7 @@ describe('cartSync', () => {
     const onEnvelope = jest.fn();
     const sync = createCartSync({
       accountId: 'a',
+      storeId: 'store-a',
       windowObject,
       storage,
       BroadcastChannelClass: undefined,
@@ -76,7 +107,11 @@ describe('cartSync', () => {
     expect(sync.publish(envelope(1))).toBe(true);
     expect(storage.setItem).toHaveBeenCalledWith(
       CART_SYNC_STORAGE_KEY,
-      JSON.stringify({ accountId: 'a', envelope: envelope(1) })
+      JSON.stringify({
+        accountId: 'a',
+        storeId: 'store-a',
+        envelope: envelope(1),
+      })
     );
     expect(storage.removeItem).toHaveBeenCalledWith(CART_SYNC_STORAGE_KEY);
 
@@ -86,6 +121,7 @@ describe('cartSync', () => {
         key: CART_SYNC_STORAGE_KEY,
         newValue: JSON.stringify({
           accountId: 'a',
+          storeId: 'store-a',
           envelope: envelope(2),
         }),
       })
@@ -98,6 +134,7 @@ describe('cartSync', () => {
     const onEnvelope = jest.fn();
     const sync = createCartSync({
       accountId: 'a',
+      storeId: 'store-a',
       windowObject,
       storage: localStorage,
       BroadcastChannelClass: undefined,
@@ -107,7 +144,11 @@ describe('cartSync', () => {
     sync.close();
     listener({
       key: CART_SYNC_STORAGE_KEY,
-      newValue: JSON.stringify({ accountId: 'a', envelope: envelope(1) }),
+      newValue: JSON.stringify({
+        accountId: 'a',
+        storeId: 'store-a',
+        envelope: envelope(1),
+      }),
     });
     expect(onEnvelope).not.toHaveBeenCalled();
   });

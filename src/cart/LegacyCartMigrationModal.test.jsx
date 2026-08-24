@@ -15,6 +15,7 @@ async function mountModal(props = {}) {
     root.render(
       <LegacyCartMigrationModal
         accountId="account"
+        storeId="store-a"
         generation={1}
         isCurrent={() => true}
         onMigrated={onMigrated}

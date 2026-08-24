@@ -1,3 +1,8 @@
+import {
+  getSafeCatalogStoreId,
+  resolveCatalogStoreId,
+} from '../services/catalogSync/catalogStoreNamespace';
+
 export const CART_STORAGE_VERSION = 3;
 export const CART_KEY_PREFIX = 'cart.staff.v3.';
 
@@ -15,8 +20,41 @@ const isFiniteNumberLike = (value) => {
   return /^[+-]?(?:\d+(?:[.,]\d+)?|\d*[.,]\d+)$/.test(value.trim());
 };
 
-export const getCartStorageKey = (accountId) =>
+/** Legacy account-only key (v3 without storeId). */
+export const getCartAccountStorageKey = (accountId) =>
   `${CART_KEY_PREFIX}${String(accountId ?? '').trim()}`;
+
+export const getCartStorageKey = (accountId, storeId) =>
+  `${getCartAccountStorageKey(accountId)}.${getSafeCatalogStoreId(storeId)}`;
+
+export const migrateAccountCartToStore = (storage, accountId, storeId) => {
+  const resolvedStoreId = resolveCatalogStoreId(storeId);
+  const nextKey = getCartStorageKey(accountId, resolvedStoreId);
+  const legacyKey = getCartAccountStorageKey(accountId);
+  const nextRaw = storage.getItem(nextKey);
+  const nextEnvelope = parseCartEnvelope(nextRaw);
+  const legacyRaw = storage.getItem(legacyKey);
+
+  if (nextEnvelope) {
+    if (legacyRaw != null) {
+      try {
+        storage.removeItem(legacyKey);
+      } catch {
+        /* best-effort */
+      }
+    }
+    return nextEnvelope;
+  }
+
+  if (legacyRaw == null) return null;
+
+  const legacyEnvelope = parseCartEnvelope(legacyRaw);
+  if (!legacyEnvelope) return null;
+
+  storage.setItem(nextKey, legacyRaw);
+  storage.removeItem(legacyKey);
+  return legacyEnvelope;
+};
 
 export const isValidCartItem = (item) => {
   if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
@@ -54,8 +92,8 @@ export const parseCartEnvelope = (raw) => {
   }
 };
 
-export const readCartEnvelope = (storage, accountId) =>
-  parseCartEnvelope(storage.getItem(getCartStorageKey(accountId)));
+export const readCartEnvelope = (storage, accountId, storeId) =>
+  migrateAccountCartToStore(storage, accountId, storeId);
 
 export const createCartEnvelope = ({
   items,
@@ -74,12 +112,19 @@ export const createCartEnvelope = ({
   return envelope;
 };
 
-export const writeCartEnvelope = (storage, accountId, envelope) => {
+export const writeCartEnvelope = (storage, accountId, storeId, envelope) => {
   const validEnvelope = validateCartEnvelope(envelope);
-  if (!String(accountId ?? '').trim() || !validEnvelope) {
+  if (
+    !String(accountId ?? '').trim() ||
+    !resolveCatalogStoreId(storeId) ||
+    !validEnvelope
+  ) {
     throw new TypeError('Invalid cart write');
   }
-  storage.setItem(getCartStorageKey(accountId), JSON.stringify(validEnvelope));
+  storage.setItem(
+    getCartStorageKey(accountId, storeId),
+    JSON.stringify(validEnvelope)
+  );
 };
 
 export const isEnvelopeNewer = (candidate, current) => {

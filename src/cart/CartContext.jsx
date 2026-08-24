@@ -79,13 +79,14 @@ export function CartProviderCore({
     replaceRuntime(null, false);
 
     const accountId = workspace?.accountId;
-    if (!isWorkspaceReady || !accountId) return undefined;
+    const storeId = workspace?.storeId;
+    if (!isWorkspaceReady || !accountId || !storeId) return undefined;
 
-    activeRef.current = { accountId, generation: nextGeneration };
+    activeRef.current = { accountId, storeId, generation: nextGeneration };
     let envelope;
     try {
       envelope =
-        readCartEnvelope(storage, accountId) ??
+        readCartEnvelope(storage, accountId, storeId) ??
         createCartEnvelope({ items: [], revision: 0, updatedAt: 0 });
     } catch {
       envelope = createCartEnvelope({ items: [], revision: 0, updatedAt: 0 });
@@ -96,6 +97,7 @@ export function CartProviderCore({
       const active = activeRef.current;
       return (
         active?.accountId === accountId &&
+        active?.storeId === storeId &&
         active?.generation === nextGeneration
       );
     };
@@ -103,6 +105,7 @@ export function CartProviderCore({
     try {
       syncRef.current = syncFactory({
         accountId,
+        storeId,
         storage,
         onEnvelope: (incoming) => {
           if (!isCurrent() || !isEnvelopeNewer(incoming, envelopeRef.current)) {
@@ -127,12 +130,14 @@ export function CartProviderCore({
     storage,
     syncFactory,
     workspace?.accountId,
+    workspace?.storeId,
   ]);
 
   const isCapturedCurrent = useCallback((captured) => {
     const active = activeRef.current;
     return (
       active?.accountId === captured?.accountId &&
+      active?.storeId === captured?.storeId &&
       active?.generation === captured?.generation
     );
   }, []);
@@ -155,7 +160,12 @@ export function CartProviderCore({
           revision: currentEnvelope.revision + 1,
           updatedAt: Math.max(Date.now(), currentEnvelope.updatedAt + 1),
         });
-        writeCartEnvelope(storage, captured.accountId, nextEnvelope);
+        writeCartEnvelope(
+          storage,
+          captured.accountId,
+          captured.storeId,
+          nextEnvelope
+        );
       } catch {
         return false;
       }
@@ -248,7 +258,12 @@ export function CartProviderCore({
     const envelope = envelopeRef.current;
     if (!captured || !envelope || !isCapturedCurrent(captured)) return false;
     try {
-      writeCartEnvelope(storage, captured.accountId, envelope);
+      writeCartEnvelope(
+        storage,
+        captured.accountId,
+        captured.storeId,
+        envelope
+      );
       return isCapturedCurrent(captured);
     } catch {
       return false;
@@ -279,7 +294,9 @@ export function CartProviderCore({
       updatedAt: Math.max(Date.now(), currentEnvelope.updatedAt + 1),
     });
     try {
-      storage.removeItem(getCartStorageKey(captured.accountId));
+      storage.removeItem(
+        getCartStorageKey(captured.accountId, captured.storeId)
+      );
     } catch {
       return false;
     }
@@ -366,6 +383,7 @@ export function CartProviderCore({
       {showLegacyMigration && isLoaded && active ? (
         <LegacyCartMigrationModal
           accountId={active.accountId}
+          storeId={active.storeId}
           generation={active.generation}
           storage={storage}
           isCurrent={() => isCapturedCurrent(active)}

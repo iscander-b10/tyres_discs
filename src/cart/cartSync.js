@@ -1,3 +1,4 @@
+import { resolveCatalogStoreId } from '../services/catalogSync/catalogStoreNamespace';
 import { validateCartEnvelope } from './cartStorage';
 
 export const CART_SYNC_CHANNEL = 'cart.staff.v3.sync';
@@ -7,12 +8,17 @@ const parseMessage = (value) => {
   if (!value || typeof value !== 'object') return null;
   const accountId =
     typeof value.accountId === 'string' ? value.accountId.trim() : '';
-  if (!accountId || !validateCartEnvelope(value.envelope)) return null;
-  return { accountId, envelope: value.envelope };
+  const storeId =
+    typeof value.storeId === 'string' ? value.storeId.trim() : '';
+  if (!accountId || !storeId || !validateCartEnvelope(value.envelope)) {
+    return null;
+  }
+  return { accountId, storeId, envelope: value.envelope };
 };
 
 export function createCartSync({
   accountId,
+  storeId,
   storage = window.localStorage,
   windowObject = window,
   BroadcastChannelClass = window.BroadcastChannel,
@@ -20,11 +26,18 @@ export function createCartSync({
 }) {
   let channel = null;
   let closed = false;
+  const expectedStoreId = resolveCatalogStoreId(storeId);
 
   const receive = (rawMessage) => {
     if (closed) return;
     const message = parseMessage(rawMessage);
-    if (!message || message.accountId !== accountId) return;
+    if (
+      !message ||
+      message.accountId !== accountId ||
+      message.storeId !== expectedStoreId
+    ) {
+      return;
+    }
     onEnvelope(message.envelope);
   };
 
@@ -50,7 +63,7 @@ export function createCartSync({
   return {
     publish(envelope) {
       if (closed || !validateCartEnvelope(envelope)) return false;
-      const message = { accountId, envelope };
+      const message = { accountId, storeId: expectedStoreId, envelope };
       if (channel) {
         channel.postMessage(message);
         return true;

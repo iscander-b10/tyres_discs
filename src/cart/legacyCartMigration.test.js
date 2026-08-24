@@ -6,6 +6,7 @@ import {
   migrateLegacyCart,
 } from './legacyCartMigration';
 
+const STORE_ID = 'store-a';
 const legacyItems = [
   { key: 'tyres:1', quantity: 2, price: 1000, amount: 4 },
 ];
@@ -18,8 +19,9 @@ describe('legacyCartMigration', () => {
       LEGACY_CART_KEYS[0],
       JSON.stringify({ version: 2, items: legacyItems })
     );
-    expect(detectLegacyCart(localStorage, 'account')).toMatchObject({
+    expect(detectLegacyCart(localStorage, 'account', STORE_ID)).toMatchObject({
       accountId: 'account',
+      storeId: STORE_ID,
       keys: [LEGACY_CART_KEYS[0]],
       status: 'valid',
       items: legacyItems,
@@ -28,7 +30,7 @@ describe('legacyCartMigration', () => {
 
   test('повреждённые данные помечаются и не мигрируют', () => {
     localStorage.setItem(LEGACY_CART_KEYS[1], '{"broken"');
-    const detection = detectLegacyCart(localStorage, 'account');
+    const detection = detectLegacyCart(localStorage, 'account', STORE_ID);
     expect(detection.status).toBe('corrupted');
     expect(() => migrateLegacyCart(localStorage, detection)).toThrow();
     expect(localStorage.getItem(LEGACY_CART_KEYS[1])).not.toBeNull();
@@ -39,7 +41,7 @@ describe('legacyCartMigration', () => {
       LEGACY_CART_KEYS[0],
       JSON.stringify({ version: 2, items: legacyItems })
     );
-    const detection = detectLegacyCart(localStorage, 'account');
+    const detection = detectLegacyCart(localStorage, 'account', STORE_ID);
     const envelope = migrateLegacyCart(localStorage, detection);
 
     expect(envelope).toMatchObject({
@@ -48,7 +50,7 @@ describe('legacyCartMigration', () => {
       items: legacyItems,
     });
     expect(
-      JSON.parse(localStorage.getItem(getCartStorageKey('account')))
+      JSON.parse(localStorage.getItem(getCartStorageKey('account', STORE_ID)))
     ).toEqual(envelope);
     expect(localStorage.getItem(LEGACY_CART_KEYS[0])).toBeNull();
     expect(localStorage.getItem(detection.markerKey)).not.toBeNull();
@@ -57,12 +59,12 @@ describe('legacyCartMigration', () => {
       LEGACY_CART_KEYS[0],
       JSON.stringify({ version: 2, items: legacyItems })
     );
-    expect(detectLegacyCart(localStorage, 'account')).toBeNull();
+    expect(detectLegacyCart(localStorage, 'account', STORE_ID)).toBeNull();
   });
 
   test('не затирает существующие строки v3 при переносе', () => {
     localStorage.setItem(
-      getCartStorageKey('account'),
+      getCartStorageKey('account', STORE_ID),
       JSON.stringify({
         version: 3,
         revision: 5,
@@ -76,7 +78,7 @@ describe('legacyCartMigration', () => {
     );
     const envelope = migrateLegacyCart(
       localStorage,
-      detectLegacyCart(localStorage, 'account')
+      detectLegacyCart(localStorage, 'account', STORE_ID)
     );
     expect(envelope.revision).toBe(6);
     expect(envelope.items.map(({ key }) => key)).toEqual([
@@ -95,12 +97,14 @@ describe('legacyCartMigration', () => {
     const storage = {
       getItem: jest.fn((key) => values.get(key) ?? null),
       setItem: jest.fn((key, value) => {
-        if (key === getCartStorageKey('account')) throw new Error('quota');
+        if (key === getCartStorageKey('account', STORE_ID)) {
+          throw new Error('quota');
+        }
         values.set(key, value);
       }),
       removeItem: jest.fn((key) => values.delete(key)),
     };
-    const detection = detectLegacyCart(storage, 'account');
+    const detection = detectLegacyCart(storage, 'account', STORE_ID);
     expect(() => migrateLegacyCart(storage, detection)).toThrow('quota');
     expect(values.has(LEGACY_CART_KEYS[0])).toBe(true);
     expect(values.has(detection.markerKey)).toBe(false);
@@ -118,12 +122,12 @@ describe('legacyCartMigration', () => {
       }),
       removeItem: jest.fn((key) => values.delete(key)),
     };
-    const detection = detectLegacyCart(storage, 'account');
+    const detection = detectLegacyCart(storage, 'account', STORE_ID);
     markerKey = detection.markerKey;
 
     expect(() => migrateLegacyCart(storage, detection)).toThrow('marker quota');
     expect(values.get(LEGACY_CART_KEYS[0])).toBe(legacyRaw);
-    expect(values.has(getCartStorageKey('account'))).toBe(false);
+    expect(values.has(getCartStorageKey('account', STORE_ID))).toBe(false);
     expect(values.has(markerKey)).toBe(false);
   });
 
@@ -139,7 +143,7 @@ describe('legacyCartMigration', () => {
       }),
       removeItem: jest.fn((key) => values.delete(key)),
     };
-    const detection = detectLegacyCart(storage, 'account');
+    const detection = detectLegacyCart(storage, 'account', STORE_ID);
     markerKey = detection.markerKey;
 
     expect(() => discardLegacyCart(storage, detection)).toThrow('marker quota');
@@ -151,7 +155,7 @@ describe('legacyCartMigration', () => {
     LEGACY_CART_KEYS.forEach((key) =>
       localStorage.setItem(key, JSON.stringify(legacyItems))
     );
-    const detection = detectLegacyCart(localStorage, 'account');
+    const detection = detectLegacyCart(localStorage, 'account', STORE_ID);
     discardLegacyCart(localStorage, detection);
     LEGACY_CART_KEYS.forEach((key) =>
       expect(localStorage.getItem(key)).toBeNull()
@@ -161,7 +165,7 @@ describe('legacyCartMigration', () => {
     LEGACY_CART_KEYS.forEach((key) =>
       localStorage.setItem(key, JSON.stringify(legacyItems))
     );
-    expect(detectLegacyCart(localStorage, 'account')).toBeNull();
+    expect(detectLegacyCart(localStorage, 'account', STORE_ID)).toBeNull();
   });
 
   test('marker изолирован по accountId', () => {
@@ -169,11 +173,14 @@ describe('legacyCartMigration', () => {
       LEGACY_CART_KEYS[0],
       JSON.stringify({ version: 2, items: legacyItems })
     );
-    discardLegacyCart(localStorage, detectLegacyCart(localStorage, 'a'));
+    discardLegacyCart(
+      localStorage,
+      detectLegacyCart(localStorage, 'a', STORE_ID)
+    );
     localStorage.setItem(
       LEGACY_CART_KEYS[0],
       JSON.stringify({ version: 2, items: legacyItems })
     );
-    expect(detectLegacyCart(localStorage, 'b')).not.toBeNull();
+    expect(detectLegacyCart(localStorage, 'b', STORE_ID)).not.toBeNull();
   });
 });

@@ -1,8 +1,13 @@
 import { mergePreferredShowcaseCandidates } from '../catalog/core';
 import {
+  DEFAULT_CATALOG_STORE_ID,
   getSafeCatalogStoreId,
   resolveCatalogStoreId,
 } from './catalogSync/catalogStoreNamespace';
+
+export { DEFAULT_CATALOG_STORE_ID };
+
+const LEGACY_CATALOG_VERSION_KEY = 'ivanor.catalog.cloudVersion';
 
 /** Единая схема каталога — единственный источник имён stores и metadata keys. */
 export const CATALOG_DB_NAME = 'CatalogDatabase';
@@ -95,6 +100,22 @@ const readLegacyStore = (dbName, storeName) =>
         reject(getAllRequest.error);
       };
     };
+  });
+
+const deleteLegacyDatabase = (dbName) =>
+  new Promise((resolve) => {
+    if (typeof indexedDB === 'undefined' || typeof indexedDB.deleteDatabase !== 'function') {
+      resolve();
+      return;
+    }
+    try {
+      const request = indexedDB.deleteDatabase(dbName);
+      request.onsuccess = () => resolve();
+      request.onerror = () => resolve();
+      request.onblocked = () => resolve();
+    } catch {
+      resolve();
+    }
   });
 
 const replaceSupplierItemsInStore = (store, supplier, items, onComplete, onError) => {
@@ -588,8 +609,10 @@ class IndexedDBService {
       return database;
     }
 
+    // Безымянные CatalogDatabase / TireDatabase / DiscDatabase исторически
+    // принадлежат только ElistaIvanor — не переносим их в другой storeId.
     const shouldMigrateLegacy =
-      this.activeStoreId === resolveCatalogStoreId(undefined);
+      this.activeStoreId === DEFAULT_CATALOG_STORE_ID;
     const legacySources = shouldMigrateLegacy
       ? await Promise.all([
           readLegacyStore(CATALOG_DB_NAME, CATALOG_STORES.tires),
@@ -606,10 +629,11 @@ class IndexedDBService {
       legacyTires,
       legacyDiscs,
     ] = legacySources;
-    const legacyVersion =
-      unifiedMetadata.find(
-        (record) => record?.key === CATALOG_METADATA_KEYS.snapshotVersion
-      )?.value || '';
+    const legacyVersion = shouldMigrateLegacy
+      ? unifiedMetadata.find(
+          (record) => record?.key === CATALOG_METADATA_KEYS.snapshotVersion
+        )?.value || this._readLegacyLocalStorageVersion()
+      : '';
 
     this._assertActiveGeneration(generation);
     await this._runLegacyMigrationTransaction(
@@ -620,6 +644,10 @@ class IndexedDBService {
       legacyVersion
     );
     this._assertActiveGeneration(generation);
+    if (shouldMigrateLegacy) {
+      await this._cleanupLegacyCatalogSources();
+      this._assertActiveGeneration(generation);
+    }
     this._migrationComplete = true;
     return database;
   }
@@ -733,8 +761,7 @@ class IndexedDBService {
     migratedVersion = ''
   ) {
     this._assertActiveGeneration(generation);
-    const legacyVersion =
-      migratedVersion || this._readLegacyLocalStorageVersion();
+    const legacyVersion = migratedVersion || '';
 
     return new Promise((resolve, reject) => {
       const transaction = database.transaction(
@@ -805,10 +832,27 @@ class IndexedDBService {
 
   _readLegacyLocalStorageVersion() {
     try {
-      return window.localStorage.getItem('ivanor.catalog.cloudVersion') || '';
+      return window.localStorage.getItem(LEGACY_CATALOG_VERSION_KEY) || '';
     } catch {
       return '';
     }
+  }
+
+  _removeLegacyLocalStorageVersion() {
+    try {
+      window.localStorage.removeItem(LEGACY_CATALOG_VERSION_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async _cleanupLegacyCatalogSources() {
+    await Promise.all([
+      deleteLegacyDatabase(LEGACY_DB_NAMES.tires),
+      deleteLegacyDatabase(LEGACY_DB_NAMES.discs),
+      deleteLegacyDatabase(CATALOG_DB_NAME),
+    ]);
+    this._removeLegacyLocalStorageVersion();
   }
 
   async getPersistedCatalogVersion() {

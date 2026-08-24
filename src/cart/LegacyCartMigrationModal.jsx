@@ -8,6 +8,7 @@ import {
 
 export function LegacyCartMigrationModal({
   accountId,
+  storeId,
   generation,
   storage = window.localStorage,
   isCurrent,
@@ -19,8 +20,12 @@ export function LegacyCartMigrationModal({
 
   useEffect(() => {
     setError('');
-    setDetection(accountId ? detectLegacyCart(storage, accountId) : null);
-  }, [accountId, generation, storage]);
+    setDetection(
+      accountId && storeId
+        ? detectLegacyCart(storage, accountId, storeId)
+        : null
+    );
+  }, [accountId, generation, storage, storeId]);
 
   if (!detection) return null;
 

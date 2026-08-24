@@ -109,8 +109,8 @@ describe('CartContext workspace lifecycle', () => {
       revision: 4,
       updatedAt: 20,
     });
-    localStorage.setItem(getCartStorageKey('account-a'), JSON.stringify(envelopeA));
-    localStorage.setItem(getCartStorageKey('account-b'), JSON.stringify(envelopeB));
+    localStorage.setItem(getCartStorageKey('account-a', 'store-a'), JSON.stringify(envelopeA));
+    localStorage.setItem(getCartStorageKey('account-b', 'store-b'), JSON.stringify(envelopeB));
 
     const harness = await mountCart();
     expect(harness.api.isLoaded).toBe(true);
@@ -123,7 +123,7 @@ describe('CartContext workspace lifecycle', () => {
   });
 
   test('повреждённый v3 даёт пустой runtime без legacy fallback', async () => {
-    localStorage.setItem(getCartStorageKey('account-a'), '{"version":3');
+    localStorage.setItem(getCartStorageKey('account-a', 'store-a'), '{"version":3');
     localStorage.setItem(
       'cart.staff.v2',
       JSON.stringify({ version: 2, items: [{ key: 'tyres:x', quantity: 1 }] })
@@ -143,7 +143,7 @@ describe('CartContext workspace lifecycle', () => {
     expect(snapshot.items[0].quantity).toBe(2);
     expect(harness.api.items).toEqual([]);
     expect(harness.api.isLoaded).toBe(false);
-    expect(localStorage.getItem(getCartStorageKey('account-a'))).not.toBeNull();
+    expect(localStorage.getItem(getCartStorageKey('account-a', 'store-a'))).not.toBeNull();
 
     await act(async () => {
       oldSync.onEnvelope(
@@ -162,12 +162,12 @@ describe('CartContext workspace lifecycle', () => {
     const harness = await mountCart();
     await harness.call((api) => api.addItem(item(), 'tyres', 1));
     const revision = JSON.parse(
-      localStorage.getItem(getCartStorageKey('account-a'))
+      localStorage.getItem(getCartStorageKey('account-a', 'store-a'))
     ).revision;
 
     expect(await harness.call((api) => api.clear())).toBe(true);
     expect(harness.api.items).toEqual([]);
-    expect(localStorage.getItem(getCartStorageKey('account-a'))).toBeNull();
+    expect(localStorage.getItem(getCartStorageKey('account-a', 'store-a'))).toBeNull();
     const published =
       harness.syncInstances[0].publish.mock.calls.at(-1)[0];
     expect(published.items).toEqual([]);
@@ -206,7 +206,7 @@ describe('CartContext mutations and reconciliation', () => {
     expect(await harness.call((api) => api.addItem(item(), 'tyres', 2))).toBe(true);
 
     const stored = JSON.parse(
-      localStorage.getItem(getCartStorageKey('account-a'))
+      localStorage.getItem(getCartStorageKey('account-a', 'store-a'))
     );
     expect(stored).toMatchObject({ version: 3, revision: 1 });
     expect(stored.items[0]).toMatchObject({

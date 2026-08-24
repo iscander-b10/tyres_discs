@@ -91,7 +91,7 @@ describe('useLogout cart policy', () => {
       );
     });
 
-    const cartKey = getCartStorageKey(workspace.accountId);
+    const cartKey = getCartStorageKey(workspace.accountId, workspace.storeId);
     expect(JSON.parse(localStorage.getItem(cartKey)).version).toBe(3);
 
     await act(async () => {
