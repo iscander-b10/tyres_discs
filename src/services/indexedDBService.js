@@ -1,4 +1,4 @@
-import { mergePreferredShowcaseCandidates } from '../catalog/showcase/preferredCandidates';
+import { mergePreferredShowcaseCandidates } from '../catalog/core';
 import {
   getSafeCatalogStoreId,
   resolveCatalogStoreId,

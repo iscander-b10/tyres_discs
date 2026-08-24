@@ -1,6 +1,6 @@
 /** Shared catalog UI copy — keep card and modal in sync. */
 
-import { deriveModelFromTitle } from '../../services/suppliers/shared/deriveModel';
+export { resolveCatalogModel } from '../../catalog/core';
 
 const isValidPrice = (value) => {
   if (value == null || value === '') return false;
@@ -119,13 +119,6 @@ export const formatCatalogStockDisplay = (amount) => {
   const num = typeof amount === 'number' ? amount : Number(amount);
   if (!Number.isFinite(num)) return `${amount} шт.`;
   return `${num.toLocaleString('ru-RU')}\u00A0шт.`;
-};
-
-export const resolveCatalogModel = (item) => {
-  if (!item) return null;
-  const explicit = pickText(item.model);
-  if (explicit) return explicit;
-  return deriveModelFromTitle(item.title, item.brand, { stripIndices: true });
 };
 
 export const resolveCatalogLoadIndex = (item) => {

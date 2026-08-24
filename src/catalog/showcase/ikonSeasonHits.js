@@ -1,5 +1,4 @@
-import { isIkonBrand } from '../../components/shared/ikonPromoBadges';
-import { resolveCatalogModel } from '../../components/shared/catalogCopy';
+import { isIkonBrand, resolveCatalogModel } from '../core';
 import { pickTopDiverse, scoreCatalogItem } from './scoring';
 
 export const normalizeIkonModelText = (value) =>

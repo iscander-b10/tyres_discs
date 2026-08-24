@@ -1,4 +1,4 @@
-import { mergePreferredShowcaseCandidates } from './preferredCandidates';
+import { mergePreferredShowcaseCandidates } from '../core';
 import { pickMixedSeasonHits } from './ikonSeasonHits';
 import { SHOWCASE_CONFIG } from './showcaseConfig';
 import { buildTireShowcase } from './buildTireShowcase';

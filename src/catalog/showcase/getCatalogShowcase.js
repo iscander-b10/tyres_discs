@@ -1,5 +1,5 @@
 import indexedDBService from '../../services/indexedDBService';
-import { isIkonBrand } from '../../components/shared/ikonPromoBadges';
+import { isIkonBrand } from '../core';
 import { SHOWCASE_CONFIG } from './showcaseConfig';
 import { buildTireShowcase } from './buildTireShowcase';
 import { buildDiscShowcase } from './buildDiscShowcase';
