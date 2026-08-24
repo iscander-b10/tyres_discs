@@ -23,6 +23,7 @@ const CatalogShowcase = ({
   const {
     clientMode: isClientMode,
     catalogDataVersion = 0,
+    catalogSnapshotVersion = '',
     workspaceResetKey = 'guest',
   } = useAppShell();
   const [status, setStatus] = useState('loading');
@@ -42,6 +43,7 @@ const CatalogShowcase = ({
     getCatalogShowcase({
       kind,
       catalogDataVersion,
+      catalogSnapshotVersion,
       workspaceResetKey,
     })
       .then((result) => {
@@ -56,7 +58,7 @@ const CatalogShowcase = ({
           setStatus('error');
         }
       });
-  }, [kind, catalogDataVersion, workspaceResetKey]);
+  }, [kind, catalogDataVersion, catalogSnapshotVersion, workspaceResetKey]);
 
   const chips = showcase?.chips ?? staticChips.chips;
   const chipsTitle = showcase?.chipsTitle ?? staticChips.chipsTitle;

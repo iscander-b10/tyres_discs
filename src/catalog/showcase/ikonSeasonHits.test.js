@@ -205,6 +205,67 @@ describe('ikon season shelf', () => {
     expect(spread.filter((i) => i.brand === 'Ikon')).toHaveLength(3);
   });
 
+  test('seeded pickMixedSeasonHits / buildTireShowcase: same seed → same order', () => {
+    const summerPool = [
+      mk({ id: 1, title: 'Ikon Character Eco 91H', diameter: 'R15' }),
+      mk({ id: 2, title: 'Ikon Autograph Eco 3 91V', diameter: 'R17' }),
+      mk({ id: 3, title: 'Ikon Autograph Aqua 3 94V', diameter: 'R18' }),
+      mk({ id: 4, title: 'Ikon Character Aqua 91V', diameter: 'R16' }),
+      mk({ id: 5, title: 'Ikon Character Ultra 94W', diameter: 'R17' }),
+      mk({ id: 6, title: 'Ikon Autograph Ultra 2 94W', diameter: 'R18' }),
+      ...Array.from({ length: 24 }, (_, i) =>
+        mk({
+          id: 100 + i,
+          brand: `Brand${i}`,
+          title: `Brand${i} Model${i} 91V`,
+          model: `Model${i}`,
+        })
+      ),
+    ];
+
+    const a = pickMixedSeasonHits({
+      pool: summerPool,
+      season: 's',
+      limit: 30,
+      whitelist: summerWl,
+      seed: 'snap-v1',
+    });
+    const b = pickMixedSeasonHits({
+      pool: summerPool,
+      season: 's',
+      limit: 30,
+      whitelist: summerWl,
+      seed: 'snap-v1',
+    });
+    expect(a.map((i) => i.id)).toEqual(b.map((i) => i.id));
+
+    const c = pickMixedSeasonHits({
+      pool: summerPool,
+      season: 's',
+      limit: 30,
+      whitelist: summerWl,
+      seed: 'snap-v2',
+    });
+    expect([...c.map((i) => i.id)].sort()).toEqual([...a.map((i) => i.id)].sort());
+    expect(c.map((i) => i.id)).not.toEqual(a.map((i) => i.id));
+
+    const shelfA = buildTireShowcase({
+      candidates: summerPool,
+      isEmpty: false,
+      now: new Date('2026-06-15'),
+      seed: 'workspace|snap:2026-08-24T12:10:00Z',
+    });
+    const shelfB = buildTireShowcase({
+      candidates: summerPool,
+      isEmpty: false,
+      now: new Date('2026-06-15'),
+      seed: 'workspace|snap:2026-08-24T12:10:00Z',
+    });
+    expect(shelfA.shelves[0].items.map((i) => i.id)).toEqual(
+      shelfB.shelves[0].items.map((i) => i.id)
+    );
+  });
+
   test('winter whitelist has 8 models without Snow Pro', () => {
     expect(winterWl).toHaveLength(8);
     expect(winterWl).toContain('Autograph Ice 10');
@@ -311,6 +372,7 @@ describe('ikon season shelf', () => {
       season: 's',
       limit: 30,
       whitelist: summerWl,
+      seed: 'test-summer-mix',
     });
     // 6 unique Ikon whitelist + 12 unique others (Michelin collapsed) = 18
     expect(mixed).toHaveLength(18);
@@ -318,11 +380,7 @@ describe('ikon season shelf', () => {
     expect(mixed.some((i) => i.brand !== 'Ikon')).toBe(true);
     expect(mixed.some((i) => /Eco C3|Eco C2|SUV/i.test(i.title))).toBe(false);
     expect(mixed.filter((i) => /Character Eco/i.test(i.title))).toHaveLength(1);
-    for (let i = 1; i < mixed.length; i += 1) {
-      expect(
-        mixed[i - 1].brand === 'Ikon' && mixed[i].brand === 'Ikon'
-      ).toBe(false);
-    }
+    // Ikon могут стоять подряд — порядок только от seed, без spreadPreferredItems
 
     const aliased = pickMixedSeasonHits({
       pool: [
@@ -355,6 +413,7 @@ describe('ikon season shelf', () => {
       season: 's',
       limit: 30,
       whitelist: summerWl,
+      seed: 'test-aliased',
     });
     expect(aliased.filter((i) => i.brand === 'Ikon')).toHaveLength(3);
     expect(aliased.some((i) => /Character Eco/i.test(i.model || i.title))).toBe(

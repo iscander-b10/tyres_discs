@@ -80,10 +80,12 @@ export const SHOWCASE_CONFIG = {
       { label: 'R17 PCD 5x112 ЦО 57.1', diameter: 'R17', pn: 5, pcd: 112, cb: 57.1 },
       { label: 'R18 PCD 5x114.3 ЦО 67.1', diameter: 'R18', pn: 5, pcd: 114.3, cb: 67.1 },
     ],
-    popularModelsCount: { min: 8, max: 12 },
-    /** Кандидаты из IDB (ранний лимит, не весь каталог). */
-    candidateLimit: 480,
-    minAmount: 1,
+    popularModelsCount: { min: 15, max: 15 },
+    /**
+     * Без раннего лимита IDB: на полку нужны ВСЕ литые Шинсервиса с amount >= minAmount.
+     * Лимит 15 — уже в buildDiscShowcase (seeded shuffle).
+     */
+    minAmount: 4,
   },
   copy: {
     seasonHits: 'Сейчас в сезоне',

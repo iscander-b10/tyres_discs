@@ -1,5 +1,8 @@
 import { isIkonBrand, resolveCatalogModel } from '../core';
 import { pickTopDiverse, scoreCatalogItem } from './scoring';
+import { shuffleItems } from './showcaseSeed';
+
+export { shuffleItems } from './showcaseSeed';
 
 export const normalizeIkonModelText = (value) =>
   String(value || '')
@@ -123,17 +126,8 @@ const pickWithSizeSpread = (grouped, limit, scoreFn) => {
   return picked;
 };
 
-/** Fisher–Yates: порядок полки вперемешку (Ikon не блоком в начале). */
-export const shuffleItems = (items) => {
-  const arr = [...items];
-  for (let i = arr.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-};
-
-/** После shuffle раздвигает preferred, чтобы они не шли подряд, пока хватает остальных. */
+/** После shuffle раздвигает preferred, чтобы они не шли подряд, пока хватает остальных.
+ * В сборке полки больше не вызывается (Ikon подряд — нормально); оставлено для тестов. */
 export const spreadPreferredItems = (items, isPreferred) => {
   const arr = [...items];
   for (let i = 1; i < arr.length; i += 1) {
@@ -239,7 +233,8 @@ export const pickWinterDiverse = (pool, limit, scoreFn = scoreCatalogItem) => {
 };
 
 /**
- * Полка до `limit`: уникальные Ikon из whitelist + остальные (brand+model), затем shuffle.
+ * Полка до `limit`: уникальные Ikon из whitelist + остальные (brand+model), затем
+ * seeded shuffle. Ikon подряд (2–3) — нормально; spreadPreferredItems не вызываем.
  * Сверх whitelist Ikon не добиваем, пока в пуле есть хотя бы один не-Ikon.
  */
 export const pickMixedSeasonHits = ({
@@ -248,6 +243,7 @@ export const pickMixedSeasonHits = ({
   limit,
   whitelist,
   scoreFn = scoreCatalogItem,
+  seed,
 }) => {
   if (!Array.isArray(pool) || limit <= 0) return [];
 
@@ -293,8 +289,5 @@ export const pickMixedSeasonHits = ({
     result = [...result, ...moreIkon];
   }
 
-  return spreadPreferredItems(
-    shuffleItems(result.slice(0, limit)),
-    isIkonBrand
-  );
+  return shuffleItems(result.slice(0, limit), seed);
 };

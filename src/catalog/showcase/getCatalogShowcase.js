@@ -3,6 +3,7 @@ import { isIkonBrand } from '../core';
 import { SHOWCASE_CONFIG } from './showcaseConfig';
 import { buildTireShowcase } from './buildTireShowcase';
 import { buildDiscShowcase } from './buildDiscShowcase';
+import { resolveShowcaseSeed } from './showcaseSeed';
 
 const cache = {
   tires: { workspace: null, version: null, payload: null, promise: null },
@@ -23,7 +24,8 @@ const loadTirePayload = async () => {
 const loadDiscPayload = async () => {
   const cfg = SHOWCASE_CONFIG.discs;
   return indexedDBService.collectDiscShowcaseCandidates({
-    candidateLimit: cfg.candidateLimit,
+    // Все in-stock Шинсервиса: лимит 480 отрезал бы пул «все литые».
+    candidateLimit: Number.POSITIVE_INFINITY,
     minAmount: cfg.minAmount,
     supplier: SHOWCASE_CONFIG.showcaseSupplier,
   });
@@ -31,11 +33,13 @@ const loadDiscPayload = async () => {
 
 /**
  * Загружает кандидатов из IDB (с cache по catalogDataVersion) и строит витрину.
+ * Кубик — от catalogSnapshotVersion (+ workspace), не от catalogDataVersion.
  * Showcase state отдельно от searchResults.
  */
 export const getCatalogShowcase = async ({
   kind,
   catalogDataVersion = 0,
+  catalogSnapshotVersion = '',
   workspaceResetKey = 'guest',
   now = new Date(),
 } = {}) => {
@@ -90,16 +94,24 @@ export const getCatalogShowcase = async ({
     throw new Error('Не удалось загрузить данные витрины');
   }
 
+  const seed = resolveShowcaseSeed({
+    catalogSnapshotVersion,
+    workspaceResetKey,
+    candidates: payload.candidates,
+  });
+
   if (bucketKey === 'tires') {
     return buildTireShowcase({
       candidates: payload.candidates,
       isEmpty: payload.isEmpty,
       now,
+      seed,
     });
   }
 
   return buildDiscShowcase({
     candidates: payload.candidates,
     isEmpty: payload.isEmpty,
+    seed,
   });
 };

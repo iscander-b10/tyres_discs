@@ -10,12 +10,14 @@ const clampCount = ({ min, max }, available) => {
 /**
  * Чистые правила витрины шин (без JSX).
  * Полка «Сейчас в сезоне»: уникальные Ikon (whitelist) + остальные (Шинсервис), до 30.
- * @param {{ candidates: object[], isEmpty: boolean, now?: Date }} input
+ * Порядок — seeded shuffle (один seed на snapshot.version).
+ * @param {{ candidates: object[], isEmpty: boolean, now?: Date, seed?: string|number }} input
  */
 export const buildTireShowcase = ({
   candidates,
   isEmpty,
   now = new Date(),
+  seed,
 }) => {
   const cfg = SHOWCASE_CONFIG.tires;
   const copy = SHOWCASE_CONFIG.copy;
@@ -45,6 +47,7 @@ export const buildTireShowcase = ({
     season,
     limit: seasonHitsLimit,
     whitelist,
+    seed,
   });
 
   const shelves = [];
