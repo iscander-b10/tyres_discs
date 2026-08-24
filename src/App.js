@@ -134,6 +134,7 @@ function AppFrame({ appearance = 'light', onAppearanceChange }) {
                       >
                         <TiresSearchParameters
                           key={`tires-${workspaceResetKey}-${sessionResetKey}`}
+                          isActive={backgroundPage === 'tyres'}
                         />
                       </div>
                       <div
@@ -147,6 +148,7 @@ function AppFrame({ appearance = 'light', onAppearanceChange }) {
                       >
                         <DiscsSearchParameters
                           key={`discs-${workspaceResetKey}-${sessionResetKey}`}
+                          isActive={backgroundPage === 'wheels'}
                         />
                       </div>
                     </>

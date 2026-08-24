@@ -89,7 +89,7 @@ describe('DiscsSearchParameters search races', () => {
 
     const view = render(
       <AppShellProvider value={shellValue(0)}>
-        <DiscsSearchParameters />
+        <DiscsSearchParameters isActive />
       </AppShellProvider>
     );
     const form = await screen.findByRole('form', {
@@ -104,7 +104,7 @@ describe('DiscsSearchParameters search races', () => {
     await act(async () => {
       view.rerender(
         <AppShellProvider value={shellValue(1)}>
-          <DiscsSearchParameters />
+          <DiscsSearchParameters isActive />
         </AppShellProvider>
       );
     });

@@ -33,7 +33,7 @@ const optionIncludesNumeric = (options, value) =>
 const optionIncludesDiameter = (options, value) =>
   Array.isArray(options) && options.some((option) => String(option) === String(value));
 
-const TiresSearchParameters = memo(() => {
+const TiresSearchParameters = memo(({ isActive = true }) => {
   const {
     clientMode: isClientMode,
     catalogDataVersion = 0,
@@ -56,6 +56,9 @@ const TiresSearchParameters = memo(() => {
   const mountedRef = useRef(true);
   const workspaceKeyRef = useRef(workspaceResetKey);
   workspaceKeyRef.current = workspaceResetKey;
+  /** Пока панель спала и catalog/workspace устарел — нужен один catch-up при активации. */
+  const needsCatchUpRef = useRef(true);
+  const isActiveRef = useRef(false);
   const brandSelectCloseOnMouseLeave = useCatalogSelectCloseOnMouseLeave();
   const selectedSeason = Form.useWatch('season', form) ?? DEFAULT_SEASON;
   const showSpikesFilter = selectedSeason === 'w';
@@ -106,13 +109,32 @@ const TiresSearchParameters = memo(() => {
   };
 
   useEffect(() => {
+    if (!isActive) {
+      // Уже спали и сменился catalog/workspace → пометить устаревшим.
+      // Первый уход в sleep (was active) не помечает stale сам по себе.
+      if (!isActiveRef.current) {
+        needsCatchUpRef.current = true;
+      }
+      isActiveRef.current = false;
+      return;
+    }
+
+    const justActivated = !isActiveRef.current;
+    isActiveRef.current = true;
+
+    // Keep-alive re-entry без stale: не трогаем IDB (фильтры/результаты на месте).
+    if (justActivated && !needsCatchUpRef.current) {
+      return;
+    }
+
+    needsCatchUpRef.current = false;
     loadAvailableParameters(buildFiltersFromFormValues(form.getFieldsValue()));
     // Перезапуск активного поиска без сброса фильтров (после cloud/local обновления IDB)
     if (searchResults !== null) {
       handleSearch(form.getFieldsValue(), { background: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [catalogDataVersion, workspaceResetKey]);
+  }, [catalogDataVersion, workspaceResetKey, isActive]);
 
   const loadAvailableParameters = async (filters = {}) => {
     const filtersWithSeason = { season: filters.season ?? DEFAULT_SEASON, ...filters };
@@ -478,7 +500,7 @@ const TiresSearchParameters = memo(() => {
         </div>
       </Form>
 
-      {showShowcase ? (
+      {showShowcase && isActive ? (
         <CatalogShowcase
           kind="tires"
           renderCard={renderCatalogCard}

@@ -29,7 +29,7 @@ const optionIncludesNumeric = (options, value) =>
 const optionIncludesString = (options, value) =>
   Array.isArray(options) && options.some((option) => String(option) === String(value));
 
-const DiscsSearchParameters = memo(() => {
+const DiscsSearchParameters = memo(({ isActive = true }) => {
   const {
     clientMode: isClientMode,
     catalogDataVersion = 0,
@@ -56,6 +56,9 @@ const DiscsSearchParameters = memo(() => {
   const mountedRef = useRef(true);
   const workspaceKeyRef = useRef(workspaceResetKey);
   workspaceKeyRef.current = workspaceResetKey;
+  /** Пока панель спала и catalog/workspace устарел — нужен один catch-up при активации. */
+  const needsCatchUpRef = useRef(true);
+  const isActiveRef = useRef(false);
 
   useEffect(() => {
     loadRequestIdRef.current += 1;
@@ -99,13 +102,32 @@ const DiscsSearchParameters = memo(() => {
   };
 
   useEffect(() => {
+    if (!isActive) {
+      // Уже спали и сменился catalog/workspace → пометить устаревшим.
+      // Первый уход в sleep (was active) не помечает stale сам по себе.
+      if (!isActiveRef.current) {
+        needsCatchUpRef.current = true;
+      }
+      isActiveRef.current = false;
+      return;
+    }
+
+    const justActivated = !isActiveRef.current;
+    isActiveRef.current = true;
+
+    // Keep-alive re-entry без stale: не трогаем IDB (фильтры/результаты на месте).
+    if (justActivated && !needsCatchUpRef.current) {
+      return;
+    }
+
+    needsCatchUpRef.current = false;
     loadAvailableParameters(buildFiltersFromFormValues(form.getFieldsValue()));
     // Перезапуск активного поиска без сброса фильтров (после cloud/local обновления IDB)
     if (searchResults !== null) {
       handleSearch(form.getFieldsValue(), { background: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [catalogDataVersion, workspaceResetKey]);
+  }, [catalogDataVersion, workspaceResetKey, isActive]);
 
   const loadAvailableParameters = async (filters = {}) => {
     const requestId = ++loadRequestIdRef.current;
@@ -568,7 +590,7 @@ const DiscsSearchParameters = memo(() => {
         </div>
       </Form>
 
-      {showShowcase ? (
+      {showShowcase && isActive ? (
         <CatalogShowcase
           kind="discs"
           renderCard={renderCatalogCard}

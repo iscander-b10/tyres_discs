@@ -87,7 +87,7 @@ describe('TiresSearchParameters search races', () => {
 
     const view = render(
       <AppShellProvider value={shellValue(0)}>
-        <TiresSearchParameters />
+        <TiresSearchParameters isActive />
       </AppShellProvider>
     );
     const form = await screen.findByRole('form', { name: 'Параметры поиска шин' });
@@ -100,7 +100,7 @@ describe('TiresSearchParameters search races', () => {
     await act(async () => {
       view.rerender(
         <AppShellProvider value={shellValue(1)}>
-          <TiresSearchParameters />
+          <TiresSearchParameters isActive />
         </AppShellProvider>
       );
     });
