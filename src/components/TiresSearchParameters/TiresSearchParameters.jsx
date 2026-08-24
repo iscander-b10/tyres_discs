@@ -17,6 +17,7 @@ import {
   useCatalogSelectCloseOnMouseLeave,
 } from '../shared/catalogSearchSelectProps';
 import { useAppShell } from '../../app/AppShellContext';
+import { mapTireFormValuesToSearchFilters } from '../../catalog/search/searchFormFilters';
 import './TiresSearchParameters.scss';
 
 const { Option } = Select;
@@ -192,18 +193,7 @@ const TiresSearchParameters = memo(() => {
     }
 
     try {
-      const searchParams = { ...values };
-      if (searchParams.spikes === null) {
-        delete searchParams.spikes;
-      }
-      if (searchParams.onlyAmountFrom4) {
-        searchParams.minAmount = 4;
-      }
-      delete searchParams.onlyAmountFrom4;
-      if (searchParams.onlyRunflat) {
-        searchParams.runflat = true;
-      }
-      delete searchParams.onlyRunflat;
+      const searchParams = mapTireFormValuesToSearchFilters(values);
       const dbResults = await indexedDBService.searchTires(searchParams);
       if (!isCurrentRequest()) {
         return;

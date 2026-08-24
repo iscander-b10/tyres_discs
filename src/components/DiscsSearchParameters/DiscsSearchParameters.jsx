@@ -15,6 +15,7 @@ import {
   useCatalogSelectCloseOnMouseLeave,
 } from '../shared/catalogSearchSelectProps';
 import { useAppShell } from '../../app/AppShellContext';
+import { mapDiscFormValuesToSearchFilters } from '../../catalog/search/searchFormFilters';
 import './DiscsSearchParameters.scss';
 
 const { Option } = Select;
@@ -210,13 +211,7 @@ const DiscsSearchParameters = memo(() => {
     }
 
     try {
-      const searchParams = { ...values };
-
-      if (searchParams.onlyAmountFrom4) {
-        searchParams.minAmount = 4;
-      }
-      delete searchParams.onlyAmountFrom4;
-
+      const searchParams = mapDiscFormValuesToSearchFilters(values);
       const dbResults = await indexedDBService.searchDiscs(searchParams);
       if (!isCurrentRequest()) {
         return;

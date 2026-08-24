@@ -330,6 +330,32 @@ const matchesDiscParameterFilters = (item, filters = {}) => {
   return true;
 };
 
+const resolveMinAmountFilter = (filters = {}) => {
+  if (filters.minAmount === undefined || filters.minAmount === null) return null;
+  const minAmountNumber = Number(filters.minAmount);
+  return Number.isNaN(minAmountNumber) ? null : minAmountNumber;
+};
+
+const matchesMinAmount = (item, filters = {}) => {
+  const minAmountNumber = resolveMinAmountFilter(filters);
+  if (minAmountNumber === null) return true;
+  const amountNumber = Number(item?.amount);
+  return !Number.isNaN(amountNumber) && amountNumber >= minAmountNumber;
+};
+
+/** Чистый matcher поиска шин (размер, бренд, шипы, runflat, minAmount). */
+export const matchesTireSearchFilters = (item, filters = {}) =>
+  matchesTireParameterFilters(item, filters) &&
+  matchesBrandFilter(item.brand, filters.brand) &&
+  (!filters.supplier || item.supplier === filters.supplier) &&
+  (filters.spikes === undefined || item.spikes === filters.spikes) &&
+  (filters.runflat !== true || item.runflat === true) &&
+  matchesMinAmount(item, filters);
+
+/** Чистый matcher поиска дисков (геометрия, бренд, minAmount). */
+export const matchesDiscSearchFilters = (item, filters = {}) =>
+  matchesDiscParameterFilters(item, filters) && matchesMinAmount(item, filters);
+
 const addUniqueValue = (set, value) => {
   if (value != null) {
     set.add(value);
@@ -1139,23 +1165,7 @@ class IndexedDBService {
         const cursor = request.result;
         if (cursor) {
           const tire = cursor.value;
-          const tireAmountNumber = Number(tire.amount);
-          const minAmountNumber =
-            filters.minAmount === undefined || filters.minAmount === null
-              ? null
-              : Number(filters.minAmount);
-
-          const matches =
-            matchesTireParameterFilters(tire, filters) &&
-            matchesBrandFilter(tire.brand, filters.brand) &&
-            (!filters.supplier || tire.supplier === filters.supplier) &&
-            (filters.spikes === undefined || tire.spikes === filters.spikes) &&
-            (filters.runflat !== true || tire.runflat === true) &&
-            (minAmountNumber === null ||
-              (!Number.isNaN(tireAmountNumber) &&
-                tireAmountNumber >= minAmountNumber));
-
-          if (matches) {
+          if (matchesTireSearchFilters(tire, filters)) {
             results.push(tire);
           }
 
@@ -1285,19 +1295,7 @@ class IndexedDBService {
         const cursor = request.result;
         if (cursor) {
           const disc = cursor.value;
-          const discAmountNumber = Number(disc.amount);
-          const minAmountNumber =
-            filters.minAmount === undefined || filters.minAmount === null
-              ? null
-              : Number(filters.minAmount);
-
-          const matches =
-            matchesDiscParameterFilters(disc, filters) &&
-            (minAmountNumber === null ||
-              (!Number.isNaN(discAmountNumber) &&
-                discAmountNumber >= minAmountNumber));
-
-          if (matches) {
+          if (matchesDiscSearchFilters(disc, filters)) {
             results.push(disc);
           }
 

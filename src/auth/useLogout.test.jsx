@@ -7,9 +7,10 @@ const mockDetach = jest.fn();
 const mockFlush = jest.fn();
 const mockLogout = jest.fn();
 const mockNavigate = jest.fn();
+const mockClear = jest.fn();
 
 jest.mock('../cart/CartContext', () => ({
-  useCart: () => ({ flush: mockFlush, detach: mockDetach }),
+  useCart: () => ({ flush: mockFlush, detach: mockDetach, clear: mockClear }),
 }));
 jest.mock('./AuthContext', () => ({
   useAuth: () => ({
@@ -61,5 +62,6 @@ test('logout выполняет flush, detach/invalidate, auth clear и replace 
   expect(mockLogout.mock.invocationCallOrder[0]).toBeLessThan(
     mockNavigate.mock.invocationCallOrder[0]
   );
+  expect(mockClear).not.toHaveBeenCalled();
   await act(async () => root.unmount());
 });

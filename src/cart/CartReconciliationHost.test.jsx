@@ -128,6 +128,34 @@ describe('CartReconciliationHost', () => {
     expect(reconcileCatalog).toHaveBeenCalledWith(latest);
   });
 
+  test('смена catalogSnapshotVersion запускает новое чтение', async () => {
+    indexedDBService.readCartCatalogItems.mockResolvedValue({
+      version: '2026-08-23T10:00:00Z',
+      results: [],
+    });
+    await render();
+    await act(async () => Promise.resolve());
+
+    catalogSnapshotVersion = '2026-08-23T11:00:00Z';
+    indexedDBService.readCartCatalogItems.mockResolvedValue({
+      version: '2026-08-23T11:00:00Z',
+      results: [],
+    });
+    await act(async () => {
+      root.render(<CartReconciliationHost />);
+      await Promise.resolve();
+    });
+    await act(async () => Promise.resolve());
+
+    expect(
+      indexedDBService.readCartCatalogItems.mock.calls.length
+    ).toBeGreaterThanOrEqual(2);
+    expect(reconcileCatalog).toHaveBeenCalledWith({
+      version: '2026-08-23T11:00:00Z',
+      results: [],
+    });
+  });
+
   test('не применяет завершившееся чтение после размонтирования', async () => {
     const read = deferred();
     indexedDBService.readCartCatalogItems.mockReturnValue(read.promise);

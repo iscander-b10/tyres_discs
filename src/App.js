@@ -199,6 +199,28 @@ function AppReady({ children }) {
   return children;
 }
 
+export function AppRoutes({ appearance = 'light', onAppearanceChange }) {
+  return (
+    <Routes>
+      <Route
+        element={
+          <AppFrame
+            appearance={appearance}
+            onAppearanceChange={onAppearanceChange}
+          />
+        }
+      >
+        <Route index element={<HomeRoute />} />
+        <Route path="tyres" element={<RequireAuth />} />
+        <Route path="wheels" element={<RequireAuth />} />
+        <Route path="basket" element={<BasketGuard />} />
+        <Route path="login" element={<LoginRouteRedirect />} />
+      </Route>
+      <Route path="*" element={<UnmatchedRoute />} />
+    </Routes>
+  );
+}
+
 function App({ appearance = 'light', onAppearanceChange }) {
   return (
     <BrowserRouter basename={ROUTER_BASENAME}>
@@ -207,23 +229,10 @@ function App({ appearance = 'light', onAppearanceChange }) {
           <CartProvider>
             <WorkspaceHosts />
             <AppReady>
-              <Routes>
-                <Route
-                  element={
-                    <AppFrame
-                      appearance={appearance}
-                      onAppearanceChange={onAppearanceChange}
-                    />
-                  }
-                >
-                  <Route index element={<HomeRoute />} />
-                  <Route path="tyres" element={<RequireAuth />} />
-                  <Route path="wheels" element={<RequireAuth />} />
-                  <Route path="basket" element={<BasketGuard />} />
-                  <Route path="login" element={<LoginRouteRedirect />} />
-                </Route>
-                <Route path="*" element={<UnmatchedRoute />} />
-              </Routes>
+              <AppRoutes
+                appearance={appearance}
+                onAppearanceChange={onAppearanceChange}
+              />
             </AppReady>
           </CartProvider>
         </AppShellProvider>

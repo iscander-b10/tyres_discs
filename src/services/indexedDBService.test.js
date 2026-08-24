@@ -253,6 +253,38 @@ describe('CatalogDatabase: replace по supplier', () => {
     ).rejects.toBe(error);
     expect(database.getTires()).toEqual([tire('old-a'), tire('old-b', supplierB)]);
   });
+
+  test('replace с пустым набором удаляет только строки этого поставщика', async () => {
+    const database = createFakeCatalogDatabase({
+      tires: [tire('old-a'), tire('keep-b', supplierB)],
+      discs: [disc('disc-a')],
+    });
+    mountCatalogDb(database);
+
+    await expect(
+      indexedDBService.replaceTiresForSupplier(supplierA, [])
+    ).resolves.toEqual({ saved: 0, skipped: 0 });
+
+    expect(database.getTires()).toEqual([tire('keep-b', supplierB)]);
+    expect(database.getDiscs()).toEqual([disc('disc-a')]);
+  });
+
+  test('ошибка второго put откатывает удаление и первый put', async () => {
+    const error = makeError('UnknownError', 'second put failed');
+    const database = createFakeCatalogDatabase(
+      { tires: [tire('old-a'), tire('old-b', supplierB)] },
+      { type: 'put', putIndex: 1, error }
+    );
+    mountCatalogDb(database);
+
+    await expect(
+      indexedDBService.replaceTiresForSupplier(supplierA, [
+        tire('new-1'),
+        tire('new-2'),
+      ])
+    ).rejects.toBe(error);
+    expect(database.getTires()).toEqual([tire('old-a'), tire('old-b', supplierB)]);
+  });
 });
 
 describe('CatalogDatabase: applyCatalogSnapshot', () => {
@@ -359,6 +391,51 @@ describe('CatalogDatabase: applyCatalogSnapshot', () => {
 
     expect(database.getTires()).toEqual([tire('keep-me')]);
     expect(database.getDiscs()).toEqual([disc('disc-keep')]);
+  });
+
+  test('empty replace очищает только указанного поставщика', async () => {
+    const database = createFakeCatalogDatabase({
+      tires: [tire('a-1'), tire('b-1', supplierB)],
+      discs: [disc('da-1'), disc('db-1', supplierB)],
+      metadata: { [CATALOG_METADATA_KEYS.snapshotVersion]: versionV1 },
+    });
+    mountCatalogDb(database);
+
+    await indexedDBService.applyCatalogSnapshot(
+      [
+        {
+          supplier: supplierA,
+          category: CATALOG_STORES.tires,
+          action: 'replace',
+          items: [],
+        },
+        {
+          supplier: supplierB,
+          category: CATALOG_STORES.tires,
+          action: 'keepPrevious',
+        },
+        {
+          supplier: supplierA,
+          category: CATALOG_STORES.discs,
+          action: 'keepPrevious',
+        },
+        {
+          supplier: supplierB,
+          category: CATALOG_STORES.discs,
+          action: 'keepPrevious',
+        },
+      ],
+      versionV2
+    );
+
+    expect(database.getTires()).toEqual([tire('b-1', supplierB)]);
+    expect(database.getDiscs()).toEqual([
+      disc('da-1'),
+      disc('db-1', supplierB),
+    ]);
+    expect(database.getMetadata(CATALOG_METADATA_KEYS.snapshotVersion)).toBe(
+      versionV2
+    );
   });
 
   test('metadata version не меняется при abort', async () => {

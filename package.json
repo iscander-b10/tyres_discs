@@ -20,6 +20,7 @@
     "prebuild": "node scripts/generate-auth-verifier.js production",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "test:ci": "react-scripts test --watchAll=false",
     "eject": "react-scripts eject",
     "predeploy": "npm run build && node -e \"require('fs').copyFileSync('build/index.html', 'build/404.html'); require('fs').writeFileSync('build/.nojekyll', '')\"",
     "deploy": "gh-pages -d build"
@@ -42,6 +43,11 @@
     ]
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "fake-indexeddb": "^4.0.2",
     "gh-pages": "^6.3.0"
   }
 }
