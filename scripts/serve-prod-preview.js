@@ -4,7 +4,8 @@
  * Prerequisite: `npm run build` with the same REACT_APP_* as Pages
  * (via `.env` / `.env.production` / `.env.production.local` — no secrets in docs).
  *
- * Open: http://localhost:<port>/tyres_discs/
+ * Open: http://127.0.0.1:<port>/tyres_discs/
+ * (prefer 127.0.0.1 — on Windows `localhost` often resolves to ::1 first)
  *
  * IndexedDB is origin-scoped: localhost preview never shares DB with github.io.
  */
@@ -14,11 +15,13 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { URL } = require('url');
+const { exec } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
 const BUILD = path.join(ROOT, 'build');
 const BASENAME = '/tyres_discs';
 const PORT = Number(process.env.PORT || process.argv[2] || 5000);
+const OPEN_BROWSER = process.env.BROWSER !== 'none';
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -70,6 +73,19 @@ if (!fs.existsSync(path.join(BUILD, 'index.html'))) {
   process.exit(1);
 }
 
+function openBrowser(url) {
+  if (!OPEN_BROWSER) return;
+  const cmd =
+    process.platform === 'win32'
+      ? `cmd /c start "" "${url}"`
+      : process.platform === 'darwin'
+        ? `open "${url}"`
+        : `xdg-open "${url}"`;
+  exec(cmd, (err) => {
+    if (err) console.warn('Could not open browser:', err.message);
+  });
+}
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url || '/', `http://127.0.0.1:${PORT}`);
   const pathname = url.pathname;
@@ -114,7 +130,21 @@ const server = http.createServer((req, res) => {
   sendFile(res, path.join(BUILD, 'index.html'));
 });
 
-server.listen(PORT, '127.0.0.1', () => {
-  console.log(`Production preview (Pages-like): http://localhost:${PORT}${BASENAME}/`);
-  console.log('Uses REACT_APP_* from the last build. IndexedDB is per-origin (not shared with github.io).');
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use. Try: set PORT=5001&& npm run preview:prod`);
+  } else {
+    console.error(err);
+  }
+  process.exit(1);
+});
+
+// Bind IPv4 + IPv6 when available. Prefer printing 127.0.0.1 — some Windows
+// browsers resolve `localhost` to ::1 only and fail if IPv6 listen is off.
+server.listen(PORT, () => {
+  const url = `http://127.0.0.1:${PORT}${BASENAME}/`;
+  console.log(`Production preview (Pages-like): ${url}`);
+  console.log('Keep this terminal open. Uses REACT_APP_* from the last build.');
+  console.log('IndexedDB is per-origin (not shared with github.io).');
+  openBrowser(url);
 });

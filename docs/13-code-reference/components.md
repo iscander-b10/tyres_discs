@@ -67,7 +67,7 @@ export default function LoginPage()
 | --- | --- | --- |
 | `form`, options, loading/error и `searchResults` | Form + локальный `useState` компонента | remount по `sessionResetKey`; effect reset при смене `workspaceResetKey`; inactive catch-up после catalog update |
 | `catalogDataVersion` | `useAppShell` | bump после apply snapshot |
-| Race guards | `searchRequestIdRef`, `foregroundRequestIdRef`, `loadRequestIdRef`, `workspaceKeyRef`, `mountedRef` | stale search/facets/workspace/unmount; spinner «Найти»; сброс фильтров через `invalidateCatalogSearchRequest` |
+| Race guards | `searchRequestIdRef`, `foregroundRequestIdRef`, `loadRequestIdRef`, `workspaceKeyRef`, `mountedRef` | stale search/facets/workspace/unmount; setup `mountedRef=true` для StrictMode remount; spinner «Найти»; сброс фильтров через `invalidateCatalogSearchRequest` |
 
 **Ключевые вызовы поиска:** `mapTireFormValuesToSearchFilters` /
 `mapDiscFormValuesToSearchFilters` → facade

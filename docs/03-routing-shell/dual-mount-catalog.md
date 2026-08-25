@@ -77,7 +77,7 @@ stateDiagram-v2
 Refs разделяют UI state и защиту async:
 
 - request ids отмечают последний допустимый load/search;
-- `mountedRef` запрещает commit после unmount;
+- `mountedRef` запрещает commit после unmount; setup снова ставит `true` — иначе StrictMode (`npm start`) оставляет флаг ложным;
 - `workspaceKeyRef` запрещает commit из прежнего workspace;
 - `needsCatchUpRef` отмечает скрытую устаревшую панель;
 - `isActiveRef` отличает переходы sleep/wake.
@@ -205,7 +205,7 @@ Prop сам по себе не очищает все `useState`, Form instance �
 - [`TiresSearchParameters.searchRace.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/components/TiresSearchParameters/TiresSearchParameters.searchRace.test.jsx)
 - [`DiscsSearchParameters.searchRace.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/components/DiscsSearchParameters/DiscsSearchParameters.searchRace.test.jsx)
 
-Они подтверждают, что старый async result после catalog version change не возвращается в UI поверх нового, и что сброс фильтров во время pending гасит spinner и не применяет поздний ответ.
+Они подтверждают, что старый async result после catalog version change не возвращается в UI поверх нового, что сброс фильтров во время pending гасит spinner и не применяет поздний ответ, и что в `React.StrictMode` «Найти» settle’ит список и гасит кнопку.
 
 ## Ошибки и крайние случаи
 
@@ -229,6 +229,7 @@ Prop сам по себе не очищает все `useState`, Form instance �
 7. Удалить session key из обеих panels и сломать «новый подбор» по бренду.
 8. Сбросить basket по session key, непреднамеренно изменив cart UX.
 9. Исправить алгоритм только для шин или только для дисков.
+10. Cleanup `mountedRef=false` без `true` в setup — «Найти» на `npm start` крутится вечно.
 
 ## Связанные страницы
 

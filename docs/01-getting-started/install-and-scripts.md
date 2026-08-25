@@ -33,7 +33,7 @@ npm start
 
 Basename приложения: `/tyres_discs` (из `homepage` в `package.json` → `PUBLIC_URL`).
 
-Для UI и hot reload — `npm start`. Чтобы локально гонять **тот же production-путь**, что на GitHub Pages (поиск после sync, без StrictMode/dev proxy), см. ниже и [Сборка и deploy](/01-getting-started/dev-production-deploy).
+Для UI и hot reload — `npm start` (включён `React.StrictMode`). Если «Найти» крутится без конца, а `preview:prod` ок — это не «нет каталога», см. [Troubleshooting](/14-development/troubleshooting). Чтобы локально гонять **тот же production-путь**, что на GitHub Pages (поиск после sync, без StrictMode/dev proxy), см. ниже и [Сборка и deploy](/01-getting-started/dev-production-deploy).
 
 ## Production preview (как GitHub Pages)
 
@@ -44,7 +44,7 @@ npm run start:prod
 # или: npm run build && npm run preview:prod
 ```
 
-Откройте `http://localhost:5000/tyres_discs/`.
+Откройте `http://127.0.0.1:5000/tyres_discs/` (скрипт обычно открывает браузер сам). Терминал не закрывайте.
 
 | Script | Что делает |
 | --- | --- |

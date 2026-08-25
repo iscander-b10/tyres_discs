@@ -64,7 +64,7 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 
 | Группа | Файлы | Фокус |
 | --- | --- | --- |
-| search | `searchFormFilters.test.js`, `searchFormCascade.test.js` | form → filters; skip/debounce/spinner; invalidate reset; search timeout |
+| search | `searchFormFilters.test.js`, `searchFormCascade.test.js` | form → filters; skip/debounce/spinner; invalidate reset; settle skip if unmounted; search timeout |
 | core | `isIkonBrand`, `resolveCatalogModel`, `mergePreferred*` | pure domain |
 | showcase | `getCatalogShowcase`, `buildTire/Disc`, `scoring`, `showcaseSeed`, `ikonSeasonHits`, `preferredCandidates` | vitrine algorithms |
 | misc | `catalogRevalidation.test.js` | **test-local algorithm copy** — не production contract |
@@ -78,8 +78,8 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 | Файл | Инварианты |
 | --- | --- |
 | `SiteHeader.test.jsx` | cart badge, auth links |
-| `TiresSearchParameters.searchRace.test.jsx` | stale request discard, spinner, skip facets, reset during pending, pending не blank, timeout |
-| `DiscsSearchParameters.searchRace.test.jsx` | stale request discard, spinner, skip facets, reset during pending, pending не blank, timeout |
+| `TiresSearchParameters.searchRace.test.jsx` | stale request discard, spinner, skip facets, reset during pending, pending не blank, timeout, StrictMode settle |
+| `DiscsSearchParameters.searchRace.test.jsx` | stale request discard, spinner, skip facets, reset during pending, pending не blank, timeout, StrictMode settle |
 | `CatalogShowcase.appLog.test.jsx` | error logging on showcase fail |
 
 **Страница:** [Async race guards](/08-search-showcase/async-race-guards).

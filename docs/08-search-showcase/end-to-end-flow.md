@@ -192,7 +192,7 @@ mapDiscFormValuesToSearchFilters(values)
 | `searchRequestIdRef` | SearchParameters | поздний ответ старого поиска |
 | `loadRequestIdRef` | SearchParameters | устаревшие facets |
 | `workspaceKeyRef` | SearchParameters | смена workspace mid-request |
-| `mountedRef` | SearchParameters | unmount компонента |
+| `mountedRef` | SearchParameters | unmount; setup ставит `true` (StrictMode remount) |
 | `requestIdRef` | CatalogShowcase | устаревшая витрина |
 | `generation` | catalogIdbSession | commit/reset IDB mid-cursor |
 
@@ -228,7 +228,7 @@ setSearchResults(dbResults);
 
 **Background-поиск** (`{ background: true }`) — после обновления каталога (`catalogDataVersion`): не сбрасывает `searchResults`, не показывает spinner, но обновляет данные если request актуален.
 
-**Тесты:** `TiresSearchParameters.searchRace.test.jsx`, `DiscsSearchParameters.searchRace.test.jsx`
+**Тесты:** `TiresSearchParameters.searchRace.test.jsx`, `DiscsSearchParameters.searchRace.test.jsx` (включая рендер в `React.StrictMode`).
 
 ---
 
@@ -371,6 +371,7 @@ sequenceDiagram
 | Не сбросить RAM-кэш после snapshot | stale каталог до reload |
 | Убрать `searchRequestIdRef` check | stale results перетирают новые |
 | Сброс фильтров без `invalidateCatalogSearchRequest` | spinner «Найти» не гаснет, поздний поиск заполняет витрину |
+| Cleanup `mountedRef=false` без `true` в setup | вечный spinner «Найти» только на `npm start` (StrictMode) |
 | Foreground `setSearchResults(null)` до await | blank UI со spinner |
 | Менять семантику `null` vs `[]` для `searchResults` | сломается переключение витрина/empty/list |
 | Добавлять товар в корзину без fresh IDB read | устаревшая цена/остаток в корзине |

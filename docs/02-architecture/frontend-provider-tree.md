@@ -73,7 +73,7 @@ flowchart TD
 
 Порядок подключения:
 
-1. `React.StrictMode` помогает обнаруживать небезопасные side effects в development. В частности, mount-effect может пройти цикл setup → cleanup → setup; эффекты обязаны корректно очищать listeners, timers и незавершённые операции.
+1. `React.StrictMode` помогает обнаруживать небезопасные side effects в development. В частности, mount-effect может пройти цикл setup → cleanup → setup; эффекты обязаны корректно очищать listeners, timers и незавершённые операции. Поисковые панели в setup снова ставят `mountedRef.current = true` — иначе «Найти» на `npm start` не settle’ит, а production-бандл выглядит исправным.
 2. `Root` владеет темой.
 3. `ConfigProvider` передаёт русскую locale, theme tokens и CSS-класс tooltip компонентам Ant Design.
 4. `AntdApp component={false}` создаёт контекст для notification/message/modal API без дополнительного DOM-контейнера.
@@ -277,7 +277,7 @@ Generation guard не даёт позднему `restore` перезаписат
 - Pending restore: интерфейс маршрута временно не рисуется; специального spinner сейчас нет.
 - Workspace отсутствует: sync hosts не монтируются, корзина не загружается, active IndexedDB store инвалидируется.
 - Смена workspace: keyed hosts и reset keys не дают старым данным попасть в новую область.
-- StrictMode development: эффекты могут запускаться повторно с cleanup между запусками; это не production double mount.
+- StrictMode development: эффекты могут запускаться повторно с cleanup между запусками; это не production double mount. Ref, который cleanup ставит в `false`, нужно вернуть в `true` в следующем setup (`mountedRef` поиска).
 - Demo mode сейчас не включён: `isDemo=false`; отдельного JSON provider нет.
 
 ## Checklist при изменении композиции

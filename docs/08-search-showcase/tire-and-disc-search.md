@@ -69,7 +69,7 @@
 | `loadingSearchRef` | актуальный loading без stale closure в catch-up effect |
 | `optionsReadyRef` | уже были успешные options — не крутить Select повторно |
 | `cascadeTimerRef` | debounce каскада ~16 ms |
-| `mountedRef` | unmount guard |
+| `mountedRef` | unmount guard; setup обязан ставить `true` (StrictMode remount сохраняет ref) |
 | `workspaceKeyRef` | актуальный workspace в async closure |
 | `needsCatchUpRef`, `isActiveRef` | keep-alive / stale catch-up |
 
@@ -85,7 +85,7 @@ showSpikesFilter = selectedSeason === 'w'
 ### Effects
 
 1. **`[workspaceResetKey]`** — полный reset: форма, результаты, опции, инкремент request ids.
-2. **Unmount cleanup** — `mountedRef = false`, инкремент ids.
+2. **Mounted flag** — setup: `mountedRef.current = true`; cleanup: `false` + инкремент load/search ids + сброс debounce каскада. Без `true` в setup development StrictMode оставляет флаг ложным → «Найти» не settle’ит.
 3. **`[catalogDataVersion, workspaceResetKey, isActive]`** — catch-up при активации или обновлении каталога: reload facets + background search если уже были результаты.
 
 ### Обработчики событий
@@ -130,7 +130,7 @@ Form (всегда)
 
 ### Связанные тесты
 
-- `TiresSearchParameters.searchRace.test.jsx` — stale searchRequestId; сброс во время in-flight гасит spinner и игнорирует поздний ответ; pending «Найти» не blank (витрина + статус); timeout гасит spinner
+- `TiresSearchParameters.searchRace.test.jsx` — stale searchRequestId; сброс во время in-flight гасит spinner и игнорирует поздний ответ; pending «Найти» не blank (витрина + статус); timeout гасит spinner; рендер в `React.StrictMode` settle’ит «Найти»
 - `App.catalogDualMount.test.jsx` — discs не вызывается на вкладке шин
 
 ### Пример взаимодействия
@@ -146,6 +146,7 @@ Form (всегда)
 - Забыть `invalidateCatalogSearchRequest` в `handleResetFilters` → spinner «Найти» живёт, пока не settle Promise; поздний ответ может снова заполнить список
 - Снова обнулять `searchResults` в foreground `handleSearch` до await → blank UI со spinner, пока IDB/CPU заняты
 - Убрать `withCatalogSearchTimeout` → зависший `searchTires`/`searchDiscs` оставляет кнопку `loading` навсегда
+- Cleanup `mountedRef=false` без `true` в setup → на `npm start` вечный spinner «Найти»; production-бандл выглядит «исправным»
 
 ---
 
@@ -181,7 +182,7 @@ Form (всегда)
 
 ### Тесты
 
-`DiscsSearchParameters.searchRace.test.jsx` — stale request id, StaleCatalogStoreError, сброс во время in-flight, pending не blank, timeout.
+`DiscsSearchParameters.searchRace.test.jsx` — stale request id, StaleCatalogStoreError, сброс во время in-flight, pending не blank, timeout, StrictMode settle «Найти».
 
 ---
 

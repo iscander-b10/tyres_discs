@@ -107,11 +107,15 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
     form.resetFields();
   }, [form, workspaceResetKey]);
 
-  useEffect(() => () => {
-    mountedRef.current = false;
-    loadRequestIdRef.current += 1;
-    searchRequestIdRef.current += 1;
-    clearDebounced(cascadeTimerRef);
+  useEffect(() => {
+    // StrictMode (npm start) делает setup → cleanup → setup и сохраняет тот же ref.
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      loadRequestIdRef.current += 1;
+      searchRequestIdRef.current += 1;
+      clearDebounced(cascadeTimerRef);
+    };
   }, []);
 
   const buildFiltersFromFormValues = (allValues = {}) => {

@@ -84,14 +84,21 @@ setSearchResults(dbResults);
 ```js
 const mountedRef = useRef(true);
 
-useEffect(() => () => {
-  mountedRef.current = false;
-  loadRequestIdRef.current += 1;
-  searchRequestIdRef.current += 1;
+useEffect(() => {
+  mountedRef.current = true;
+  return () => {
+    mountedRef.current = false;
+    loadRequestIdRef.current += 1;
+    searchRequestIdRef.current += 1;
+  };
 }, []);
 ```
 
-`isCurrentRequest()` включает `mountedRef.current` — после unmount setState не вызывается.
+`isCurrentRequest()` включает `mountedRef.current` — после настоящего unmount setState не вызывается.
+
+**Setup обязан ставить `mountedRef.current = true`.** `useRef(true)` задаёт значение только при создании ref. В development React.StrictMode (`src/index.js`, `npm start`) прогоняет эффект как `setup → cleanup → setup` и **восстанавливает тот же объект ref**. Cleanup ставит `false`; без `true` в следующем setup флаг остаётся ложным на весь lifetime панели.
+
+Production (`preview:prod`, GitHub Pages) эти проверки no-op: cleanup не вызывается «для проверки», симптом не воспроизводится.
 
 ---
 
@@ -190,6 +197,7 @@ if (!background) {
 settleCatalogSearchLoading({ background, requestId, ... });
 ```
 
+- Если `mountedRef.current === false` — **ранний return без `setLoadingSearch(false)`** (нельзя setState после unmount). Поэтому remount/StrictMode обязан вернуть `mountedRef` в `true` в setup, иначе кнопка «Найти» крутится вечно.
 - Актуальный request (любой) гасит spinner.
 - Устаревший foreground гасит spinner, только если он всё ещё «владелец» (`foregroundRequestIdRef`).
 - `StaleCatalogStoreError` — expected: spinner гасится, `errorSearch` не пишется.
@@ -221,9 +229,9 @@ sequenceDiagram
 
 | Тест | Инвариант |
 | --- | --- |
-| `TiresSearchParameters.searchRace.test.jsx` | поздний stale id не перетирает latest; spinner гаснет на StaleCatalogStoreError; чекбоксы не бьют facets; сброс во время pending гасит spinner; pending не blank; timeout гасит spinner |
+| `TiresSearchParameters.searchRace.test.jsx` | поздний stale id не перетирает latest; spinner гаснет на StaleCatalogStoreError; чекбоксы не бьют facets; сброс во время pending гасит spinner; pending не blank; timeout гасит spinner; StrictMode: «Найти» settle’ит список и гасит кнопку |
 | `DiscsSearchParameters.searchRace.test.jsx` | то же для дисков |
-| `searchFormCascade.test.js` | `invalidateCatalogSearchRequest` делает поиск stale; late settle не трогает spinner; `withCatalogSearchTimeout` отклоняет hanging Promise |
+| `searchFormCascade.test.js` | `invalidateCatalogSearchRequest` делает поиск stale; late settle не трогает spinner; settle при `mountedRef=false` не вызывает setState; `withCatalogSearchTimeout` отклоняет hanging Promise |
 | `catalogIdbSession.readStoreAll.test.js` | abort hydrate без `request.onsuccess` отклоняет Promise; timeout `getAll` |
 | `App.catalogDualMount.test.jsx` | неактивная панель не вызывает search |
 
@@ -256,6 +264,7 @@ addItem(currentItem, category);
 | Ошибка | Симптом |
 | --- | --- |
 | Забыть инкремент id при reset workspace или «Сбросить фильтры» | ghost results / вечный spinner «Найти» |
+| Cleanup `mountedRef=false` без `mountedRef.current = true` в setup | `npm start`: вечный spinner «Найти»; `preview:prod` / Pages ок |
 | setState без mounted check | React warning после unmount |
 | Background search с `setSearchResults(null)` | flash empty / showcase |
 | Foreground search с `setSearchResults(null)` до await | blank UI со spinner, пока hydrate/cursor заняты |

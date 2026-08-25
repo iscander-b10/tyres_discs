@@ -236,6 +236,34 @@ describe('TiresSearchParameters search races', () => {
     expect(indexedDBService.searchTires).toHaveBeenCalledTimes(1);
   });
 
+  test('StrictMode: «Найти» гасит spinner и показывает результаты', async () => {
+    indexedDBService.searchTires.mockResolvedValue([
+      { id: 'strict', title: 'StrictMode шина' },
+    ]);
+
+    render(
+      <React.StrictMode>
+        <AppShellProvider value={shellValue(0)}>
+          <TiresSearchParameters isActive />
+        </AppShellProvider>
+      </React.StrictMode>
+    );
+    const form = await screen.findByRole('form', { name: 'Параметры поиска шин' });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      fireEvent.submit(form);
+    });
+
+    expect(await screen.findByText('StrictMode шина')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Найти' })).not.toHaveClass(
+      'ant-btn-loading'
+    );
+    expect(screen.queryByTestId('catalog-search-status')).not.toBeInTheDocument();
+  });
+
   test('пока «Найти» pending, витрина и статус остаются; после resolve — список без spinner', async () => {
     const pending = deferred();
     indexedDBService.searchTires.mockReturnValueOnce(pending.promise);

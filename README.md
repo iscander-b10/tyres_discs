@@ -21,7 +21,7 @@ npm start
 npm run start:prod
 ```
 
-Откройте [http://localhost:5000/tyres_discs/](http://localhost:5000/tyres_discs/). IndexedDB на localhost не общий с github.io. Подробнее: `docs/01-getting-started/dev-production-deploy.md`.
+Откройте [http://127.0.0.1:5000/tyres_discs/](http://127.0.0.1:5000/tyres_discs/) (терминал оставьте открытым). IndexedDB на localhost не общий с github.io. Подробнее: `docs/01-getting-started/dev-production-deploy.md`.
 
 ## Скрипты
 

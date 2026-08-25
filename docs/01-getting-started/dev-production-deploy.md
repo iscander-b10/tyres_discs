@@ -12,7 +12,9 @@
 | Проверить поиск/sync «как на Pages» | `npm run start:prod` | Production-бандл + статика с basename `/tyres_discs` |
 | Уже есть `build/` — только раздать | `npm run preview:prod` | То же без повторной сборки |
 
-`npm start` **не** обязан совпадать с github.io по скорости «Найти»: другой origin → другая IndexedDB, холодный hydrate, очередь за `applyCatalogSnapshot`, StrictMode. Кнопка одна; расхождение — окружение.
+`npm start` **не** обязан совпадать с github.io по **скорости** «Найти»: другой origin → другая IndexedDB, холодный hydrate, очередь за `applyCatalogSnapshot`. Кнопка одна; медленнее — окружение.
+
+Вечный spinner на `npm start` при живом `preview:prod` — **не** «просто другая IDB». В development `React.StrictMode` прогоняет effects `setup → cleanup → setup`; поисковые панели обязаны в setup возвращать `mountedRef.current = true`. См. [гонки](/08-search-showcase/async-race-guards) и [troubleshooting](/14-development/troubleshooting).
 
 Локальный preview **не** шарит IndexedDB с Pages (`localhost` ≠ `*.github.io`). После первого успешного catalog sync поиск ведёт себя как на Pages (тот же бандл и production-путь к Gateway).
 
@@ -64,7 +66,7 @@ npm run build
 npm run preview:prod
 ```
 
-Откройте `http://localhost:5000/tyres_discs/` (порт: `PORT` или аргумент скрипта, по умолчанию 5000).
+Откройте `http://127.0.0.1:5000/tyres_discs/` (порт: `PORT` или аргумент скрипта, по умолчанию 5000). Скрипт сам открывает браузер; терминал нужно **оставить открытым**. На Windows лучше `127.0.0.1`, не `localhost` (`localhost` часто резолвится в `::1`).
 
 | Аспект | Поведение |
 | --- | --- |

@@ -72,6 +72,27 @@ describe('searchFormCascade', () => {
     ).toBe(false);
   });
 
+  test('settle не гасит spinner при mountedRef=false (setState после unmount запрещён)', () => {
+    const searchRequestIdRef = { current: 1 };
+    const foregroundRequestIdRef = { current: 1 };
+    const mountedRef = { current: false };
+    const workspaceKeyRef = { current: 'store-a' };
+    const setLoadingSearch = jest.fn();
+
+    settleCatalogSearchLoading({
+      background: false,
+      requestId: 1,
+      searchRequestIdRef,
+      foregroundRequestIdRef,
+      mountedRef,
+      requestedWorkspaceKey: 'store-a',
+      workspaceKeyRef,
+      setLoadingSearch,
+    });
+
+    expect(setLoadingSearch).not.toHaveBeenCalled();
+  });
+
   test('settle гасит spinner, если foreground сменил background', () => {
     const searchRequestIdRef = { current: 1 };
     const foregroundRequestIdRef = { current: 1 };
