@@ -17,6 +17,15 @@ import {
 import { useAppShell } from '../../app/AppShellContext';
 import { mapDiscFormValuesToSearchFilters } from '../../catalog/search/searchFormFilters';
 import {
+  DISC_FACET_IRRELEVANT_FIELDS,
+  SEARCH_FACET_DEBOUNCE_MS,
+  beginCatalogSearchRequest,
+  clearDebounced,
+  didOnlyIrrelevantSearchFieldsChange,
+  scheduleDebounced,
+  settleCatalogSearchLoading,
+} from '../../catalog/search/searchFormCascade';
+import {
   appLog,
   isExpectedOperationalError,
 } from '../../utils/appLog';
@@ -56,7 +65,10 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
   const brandSelectCloseOnMouseLeave = useCatalogSelectCloseOnMouseLeave();
   const loadRequestIdRef = useRef(0);
   const searchRequestIdRef = useRef(0);
-  const loadingVisibleRequestRef = useRef(false);
+  const foregroundRequestIdRef = useRef(0);
+  const loadingSearchRef = useRef(false);
+  const optionsReadyRef = useRef(false);
+  const cascadeTimerRef = useRef(null);
   const mountedRef = useRef(true);
   const workspaceKeyRef = useRef(workspaceResetKey);
   workspaceKeyRef.current = workspaceResetKey;
@@ -64,12 +76,20 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
   const needsCatchUpRef = useRef(true);
   const isActiveRef = useRef(false);
 
+  const setSearchLoading = (value) => {
+    loadingSearchRef.current = value;
+    setLoadingSearch(value);
+  };
+
   useEffect(() => {
     loadRequestIdRef.current += 1;
     searchRequestIdRef.current += 1;
-    loadingVisibleRequestRef.current = false;
+    foregroundRequestIdRef.current = 0;
+    loadingSearchRef.current = false;
+    optionsReadyRef.current = false;
+    clearDebounced(cascadeTimerRef);
     setLoadingOptions(false);
-    setLoadingSearch(false);
+    setSearchLoading(false);
     setErrorSearch(null);
     setSearchResults(null);
     setAvailableBrands([]);
@@ -87,6 +107,7 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
     mountedRef.current = false;
     loadRequestIdRef.current += 1;
     searchRequestIdRef.current += 1;
+    clearDebounced(cascadeTimerRef);
   }, []);
 
   const buildFiltersFromFormValues = (allValues = {}) => {
@@ -127,7 +148,7 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
     needsCatchUpRef.current = false;
     loadAvailableParameters(buildFiltersFromFormValues(form.getFieldsValue()));
     // Перезапуск активного поиска без сброса фильтров (после cloud/local обновления IDB)
-    if (searchResults !== null) {
+    if (searchResults !== null && !loadingSearchRef.current) {
       handleSearch(form.getFieldsValue(), { background: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -137,7 +158,9 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
     const requestId = ++loadRequestIdRef.current;
     const requestedWorkspaceKey = workspaceResetKey;
 
-    setLoadingOptions(true);
+    if (!optionsReadyRef.current) {
+      setLoadingOptions(true);
+    }
 
     try {
       const options = await indexedDBService.getAvailableDiscParameterOptions(filters);
@@ -157,6 +180,7 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
       setAvailableEt(options.et);
       setAvailablePcd(options.pcd);
       setAvailablePn(options.pn);
+      optionsReadyRef.current = true;
 
       return options;
     } catch (error) {
@@ -230,7 +254,11 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
   };
 
   const handleSearch = async (values, { background = false } = {}) => {
-    const requestId = ++searchRequestIdRef.current;
+    const requestId = beginCatalogSearchRequest({
+      searchRequestIdRef,
+      foregroundRequestIdRef,
+      background,
+    });
     const requestedWorkspaceKey = workspaceResetKey;
     const isCurrentRequest = () =>
       mountedRef.current &&
@@ -238,9 +266,8 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
       requestedWorkspaceKey === workspaceKeyRef.current;
 
     if (!background) {
-      loadingVisibleRequestRef.current = true;
       setSearchResetKey((key) => key + 1);
-      setLoadingSearch(true);
+      setSearchLoading(true);
       setErrorSearch(null);
       setSearchResults(null);
     }
@@ -268,36 +295,42 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
           context: { kind: 'discs', background },
         });
       }
-      if (!background) {
+      if (!background && !isExpectedOperationalError(err)) {
         setErrorSearch(err.message);
       }
     } finally {
-      if (
-        isCurrentRequest() &&
-        loadingVisibleRequestRef.current
-      ) {
-        loadingVisibleRequestRef.current = false;
-        setLoadingSearch(false);
-      }
+      settleCatalogSearchLoading({
+        background,
+        requestId,
+        searchRequestIdRef,
+        foregroundRequestIdRef,
+        mountedRef,
+        requestedWorkspaceKey,
+        workspaceKeyRef,
+        setLoadingSearch: setSearchLoading,
+      });
     }
   };
 
-  const handleFormChange = async (changedValues, allValues) => {
-    const changedKeys = Object.keys(changedValues);
-    const onlyBrandChanged = changedKeys.length === 1 && changedKeys[0] === 'brand';
-
-    if (onlyBrandChanged) {
-      return;
-    }
-
-    if (changedValues.diskType !== undefined) {
-      // Keep diameter/pcd/brand/supplier/ranges — only soft-drop values
-      // that do not exist for the new type at all (no full cascade wipe).
-      await softInvalidateIncompatibleValues(allValues, {
-        diskType: allValues.diskType,
+  const handleFormChange = (changedValues, allValues) => {
+    if (
+      !didOnlyIrrelevantSearchFieldsChange(
+        changedValues,
+        DISC_FACET_IRRELEVANT_FIELDS
+      )
+    ) {
+      const snapshot = allValues;
+      const typeOnly =
+        changedValues.diskType !== undefined
+          ? { diskType: allValues.diskType }
+          : null;
+      scheduleDebounced(cascadeTimerRef, SEARCH_FACET_DEBOUNCE_MS, () => {
+        if (typeOnly) {
+          softInvalidateIncompatibleValues(snapshot, typeOnly);
+        } else {
+          softInvalidateIncompatibleValues(snapshot);
+        }
       });
-    } else {
-      await softInvalidateIncompatibleValues(allValues);
     }
 
     if (changedValues.onlyAmountFrom4 !== undefined && searchResults !== null && !loadingSearch) {
@@ -306,6 +339,7 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
   };
 
   const handleResetFilters = () => {
+    clearDebounced(cascadeTimerRef);
     setSearchResetKey((key) => key + 1);
     form.resetFields();
     setSearchResults(null);

@@ -76,9 +76,9 @@ Re-export schema, filters, validation + **default** `catalogIdbSession`.
 | `invalidateActiveStore(storeId?)` | sync | Close + clear active; optional id не даёт отсоединить другой store |
 | `ensureCatalogReady()` | async | Open + migration |
 | `applyCatalogSnapshot(commands, version)` | async | Atomic apply нормализованных команд + metadata version |
-| `searchTires(filters)` | async | Cursor + post-filter |
-| `searchDiscs(filters)` | async | Cursor + post-filter |
-| `getAvailableParameterOptions` | async | Facets для шин |
+| `searchTires(filters)` | async | RAM bucket + post-filter |
+| `searchDiscs(filters)` | async | RAM bucket + post-filter |
+| `getAvailableParameterOptions` | async | Facets шин из RAM facet-rows |
 | `getAvailableDiscParameterOptions` | async | Facets для дисков |
 | `collectTireShowcaseCandidates` | async | Pool для витрины |
 | `collectDiscShowcaseCandidates` | async | Pool для витрины |
@@ -90,7 +90,9 @@ Re-export schema, filters, validation + **default** `catalogIdbSession`.
 
 **Кто вызывает:** sync service, search components, showcase, AddToCart, reconciliation.
 
-**Тесты:** `indexedDBService.test.js`, `indexedDBService.fakeIndexedDB.test.js`, `catalogIdbQueries.test.js`.
+**Тесты:** `indexedDBService.test.js`, `indexedDBService.fakeIndexedDB.test.js`,
+`catalogIdbQueries.test.js`, `catalogIdbMemory.test.js`,
+`catalogReadCache.fakeIndexedDB.test.js`.
 
 **Страницы:** [Схема IDB](/05-catalog-storage/indexeddb-schema), [queries/facets](/05-catalog-storage/queries-filters-facets), [lifecycle](/05-catalog-storage/lifecycle-and-migration).
 
@@ -99,7 +101,8 @@ Re-export schema, filters, validation + **default** `catalogIdbSession`.
 | Модуль | Exports (группа) | Назначение |
 | --- | --- | --- |
 | `catalogSchema.js` | `CATALOG_DB_*`, indexes | Имена stores и версия |
-| `catalogIdbQueries.js` | `pickEqualityIndex`, hints | Выбор IDB index |
+| `catalogIdbMemory.js` | `createCategoryMemory`, `filterIndexedItems` | RAM-индексы активного generation |
+| `catalogIdbQueries.js` | `pickEqualityFilterKey`, `pickEqualityIndex`, hints | Выбор equality-ключа |
 | `catalogSearchFilters.js` | `matchesTireSearchFilters`, … | JS post-filter |
 | `catalogFacetOptions.js` | `collectTireFacetOptions`, … | Агрегация options |
 | `catalogItemValidation.js` | `prepareCatalogItems`, … | Pre-write validation |

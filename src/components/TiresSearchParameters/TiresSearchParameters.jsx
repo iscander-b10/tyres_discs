@@ -19,6 +19,15 @@ import {
 import { useAppShell } from '../../app/AppShellContext';
 import { mapTireFormValuesToSearchFilters } from '../../catalog/search/searchFormFilters';
 import {
+  SEARCH_FACET_DEBOUNCE_MS,
+  TIRE_FACET_IRRELEVANT_FIELDS,
+  beginCatalogSearchRequest,
+  clearDebounced,
+  didOnlyIrrelevantSearchFieldsChange,
+  scheduleDebounced,
+  settleCatalogSearchLoading,
+} from '../../catalog/search/searchFormCascade';
+import {
   appLog,
   isExpectedOperationalError,
 } from '../../utils/appLog';
@@ -56,13 +65,21 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
   const [loadingOptions, setLoadingOptions] = useState(false);
   const loadRequestIdRef = useRef(0);
   const searchRequestIdRef = useRef(0);
-  const loadingVisibleRequestRef = useRef(false);
+  const foregroundRequestIdRef = useRef(0);
+  const loadingSearchRef = useRef(false);
+  const optionsReadyRef = useRef(false);
+  const cascadeTimerRef = useRef(null);
   const mountedRef = useRef(true);
   const workspaceKeyRef = useRef(workspaceResetKey);
   workspaceKeyRef.current = workspaceResetKey;
   /** Пока панель спала и catalog/workspace устарел — нужен один catch-up при активации. */
   const needsCatchUpRef = useRef(true);
   const isActiveRef = useRef(false);
+
+  const setSearchLoading = (value) => {
+    loadingSearchRef.current = value;
+    setLoadingSearch(value);
+  };
   const brandSelectCloseOnMouseLeave = useCatalogSelectCloseOnMouseLeave();
   const selectedSeason = Form.useWatch('season', form) ?? DEFAULT_SEASON;
   const showSpikesFilter = selectedSeason === 'w';
@@ -84,9 +101,12 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
     workspaceKeyRef.current = workspaceResetKey;
     loadRequestIdRef.current += 1;
     searchRequestIdRef.current += 1;
-    loadingVisibleRequestRef.current = false;
+    foregroundRequestIdRef.current = 0;
+    loadingSearchRef.current = false;
+    optionsReadyRef.current = false;
+    clearDebounced(cascadeTimerRef);
     setLoadingOptions(false);
-    setLoadingSearch(false);
+    setSearchLoading(false);
     setErrorSearch(null);
     setSearchResults(null);
     setAvailableWidths([]);
@@ -101,6 +121,7 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
     mountedRef.current = false;
     loadRequestIdRef.current += 1;
     searchRequestIdRef.current += 1;
+    clearDebounced(cascadeTimerRef);
   }, []);
 
   const buildFiltersFromFormValues = (allValues = {}) => {
@@ -134,7 +155,7 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
     needsCatchUpRef.current = false;
     loadAvailableParameters(buildFiltersFromFormValues(form.getFieldsValue()));
     // Перезапуск активного поиска без сброса фильтров (после cloud/local обновления IDB)
-    if (searchResults !== null) {
+    if (searchResults !== null && !loadingSearchRef.current) {
       handleSearch(form.getFieldsValue(), { background: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -145,7 +166,9 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
     const requestId = ++loadRequestIdRef.current;
     const requestedWorkspaceKey = workspaceResetKey;
 
-    setLoadingOptions(true);
+    if (!optionsReadyRef.current) {
+      setLoadingOptions(true);
+    }
 
     try {
       const options = await indexedDBService.getAvailableParameterOptions(filtersWithSeason);
@@ -162,6 +185,7 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
       setAvailableDiameters(options.diameters);
       setAvailableBrands(options.brands);
       setAvailableSuppliers(options.suppliers);
+      optionsReadyRef.current = true;
 
       return options;
     } catch (error) {
@@ -212,7 +236,11 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
   };
 
   const handleSearch = async (values, { background = false } = {}) => {
-    const requestId = ++searchRequestIdRef.current;
+    const requestId = beginCatalogSearchRequest({
+      searchRequestIdRef,
+      foregroundRequestIdRef,
+      background,
+    });
     const requestedWorkspaceKey = workspaceResetKey;
     const isCurrentRequest = () =>
       mountedRef.current &&
@@ -220,9 +248,8 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
       requestedWorkspaceKey === workspaceKeyRef.current;
 
     if (!background) {
-      loadingVisibleRequestRef.current = true;
       setSearchResetKey((key) => key + 1);
-      setLoadingSearch(true);
+      setSearchLoading(true);
       setErrorSearch(null);
       setSearchResults(null);
     }
@@ -250,21 +277,24 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
           context: { kind: 'tires', background },
         });
       }
-      if (!background) {
+      if (!background && !isExpectedOperationalError(err)) {
         setErrorSearch(err.message);
       }
     } finally {
-      if (
-        isCurrentRequest() &&
-        loadingVisibleRequestRef.current
-      ) {
-        loadingVisibleRequestRef.current = false;
-        setLoadingSearch(false);
-      }
+      settleCatalogSearchLoading({
+        background,
+        requestId,
+        searchRequestIdRef,
+        foregroundRequestIdRef,
+        mountedRef,
+        requestedWorkspaceKey,
+        workspaceKeyRef,
+        setLoadingSearch: setSearchLoading,
+      });
     }
   };
 
-  const handleFormChange = async (changedValues, allValues) => {
+  const handleFormChange = (changedValues, allValues) => {
     let valuesForFilters = allValues;
 
     if (changedValues.season !== undefined) {
@@ -280,8 +310,17 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
       valuesForFilters = { ...allValues, ...spikesUpdate, season: changedValues.season };
     }
 
-    // Soft-drop only values missing from the new option lists (incl. after season change).
-    await softInvalidateIncompatibleSizeValues(valuesForFilters);
+    if (
+      !didOnlyIrrelevantSearchFieldsChange(
+        changedValues,
+        TIRE_FACET_IRRELEVANT_FIELDS
+      )
+    ) {
+      const snapshot = valuesForFilters;
+      scheduleDebounced(cascadeTimerRef, SEARCH_FACET_DEBOUNCE_MS, () => {
+        softInvalidateIncompatibleSizeValues(snapshot);
+      });
+    }
 
     if (
       (changedValues.onlyAmountFrom4 !== undefined || changedValues.onlyRunflat !== undefined) &&
@@ -293,6 +332,7 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
   };
 
   const handleResetFilters = () => {
+    clearDebounced(cascadeTimerRef);
     setSearchResetKey((key) => key + 1);
     form.resetFields();
     setSearchResults(null);

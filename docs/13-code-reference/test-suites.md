@@ -1,7 +1,7 @@
 # Тестовые наборы
 
 ::: tip Статус: проверено по коду
-45 test-файлов под `src/` входят в корневой `npm test`. Ещё один тестовый файл `yandex/catalog-sync` запускается отдельной cloud-командой. Карта трассировки контрактов — [contract-catalog](/11-testing/contract-catalog).
+48 test-файлов под `src/` входят в корневой `npm test`. Ещё один тестовый файл `yandex/catalog-sync` запускается отдельной cloud-командой. Карта трассировки контрактов — [contract-catalog](/11-testing/contract-catalog).
 :::
 
 ## Инструменты
@@ -60,11 +60,11 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 
 ---
 
-## Catalog domain (12 файлов)
+## Catalog domain (13 файлов)
 
 | Группа | Файлы | Фокус |
 | --- | --- | --- |
-| search | `searchFormFilters.test.js` | form → filters |
+| search | `searchFormFilters.test.js`, `searchFormCascade.test.js` | form → filters; skip/debounce/spinner |
 | core | `isIkonBrand`, `resolveCatalogModel`, `mergePreferred*` | pure domain |
 | showcase | `getCatalogShowcase`, `buildTire/Disc`, `scoring`, `showcaseSeed`, `ikonSeasonHits`, `preferredCandidates` | vitrine algorithms |
 | misc | `catalogRevalidation.test.js` | **test-local algorithm copy** — не production contract |
@@ -78,15 +78,15 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 | Файл | Инварианты |
 | --- | --- |
 | `SiteHeader.test.jsx` | cart badge, auth links |
-| `TiresSearchParameters.searchRace.test.jsx` | stale request discard |
-| `DiscsSearchParameters.searchRace.test.jsx` | stale request discard |
+| `TiresSearchParameters.searchRace.test.jsx` | stale request discard, spinner, skip facets |
+| `DiscsSearchParameters.searchRace.test.jsx` | stale request discard, spinner, skip facets |
 | `CatalogShowcase.appLog.test.jsx` | error logging on showcase fail |
 
 **Страница:** [Async race guards](/08-search-showcase/async-race-guards).
 
 ---
 
-## Services / IDB / Sync (12 файлов)
+## Services / IDB / Sync (14 файлов)
 
 | Файл | Инварианты |
 | --- | --- |
@@ -95,6 +95,8 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 | `indexedDBService.searchFilters.test.js` | post-filter semantics |
 | `catalogIdb/catalogFacetOptions.test.js` | facet aggregation |
 | `catalogIdb/catalogIdbQueries.test.js` | index hint selection |
+| `catalogIdb/catalogIdbMemory.test.js` | RAM buckets, compact facet rows |
+| `catalogIdb/catalogReadCache.fakeIndexedDB.test.js` | один getAll, width vs season, workspace isolation |
 | `catalogSync/catalogSnapshotValidation.test.js` | wire validation |
 | `catalogSync/catalogSyncService.test.js` | version gate |
 | `catalogSync/catalogSyncService.commitBoundary.test.js` | atomic commit |

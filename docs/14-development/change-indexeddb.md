@@ -9,8 +9,9 @@
 | Файл | Ответственность |
 | --- | --- |
 | `catalogSchema.js` | DB name, version, stores, indexes |
-| `catalogIdbSession.js` | open, migrate, apply, search |
-| `catalogIdbQueries.js` | cursors, index hints |
+| `catalogIdbSession.js` | open, migrate, apply, search, RAM read-cache |
+| `catalogIdbMemory.js` | in-memory equality indexes + facet rows |
+| `catalogIdbQueries.js` | hint order, pickEqualityFilterKey |
 | `catalogSearchFilters.js` | post-filter |
 | `catalogItemValidation.js` | pre-write validation |
 
@@ -29,8 +30,10 @@
 
 1. Bump `CATALOG_DB_VERSION` в `catalogSchema.js`
 2. `onupgradeneeded` — создать index
-3. Обновить `TIRE_SEARCH_INDEX_HINTS` / `pickEqualityIndex`
-4. Тесты queries + search integration
+3. Обновить `TIRE_SEARCH_INDEX_HINTS` / `pickEqualityFilterKey` и RAM-поля в `catalogIdbMemory.js`
+4. Тесты queries + search integration + `catalogReadCache.fakeIndexedDB.test.js`
+
+**Миграция IDB не нужна**, если новый индекс только в RAM (`catalogIdbMemory.js`).
 
 ### C. Новый store
 
@@ -54,14 +57,15 @@
 
 ## Per-store isolation
 
-DB name: `CatalogDatabase.<encodeURIComponent(storeId)>`. Смена workspace → `setActiveStore`; товары разных магазинов не смешиваются в одной БД. Каноническая схема и точные имена stores описаны на странице [Схема IndexedDB](/05-catalog-storage/indexeddb-schema).
+DB name: `CatalogDatabase.<encodeURIComponent(storeId)>`. Смена workspace → `setActiveStore` (generation++ и сброс RAM read-cache); товары разных магазинов не смешиваются ни в IDB, ни в памяти. Каноническая схема и точные имена stores описаны на странице [Схема IndexedDB](/05-catalog-storage/indexeddb-schema).
 
 ## Checklist перед merge
 
 - [ ] `CATALOG_DB_VERSION` если schema change
+- [ ] RAM read-cache инвалидируется после записи
 - [ ] sync validation mirror updated
 - [ ] search/showcase/cart read paths updated
-- [ ] fakeIndexedDB tests green
+- [ ] fakeIndexedDB tests green, включая `catalogReadCache.fakeIndexedDB.test.js`
 - [ ] [ADR-002](/adr/002-indexeddb-catalog) constraints respected
 
 ## Связанные страницы

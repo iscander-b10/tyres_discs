@@ -9,7 +9,7 @@
 | UI формы | `TiresSearchParameters`, `DiscsSearchParameters` | локальный React state + Ant Design Form |
 | Маппинг формы | `searchFormFilters.js` | чистые функции, без state |
 | Matcher / index hint | `catalogSearchFilters.js`, `catalogIdbQueries.js` | чистые функции |
-| Хранилище | `catalogIdbSession.searchTires/searchDiscs` | IndexedDB (readonly cursor) |
+| Хранилище | `catalogIdbSession.searchTires/searchDiscs` | IndexedDB persistence + RAM read-cache |
 | Витрина | `getCatalogShowcase`, `buildTireShowcase`, `buildDiscShowcase` | module-level cache + React state в `CatalogShowcase` |
 | Результаты | `PaginatedCardsList` | локальный state (page, sort, title filter) |
 | Карточка | `CatalogItemCard`, `CatalogItemModalWindow` | локальный `isModalOpen` |
@@ -31,9 +31,9 @@ flowchart TB
     Match["matches*SearchFilters"]
   end
 
-  subgraph IDB["IndexedDB"]
-    Cursor["pickEqualityIndex → cursor"]
-    Store[("tires / discs store")]
+  subgraph IDB["Каталог"]
+    Cursor["RAM bucket + matcher"]
+    Store[("tires / discs store + read cache")]
   end
 
   subgraph ShowcaseLayer["Витрина (idle)"]
@@ -44,7 +44,7 @@ flowchart TB
   Form -->|"submit / onValuesChange"| MapForm
   MapForm -->|"filters"| Cursor
   Cursor --> Store
-  Store -->|"cursor.value"| Match
+  Store -->|"candidates"| Match
   Match -->|"results[]"| List
   List --> Card
   Form -->|"searchResults === null"| Showcase
@@ -79,7 +79,7 @@ flowchart LR
 | --- | --- | --- |
 | Обязательный контекст | `season` (default `'s'`) | нет сезона |
 | Каскад опций | `getAvailableParameterOptions` | `getAvailableDiscParameterOptions` |
-| Index hints | `diameter → season → brand → supplier` | `diameter → diskType → brand → supplier` |
+| Index hints | `width → profile → diameter → brand → supplier → season` | `diameter → pcd → pn → diskType → brand → supplier` |
 | Полка витрины | «Сейчас в сезоне» (Ikon + others, scoring) | «Литые диски в наличии» (shuffle) |
 | Чипы | width/profile/diameter | diameter/pn/pcd/cb |
 | Auto-resubmit | `onlyAmountFrom4`, `onlyRunflat` | только `onlyAmountFrom4` |
@@ -108,11 +108,12 @@ flowchart LR
 **Побочный эффект при изменении.** `onValuesChange` → `handleFormChange`:
 
 1. Для шин при смене season синхронизируется поле `spikes`.
-2. Вызывается `softInvalidateIncompatible*Values` — значения, отсутствующие в новых списках опций, сбрасываются без полного reset формы.
-3. Для дисков изменение только `brand` не перезагружает каскад (оптимизация).
-4. Чекбоксы «от 4 шт» (и runflat у шин) при уже показанных результатах вызывают `form.submit()` без повторного клика «Найти».
+2. Поля, которые не меняют каскадные options (шины: brand, supplier, шипы, чекбоксы; диски: brand, «от 4 шт»), **не** пересчитывают facets.
+3. Иначе debounce ~16 ms и `softInvalidateIncompatible*Values` — значения, отсутствующие в новых списках опций, сбрасываются без полного reset формы.
+4. Для дисков смена `diskType` сначала проверяет геометрию только по типу.
+5. Чекбоксы «от 4 шт» (и runflat у шин) при уже показанных результатах вызывают `form.submit()` без повторного клика «Найти».
 
-**Загрузка опций.** Параллельно `loadAvailableParameters` читает facets из IDB и заполняет Select. Пока идёт загрузка — `loadingOptions={true}` на Select.
+**Загрузка опций.** `loadAvailableParameters` читает facets из RAM-кэша активного generation (IndexedDB `getAll` только при холодном кэше). Spinner на Select — только пока списков ещё нет.
 
 ---
 
@@ -165,19 +166,18 @@ mapDiscFormValuesToSearchFilters(values)
 **Алгоритм:**
 
 1. `_getReadyContext()` — если БД не готова, вернуть `[]`.
-2. Readonly-транзакция на store `tires` или `discs`.
-3. `pickEqualityIndex(store, filters, HINTS)` — выбор наиболее селективного индекса:
-   - шины: `diameter → season → brand → supplier`
-   - диски: `diameter → diskType → brand → supplier`
-   - для `brand[]` с одним элементом — index `brand`
-   - если нет активных фильтров — полный cursor
-4. На каждой записи cursor — `matchesTireSearchFilters` / `matchesDiscSearchFilters`.
-5. Совпавшие записи push в `results`.
-6. `_resolveIfActive` — отбрасывает результат, если generation IDB сменилась mid-flight.
+2. RAM read-cache категории: при промахе один `store.getAll()`, построение equality-индексов и компактных facet-rows; ключ кэша — `storeId` + `generation` + `_dataRevision`.
+3. Поиск: наименьший RAM-bucket среди `TIRE_SEARCH_INDEX_HINTS` / `DISC_SEARCH_INDEX_HINTS`, затем `matchesTireSearchFilters` / `matchesDiscSearchFilters`.
+   - шины: `width → profile → diameter → brand → supplier → season`
+   - диски: `diameter → pcd → pn → diskType → brand → supplier`
+   - для `brand[]` с одним элементом — bucket `brand`
+   - если нет активных equality-hint — фильтр по полному RAM-массиву
+4. Facets: `collect*FacetOptions` по **facet-rows**, не по полному store; «своё поле не фильтрует себя» сохраняется.
+5. Generation / revision guard — после `setActiveStore`, `applyCatalogSnapshot`, `replaceCatalogItems` кэш сбрасывается.
 
-**Matcher (`catalogSearchFilters.js`)** — чистые функции post-filter. Index сужает курсор, но не заменяет matcher: диапазоны (`cbFrom/cbTo`), multi-brand, `minAmount`, `spikes`, `runflat` проверяются в JS.
+**Matcher (`catalogSearchFilters.js`)** — чистые функции post-filter. Bucket сужает кандидатов, но не заменяет matcher: диапазоны (`cbFrom/cbTo`), multi-brand, `minAmount`, `spikes`, `runflat` проверяются в JS.
 
-**Тесты matcher:** `src/services/indexedDBService.searchFilters.test.js`
+**Тесты matcher:** `src/services/indexedDBService.searchFilters.test.js`. Объём и «getAll один раз»: `catalogReadCache.fakeIndexedDB.test.js`.
 
 ---
 
@@ -351,8 +351,9 @@ sequenceDiagram
 
 | Изменение | Риск |
 | --- | --- |
-| Добавить поле формы без маппинга в `searchFormFilters` | фильтр не дойдёт до IDB |
-| Добавить фильтр только в matcher без index hint | работает, но медленнее на большом каталоге |
+| Добавить поле формы без маппинга в `searchFormFilters` | фильтр не дойдёт до поиска |
+| Добавить filter без matcher | RAM-bucket может отдать лишние SKU |
+| Не сбросить RAM-кэш после snapshot | stale каталог до reload |
 | Убрать `searchRequestIdRef` check | stale results перетирают новые |
 | Менять семантику `null` vs `[]` для `searchResults` | сломается переключение витрина/empty/list |
 | Добавлять товар в корзину без fresh IDB read | устаревшая цена/остаток в корзине |

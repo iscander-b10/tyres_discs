@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import React from 'react';
 import { AppShellProvider } from '../../app/AppShellContext';
 import indexedDBService from '../../services/indexedDBService';
@@ -31,12 +31,15 @@ jest.mock('../shared/CatalogShowcase', () => () => (
 jest.mock('../shared/CatalogShowcase/CatalogSearchEmptyHint', () => () => null);
 jest.mock('../shared/PaginatedCardsList/PaginatedCardsList', () => ({
   __esModule: true,
-  default: ({ items }) => (
-    <ul data-testid="search-results">
-      {(items || []).map((item) => (
-        <li key={item.id}>{item.title}</li>
-      ))}
-    </ul>
+  default: ({ items, error }) => (
+    <>
+      {error ? <div data-testid="search-error">{error}</div> : null}
+      <ul data-testid="search-results">
+        {(items || []).map((item) => (
+          <li key={item.id}>{item.title}</li>
+        ))}
+      </ul>
+    </>
   ),
 }));
 jest.mock('../shared/HoverTooltip', () => ({ children }) => children);
@@ -125,5 +128,60 @@ describe('TiresSearchParameters search races', () => {
     expect(screen.getByText('Новый результат')).toBeInTheDocument();
     expect(screen.queryByText('Устаревший результат')).not.toBeInTheDocument();
     expect(screen.queryByText('Seed')).not.toBeInTheDocument();
+  });
+
+  test('чекбоксы не перезагружают facets', async () => {
+    render(
+      <AppShellProvider value={shellValue(0)}>
+        <TiresSearchParameters isActive />
+      </AppShellProvider>
+    );
+    const form = await screen.findByRole('form', { name: 'Параметры поиска шин' });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const callsAfterMount =
+      indexedDBService.getAvailableParameterOptions.mock.calls.length;
+
+    await act(async () => {
+      fireEvent.click(within(form).getByRole('checkbox', { name: 'RunFlat' }));
+    });
+    await act(async () => {
+      fireEvent.click(within(form).getByRole('checkbox', { name: 'от 4 шт' }));
+    });
+
+    expect(
+      indexedDBService.getAvailableParameterOptions.mock.calls.length
+    ).toBe(callsAfterMount);
+  });
+
+  test('StaleCatalogStoreError гасит кнопку Найти и не показывает ошибку', async () => {
+    const staleError = Object.assign(new Error('stale store'), {
+      name: 'StaleCatalogStoreError',
+    });
+    indexedDBService.searchTires
+      .mockResolvedValueOnce([{ id: 'seed', title: 'Seed' }])
+      .mockRejectedValueOnce(staleError);
+
+    render(
+      <AppShellProvider value={shellValue(0)}>
+        <TiresSearchParameters isActive />
+      </AppShellProvider>
+    );
+    const form = await screen.findByRole('form', { name: 'Параметры поиска шин' });
+
+    await act(async () => {
+      fireEvent.submit(form);
+    });
+    expect(await screen.findByText('Seed')).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.submit(form);
+    });
+
+    expect(screen.queryByTestId('search-error')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Найти' })).not.toHaveClass(
+      'ant-btn-loading'
+    );
   });
 });

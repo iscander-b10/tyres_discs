@@ -21,6 +21,7 @@
 | Модуль | Ref / key | Защищает от |
 | --- | --- | --- |
 | `TiresSearchParameters` | `searchRequestIdRef` | stale search results |
+| `TiresSearchParameters` | `foregroundRequestIdRef` | spinner «Найти» принадлежит foreground |
 | `TiresSearchParameters` | `loadRequestIdRef` | stale facet options |
 | `TiresSearchParameters` | `workspaceKeyRef` | workspace switch mid-flight |
 | `TiresSearchParameters` | `mountedRef` | setState after unmount |
@@ -158,23 +159,27 @@ if (!hasStaleShowcase) {
 
 ---
 
-## loadingVisibleRequestRef
+## `settleCatalogSearchLoading`
 
-Решает edge case: foreground search A стартует, foreground search B инвалидирует A, но finally A всё равно выполняется.
+Решает overlap foreground search + background catch-up: background **не** перехватывает spinner, а устаревший foreground всё равно гасит кнопку, если его сменил background.
 
 ```js
+const requestId = beginCatalogSearchRequest({
+  searchRequestIdRef,
+  foregroundRequestIdRef,
+  background,
+});
 if (!background) {
-  loadingVisibleRequestRef.current = true;
-  setLoadingSearch(true);
+  setSearchLoading(true);
 }
 // finally:
-if (isCurrentRequest() && loadingVisibleRequestRef.current) {
-  loadingVisibleRequestRef.current = false;
-  setLoadingSearch(false);
-}
+settleCatalogSearchLoading({ background, requestId, ... });
 ```
 
-Только **актуальный** foreground request гасит spinner.
+- Актуальный request (любой) гасит spinner.
+- Устаревший foreground гасит spinner, только если он всё ещё «владелец» (`foregroundRequestIdRef`).
+- `StaleCatalogStoreError` — expected: spinner гасится, `errorSearch` не пишется.
+- Catch-up не стартует background search, пока уже крутится foreground (`loadingSearchRef`).
 
 ---
 
@@ -202,7 +207,7 @@ sequenceDiagram
 
 | Тест | Инвариант |
 | --- | --- |
-| `TiresSearchParameters.searchRace.test.jsx` | поздний stale id не перетирает latest |
+| `TiresSearchParameters.searchRace.test.jsx` | поздний stale id не перетирает latest; spinner гаснет на StaleCatalogStoreError; чекбоксы не бьют facets |
 | `DiscsSearchParameters.searchRace.test.jsx` | то же для дисков |
 | `App.catalogDualMount.test.jsx` | неактивная панель не вызывает search |
 

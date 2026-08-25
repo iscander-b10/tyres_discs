@@ -5,6 +5,27 @@ import {
   matchesTireNumericField,
 } from './catalogSearchFilters';
 
+export const createEmptyTireFacetOptions = () => ({
+  widths: [],
+  profiles: [],
+  diameters: [],
+  seasons: [],
+  brands: [],
+  suppliers: [],
+});
+
+export const createEmptyDiscFacetOptions = () => ({
+  brands: [],
+  suppliers: [],
+  diameters: [],
+  widths: [],
+  cb: [],
+  et: [],
+  pcd: [],
+  pn: [],
+  diskTypes: [],
+});
+
 const normalizeNumericFieldValue = (value) => {
   const num = parseFloat(value);
   return Number.isNaN(num) ? null : num;

@@ -1,15 +1,17 @@
 # Чтение, поиск, фильтры и facets
 
-Подсистема чтения разделена на три простых слоя:
+Подсистема чтения разделена на слои:
 
-1. `catalogIdbQueries.js` выбирает IndexedDB cursor и содержит transaction-aware
-   helpers.
-2. `catalogSearchFilters.js` — чистые предикаты полной проверки записи.
-3. `catalogFacetOptions.js` — чистое построение зависимых вариантов фильтров.
+1. `catalogIdbMemory.js` — RAM-копия активного generation: items, equality-buckets,
+   компактные facet-rows.
+2. `catalogIdbQueries.js` — hint-порядок и `pickEqualityFilterKey` /
+   `pickEqualityIndex` (IDB cursor helper; production search его не вызывает).
+3. `catalogSearchFilters.js` — чистые предикаты полной проверки записи.
+4. `catalogFacetOptions.js` — чистое построение зависимых вариантов фильтров.
 
-`CatalogIdbSession` создаёт readonly-транзакции и связывает эти helpers с
-активным store/generation. `indexedDBService.js` — facade, а не второй query
-engine.
+`CatalogIdbSession` владеет IndexedDB (persistence) и read-cache. Поиск и facets
+читают RAM; `getAll` category store выполняется **один раз на generation/revision**.
+Витрина и cart-read по-прежнему ходят в IDB. `indexedDBService.js` — facade.
 
 ## Active, compatibility и helpers
 
@@ -26,8 +28,10 @@ engine.
 ### Чистые helpers
 
 `isActiveFilterValue`, `matches*`, `collect*FacetOptions`,
-`pickEqualityIndex`, `collectShowcaseCandidatesFromStore` не владеют connection.
-Почти все синхронны; showcase helper возвращает Promise из-за cursor API.
+`pickEqualityFilterKey`, `pickEqualityIndex`, `selectIndexedCandidates`,
+`createCategoryMemory`, `collectShowcaseCandidatesFromStore` не владеют
+connection. Почти все синхронны; showcase helper возвращает Promise из-за
+cursor API.
 
 ### Compatibility
 
@@ -41,66 +45,60 @@ flowchart LR
     UI[Форма Ant Design] --> F[filters]
     F --> S[CatalogIdbSession.search...]
     S --> R[ensureCatalogReady + generation]
-    R --> TX[readonly transaction]
-    TX --> P[pickEqualityIndex]
-    P -->|подходящий equality filter| IX[index.openCursor only value]
-    P -->|нет подходящего| SC[store.openCursor]
-    IX --> M[matches...SearchFilters]
-    SC --> M
-    M -->|true| A[results.push item]
-    M -->|false| N[cursor.continue]
-    A --> N
-    N --> G[generation guard]
-    G --> OUT[Promise Array]
+    R --> C{RAM cache hit?}
+    C -->|нет| G[store.getAll один раз]
+    G --> M1[createCategoryMemory]
+    C -->|да| RAM[items + indexMaps]
+    M1 --> RAM
+    RAM --> B[наименьший equality-bucket]
+    B --> M[matches...SearchFilters]
+    M --> OUT[Promise Array]
 ```
 
-Индекс сужает множество кандидатов, но никогда не заменяет полную проверку.
+Bucket сужает множество кандидатов, но никогда не заменяет полную проверку.
 Это важно для нескольких брендов, диапазонов, `minAmount`, `runflat` и
 неиндексированных сочетаний.
 
-## Выбор индекса: `pickEqualityIndex`
+Кэш сбрасывается при `setActiveStore`, `invalidateActiveStore`, успешном
+`applyCatalogSnapshot`, `replaceCatalogItems` и после legacy-миграции
+(`_dataRevision++`). Hydrate, начатый до invalidate, не записывает stale
+массив.
 
-**Сигнатура:** `pickEqualityIndex(store, filters, hintOrder)`.
+## Выбор индекса: `pickEqualityFilterKey`
 
-**Роль.** Вернуть уже открытый `IDBRequest` cursor по одному equality-индексу
-или по всему store.
+**Сигнатура:** `pickEqualityFilterKey(filters, hintOrder)` → `{ key, value } | null`.
 
-**Параметры.**
+`pickEqualityIndex(store, filters, hintOrder)` открывает IDB cursor по этому
+ключу — остаётся helper'ом; hot path поиска использует те же hints, но в RAM
+берёт **наименьший** bucket среди активных hint-полей (`selectIndexedCandidates`).
 
-- `store`: `IDBObjectStore`;
-- `filters`: объект фильтров;
-- `hintOrder`: фиксированный приоритет индексов.
+Приоритет шин: `width → profile → diameter → brand → supplier → season`.
+Приоритет дисков: `diameter → pcd → pn → diskType → brand → supplier`.
 
-**Результат:** request от `openCursor()`. Функция не ждёт его и не обрабатывает
-ошибки.
+`season` у шин последний: форма почти всегда шлёт сезон, и прежний порядок
+`diameter → season` сканировал все летние шины при выбранной ширине.
 
-Приоритет шин: `diameter → season → brand → supplier`.
-Приоритет дисков: `diameter → diskType → brand → supplier`.
+Алгоритм first-match для IDB helper:
 
-Алгоритм считает активные фильтры, затем выбирает первый hint:
+- scalar brand или массив из одного brand допускает ключ `brand`;
+- несколько брендов не представимы одним equality-ключом;
+- если подходящего hint нет — полный проход.
 
-- scalar brand или массив из одного brand допускает индекс `brand`;
-- несколько брендов не представимы `IDBKeyRange.only`, поэтому индекс brand
-  пропускается;
-- прочие активные hints передаются в `IDBKeyRange.only` как есть;
-- если подходящего hint нет — полный cursor.
+Range-фильтры дисков (`widthFrom`, `cb`, `et`) не имеют equality-hint и
+проверяются matcher'ом после bucket.
 
-**Гарантии/пределы.** Это эвристика, не cost-based optimizer. Приоритет не
-учитывает реальную селективность и статистику. Range-фильтры width/cb/et не
-используют индексы.
-
-**Тесты:** `catalogIdbQueries.test.js` фиксирует оба порядка, fallback полного
-cursor и поведение массива брендов.
+**Тесты:** `catalogIdbQueries.test.js` фиксирует, что `season+width` выбирает
+`width`, а не `season`. RAM-селективность — `catalogIdbMemory.test.js`.
 
 ## `searchTires(filters)`
 
 - **Роль:** найти шины по полной совокупности фильтров.
 - **Результат:** `Promise<Array<object>>`; недоступный IndexedDB даёт `[]`.
-- **Транзакция:** readonly только на `tires`.
+- **Чтение:** RAM-кэш `tires`; `getAll` только при hydrate.
 - **Caller:** `TiresSearchParameters`.
-- **Callees:** `_getReadyContext`, `pickEqualityIndex`,
-  `matchesTireSearchFilters`, `_resolveIfActive`.
-- **Side effects:** нет записи; создаётся cursor и массив результатов.
+- **Callees:** `_ensureReadCache`, `filterIndexedItems`,
+  `matchesTireSearchFilters`.
+- **Side effects:** нет записи; при промахе кэша — один readonly `getAll`.
 
 Полный matcher проверяет:
 
@@ -120,9 +118,9 @@ cursor и поведение массива брендов.
 
 - **Роль:** найти диски.
 - **Результат:** `Promise<Array<object>>`, fallback `[]`.
-- **Транзакция:** readonly только на `discs`.
+- **Чтение:** RAM-кэш `discs`; `getAll` только при hydrate.
 - **Caller:** `DiscsSearchParameters`.
-- **Callees:** тот же pipeline с `DISC_SEARCH_INDEX_HINTS` и
+- **Callees:** `_ensureReadCache`, `filterIndexedItems`,
   `matchesDiscSearchFilters`.
 
 Matcher проверяет brand, supplier, diameter, `pcd`, `pn`, `diskType`,
@@ -139,8 +137,9 @@ Matcher проверяет brand, supplier, diameter, `pcd`, `pn`, `diskType`,
 ## Facets: варианты, которые не блокируют сами себя
 
 Facet — список допустимых значений следующего выбора с учётом других фильтров.
-Session сначала делает `store.getAll()`, затем чистая функция строит Sets и
-сортированные массивы.
+Session читает компактные `facetRows` из RAM-кэша (уникальные комбинации
+размера/бренда/поставщика, не полный SKU-массив), затем чистая функция строит
+Sets и сортированные массивы.
 
 ### `getAvailableParameterOptions(filters = {})`
 
@@ -153,7 +152,7 @@ Session сначала делает `store.getAll()`, затем чистая ф
 }
 ```
 
-**Транзакция:** readonly `tires`, один `getAll`. **Caller:**
+**Чтение:** RAM-кэш `tires` (hydrate = один `getAll` на generation). **Caller:**
 `TiresSearchParameters`. При unavailable IDB возвращается объект пустых
 массивов той же формы.
 
@@ -181,36 +180,37 @@ cb, но не текущий диапазон et. Brand сам не исполь
 геометрических options и итоговых brand/supplier/diskType в этой функции.
 
 ::: warning Стоимость
-Оба facet API используют `getAll()` и затем O(n) обход в JavaScript. Индексы
-здесь не используются. Это простая и корректная реализация, но её память и
-время растут с полным размером category store.
+Hydrate по-прежнему `getAll()` всего category store — это плата за первый
+каскад после sync/смены магазина. Повторные Select и «Найти» не сканируют
+store: facets идут по facet-rows, search — по equality-bucket. Схема IDB
+без compound-индексов; `CATALOG_DB_VERSION` не поднимался.
 :::
 
-## Mermaid: readonly-транзакции
+## Mermaid: hydrate и RAM-чтение
 
 ```mermaid
 sequenceDiagram
     participant UI
     participant S as CatalogIdbSession
+    participant RAM as Read cache
     participant DB as IndexedDB
     participant H as Pure helper
     UI->>S: searchTires(filters)
-    S->>DB: readonly(tires)
-    S->>DB: index/store cursor
-    loop каждый кандидат
-        DB-->>S: cursor.value
+    alt cache miss
+        S->>DB: readonly(tires).getAll()
+        DB-->>RAM: items + indexes
+    end
+    S->>RAM: smallest hint bucket
+    loop кандидаты bucket
         S->>H: matchesTireSearchFilters(item, filters)
         H-->>S: boolean
     end
-    S->>S: assert generation
     S-->>UI: results[]
 
     UI->>S: getAvailableParameterOptions(filters)
-    S->>DB: readonly(tires).getAll()
-    DB-->>S: items[]
-    S->>H: collectTireFacetOptions(items, filters)
+    S->>RAM: facetRows
+    S->>H: collectTireFacetOptions(facetRows, filters)
     H-->>S: sorted options
-    S->>S: assert generation
     S-->>UI: facet object
 ```
 
@@ -272,39 +272,46 @@ abort-ит всю операцию; тест проверяет как един�
 
 ## Ошибки и race guarantees
 
-- Request error отклоняет Promise исходной `request.error`.
-- После cursor/getAll выполняется generation guard; старый результат получает
-  `StaleCatalogStoreError`.
+- Request error hydrate отклоняет Promise исходной `request.error`.
+- Hydrate, чей generation/revision устарел, не записывает кэш; повторный
+  `_hydrateReadCache` читает уже новый store. `StaleCatalogStoreError` после
+  смены магазина.
 - Недоступный IndexedDB намеренно выглядит как пустой каталог для read API.
-- Порядок результатов — порядок cursor, контракт сортировки отсутствует.
+- Порядок результатов — порядок items в RAM-кэше (порядок `getAll` при hydrate),
+  контракт сортировки отсутствует.
 - Matchers не мутируют записи и filters.
 - Facet sorting числовая для чисел и лексикографическая как tie-breaker; порядок
   diameter учитывает числовую часть.
 
 ## Тесты
 
-- `catalogIdbQueries.test.js`: выбор equality index.
+- `catalogIdbQueries.test.js`: выбор equality hint; `season` не перебивает `width`.
+- `catalogIdbMemory.test.js`: RAM-bucket ширины меньше сезонного.
+- `catalogReadCache.fakeIndexedDB.test.js`: тысячи SKU, один `getAll` на каскад+search,
+  изоляция workspace, invalidate после snapshot.
 - `indexedDBService.searchFilters.test.js`: `minAmount`, spikes, runflat,
-  diameter/season, массив brand, диапазон ET, PCD/PN/diskType.
-- `catalogFacetOptions.test.js`: каскадная независимость width/profile/diameter.
+  width-only, массив brand, диапазон ET, PCD/PN/diskType.
+- `catalogFacetOptions.test.js`: каскадная независимость width/profile/diameter
+  и diameter/pcd/pn; та же семантика на facet-rows.
 - `indexedDBService.test.js`: batch cart read одной readonly-транзакцией и
   request failure.
 - `indexedDBService.fakeIndexedDB.test.js`: поиск после настоящих IDB writes.
 
 ## Риски изменений
 
-1. Если добавить filter в `pickEqualityIndex`, но забыть matcher, результаты
-   могут стать шире ожидаемых; обратная ошибка даст лишний полный scan.
-2. Equality index нельзя открывать по массиву значений без нескольких ranges или
-   другого алгоритма.
+1. Если добавить filter в hints, но забыть matcher, результаты могут стать
+   шире ожидаемых; обратная ошибка даст лишний полный RAM-проход.
+2. Equality bucket нельзя строить по массиву брендов без нескольких ключей.
 3. Изменение типа нормализованного поля нарушит `Number`/`String` сравнения и
-   индексные ключи.
+   ключи RAM-индекса.
 4. Facet должна игнорировать собственное ограничение; иначе выбранный control
    может запереть пользователя на одном значении.
-5. `getAll()` для facets — главный масштабный предел; оптимизация потребует
-   сохранить ту же каскадную семантику.
+5. Hydrate `getAll()` остаётся стоимостью первого чтения категории; повторный
+   `getAll` на каждый Select — регрессия.
 6. Нельзя разделять cart version и item reads на разные транзакции: между ними
    может committed новый snapshot.
+7. RAM-кэш обязан сбрасываться вместе с generation/snapshot, иначе смешаются
+   магазины или останется старый каталог.
 
 ## Связанные страницы
 

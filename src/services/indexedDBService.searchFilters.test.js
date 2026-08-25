@@ -84,6 +84,19 @@ describe('matchesTireSearchFilters', () => {
     );
     expect(matchesTireSearchFilters(tire(), { brand: ['Nokian'] })).toBe(false);
   });
+
+  test('width-only и полный размер', () => {
+    expect(matchesTireSearchFilters(tire(), { width: 205 })).toBe(true);
+    expect(matchesTireSearchFilters(tire(), { width: 215 })).toBe(false);
+    expect(
+      matchesTireSearchFilters(tire(), {
+        width: 205,
+        profile: 55,
+        diameter: 'R16',
+        season: 's',
+      })
+    ).toBe(true);
+  });
 });
 
 describe('matchesDiscSearchFilters', () => {

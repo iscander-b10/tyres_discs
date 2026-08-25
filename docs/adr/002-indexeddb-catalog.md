@@ -28,7 +28,7 @@ IndexedDB database per `storeId`: `CatalogDatabase.<encodeURIComponent(storeId)>
 
 ## Плюсы
 
-- Быстрый поиск с index hint + post-filter
+- Быстрый поиск: RAM-копия активного generation + equality-buckets; IDB остаётся persistence
 - Изоляция multi-store
 - Offline после sync
 
@@ -43,13 +43,15 @@ IndexedDB database per `storeId`: `CatalogDatabase.<encodeURIComponent(storeId)>
 - Любое изменение schema → version bump + tests
 - Facade `indexedDBService.js` для stable import path
 - Legacy per-supplier save API сохранён, но не primary writer
+- Read-cache поиска/facets живёт в `catalogIdbSession` и сбрасывается с generation/snapshot; витрина и cart-read остаются IDB-cursor/get
 
 ## Связанные файлы
 
 - `src/services/catalogIdb/catalogSchema.js`
 - `src/services/catalogIdb/catalogIdbSession.js`
+- `src/services/catalogIdb/catalogIdbMemory.js`
 - `src/services/catalogIdb/catalogIdbQueries.js`
-- Tests: `indexedDBService.fakeIndexedDB.test.js`
+- Tests: `indexedDBService.fakeIndexedDB.test.js`, `catalogReadCache.fakeIndexedDB.test.js`
 
 ## Связанные страницы
 

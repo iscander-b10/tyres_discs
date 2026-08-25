@@ -57,7 +57,7 @@
 | `searchResults` | `null` | `null` = idle/showcase; `[]` = empty; array = results |
 | `searchResetKey` | `0` | сброс title-filter в PaginatedCardsList |
 | `availableWidths/Profiles/Diameters/Brands/Suppliers` | `[]` | опции Select |
-| `loadingOptions` | `false` | loading на Select |
+| `loadingOptions` | `false` | spinner на Select **только пока списки ещё пустые** (первая загрузка). Повторный каскад идёт stale-while-revalidate: предыдущие options остаются на экране |
 
 ### Refs (не state, но критичны)
 
@@ -65,7 +65,10 @@
 | --- | --- |
 | `loadRequestIdRef` | guard facets-запросов |
 | `searchRequestIdRef` | guard search-запросов |
-| `loadingVisibleRequestRef` | не гасить spinner чужим finally |
+| `foregroundRequestIdRef` | какой request показал spinner «Найти»; background его не перехватывает |
+| `loadingSearchRef` | актуальный loading без stale closure в catch-up effect |
+| `optionsReadyRef` | уже были успешные options — не крутить Select повторно |
+| `cascadeTimerRef` | debounce каскада ~16 ms |
 | `mountedRef` | unmount guard |
 | `workspaceKeyRef` | актуальный workspace в async closure |
 | `needsCatchUpRef`, `isActiveRef` | keep-alive / stale catch-up |
@@ -90,7 +93,7 @@ showSpikesFilter = selectedSeason === 'w'
 | Handler | Триггер | Действие |
 | --- | --- | --- |
 | `handleSearch(values, { background })` | submit / chip / catch-up | map → IDB → setSearchResults |
-| `handleFormChange(changed, all)` | onValuesChange | season/spikes sync, soft invalidate, auto-resubmit чекбоксов |
+| `handleFormChange(changed, all)` | onValuesChange | season/spikes sync; debounce каскада; skip brand/supplier/чекбоксы/spikes (они не меняют size options); auto-resubmit чекбоксов |
 | `handleResetFilters` | кнопка сброса | reset form, searchResults=null, reload facets |
 | `handleShowcaseChipClick(chip)` | чип витрины | set width/profile/diameter + search |
 | `softInvalidateIncompatibleSizeValues` | cascade | drop несовместимых width/profile/diameter |
@@ -112,16 +115,16 @@ Form (всегда)
 
 | Состояние | UI |
 | --- | --- |
-| Loading search | Button `loading`, searchResults сброшен (если не background) |
-| Loading options | Select `loading={loadingOptions}` |
+| Loading search | Button `loading`; гасится в `settleCatalogSearchLoading` (success / error / stale / смена workspace). `StaleCatalogStoreError` не пишет `errorSearch` |
+| Loading options | Select `loading={loadingOptions}` только до первой успешной загрузки options |
 | Empty search | CatalogSearchEmptyHint + чипы «попробуйте» |
 | Error | Alert в PaginatedCardsList |
 | Idle | CatalogShowcase |
 
 ### Связь с сервисами
 
-- `indexedDBService.getAvailableParameterOptions(filters)`
-- `indexedDBService.searchTires(mapTireFormValuesToSearchFilters(values))`
+- `indexedDBService.getAvailableParameterOptions(filters)` — RAM-кэш активного generation, не `getAll` на каждый Select
+- `indexedDBService.searchTires(mapTireFormValuesToSearchFilters(values))` — RAM + equality-bucket, не `cursor.continue` по сезону
 
 ### Связанные тесты
 
@@ -137,6 +140,8 @@ Form (всегда)
 - Не добавить поле в `buildFiltersFromFormValues` → facets не сузятся
 - Не обработать season change в `handleFormChange` → spikes останутся от летнего режима
 - Убрать `isActive` guard у showcase → две панели одновременно грузят витрину
+- Вернуть `season` выше `width` в hints → «Найти» снова сканирует весь сезон
+- Не инвалидировать RAM-кэш после `applyCatalogSnapshot` / `setActiveStore` → смесь магазинов или stale SKU
 
 ---
 
@@ -161,7 +166,7 @@ Form (всегда)
 | `buildFiltersFromFormValues` | диапазоны и diskType, без season |
 | `loadAvailableParameters` | `getAvailableDiscParameterOptions` |
 | `handleSearch` | `mapDiscFormValuesToSearchFilters` → `searchDiscs` |
-| `handleFormChange` | skip если изменился только `brand`; при `diskType` — soft invalidate с `{ diskType }` |
+| `handleFormChange` | skip если изменились только `brand` или `onlyAmountFrom4`; при `diskType` — soft invalidate с `{ diskType }`; debounce ~16 ms |
 | Auto-resubmit | только `onlyAmountFrom4` |
 | Showcase chip | patch: diameter, pn, pcd, cbFrom/cbTo |
 | `handleResetFilters` | `loadAvailableParameters()` без season default |
@@ -273,7 +278,7 @@ export const isActiveFilterValue = (value) => { ... }
 | runflat | `item.runflat === true` если `filters.runflat === true` |
 | minAmount | `Number(item.amount) >= minAmount` |
 
-**Вызывающие:** `catalogIdbSession.searchTires` (cursor loop)
+**Вызывающие:** `catalogIdbSession.searchTires` (RAM filter по equality-bucket)
 
 **Тесты:** `indexedDBService.searchFilters.test.js`
 
@@ -306,30 +311,33 @@ matchesTireSearchFilters(
 
 ---
 
-## Функция: `pickEqualityIndex`
+## Функция: `pickEqualityFilterKey` / `pickEqualityIndex`
 
 **Путь:** `src/services/catalogIdb/catalogIdbQueries.js`
 
 ```js
+export const pickEqualityFilterKey = (filters, hintOrder) => { ... }
 export const pickEqualityIndex = (store, filters, hintOrder) => { ... }
 ```
 
-### Алгоритm
+### Алгоритм
 
-1. Если нет активных фильтров → `store.openCursor()` (full scan).
-2. Иначе перебирает `hintOrder`:
-   - `brand` → если ровно один бренд в массиве → `index('brand').openCursor(only)`
-   - иначе если фильтр по hint активен → `index(hint).openCursor(only)`
-3. Fallback → full cursor.
+1. Если нет активных фильтров → `null` / `store.openCursor()` (полный проход).
+2. Иначе перебирает `hintOrder` и возвращает **первый** активный equality-hint:
+   - `brand` → если ровно один бренд в массиве
+   - иначе если фильтр по hint активен → это поле
+3. Fallback → полный проход.
 
-**Важно:** index сужает выборку, но **не заменяет** matcher. Диапазоны и multi-brand всегда проверяются в JS.
+`pickEqualityIndex` открывает IDB cursor — это helper для тестов и потенциального cursor-fallback. Production search/facets читают RAM (`catalogIdbMemory.js`): среди тех же hint-полей выбирается **наименьший bucket**, затем JS matcher.
 
 ### Index hints
 
 ```js
-TIRE_SEARCH_INDEX_HINTS = ['diameter', 'season', 'brand', 'supplier']
-DISC_SEARCH_INDEX_HINTS = ['diameter', 'diskType', 'brand', 'supplier']
+TIRE_SEARCH_INDEX_HINTS = ['width', 'profile', 'diameter', 'brand', 'supplier', 'season']
+DISC_SEARCH_INDEX_HINTS = ['diameter', 'pcd', 'pn', 'diskType', 'brand', 'supplier']
 ```
+
+`season` у шин намеренно последний: форма почти всегда передаёт сезон, и прежний порядок `diameter → season` сканировал все летние/зимние шины, даже когда задана ширина.
 
 ---
 
@@ -343,9 +351,11 @@ DISC_SEARCH_INDEX_HINTS = ['diameter', 'diskType', 'brand', 'supplier']
 | --- | --- |
 | **Вход** | объект filters после form mapping |
 | **Выход** | `Promise<object[]>` |
-| **Side effects** | readonly IDB transaction |
+| **Side effects** | при холодном кэше — один readonly `getAll`; дальше только RAM |
 | **Early return** | `[]` если database null |
-| **Stale guard** | `_resolveIfActive(generation)` |
+| **Stale guard** | generation / `_dataRevision` read-cache |
+
+**Алгоритм:** см. [Шаг 3](/08-search-showcase/end-to-end-flow#шаг-3-запрос-в-indexeddb).
 
 **Алгоритм:** см. [Шаг 3](/08-search-showcase/end-to-end-flow#шаг-3-запрос-в-indexeddb).
 
@@ -359,24 +369,26 @@ sequenceDiagram
   participant Form as TiresSearchParameters
   participant Map as searchFormFilters
   participant Facets as getAvailableParameterOptions
+  participant RAM as catalogIdbMemory
   participant IDB as IndexedDB
   participant Match as matchesTireSearchFilters
 
   User->>Form: меняет season/width
   Form->>Facets: buildFiltersFromFormValues
-  Facets->>IDB: getAll + collectTireFacetOptions
-  IDB-->>Form: widths, profiles, ...
+  alt холодный кэш generation
+    Facets->>IDB: getAll один раз
+    IDB-->>RAM: items + indexes + facetRows
+  end
+  Facets->>RAM: collectTireFacetOptions(facetRows)
+  RAM-->>Form: widths, profiles, ...
   Form->>Form: softInvalidate incompatible
 
   User->>Form: submit
   Form->>Map: mapTireFormValuesToSearchFilters
   Map-->>Form: filters
-  Form->>IDB: searchTires(filters)
-  loop cursor
-    IDB->>Match: tire, filters
-    Match-->>IDB: true/false
-  end
-  IDB-->>Form: results[]
+  Form->>RAM: searchTires(filters)
+  RAM->>Match: bucket + matcher
+  RAM-->>Form: results[]
   Form->>Form: setSearchResults (if request current)
 ```
 
@@ -390,7 +402,7 @@ flowchart TB
     A1[Ant Design Form]
     A2[searchRequestIdRef guard]
     A3[map*FormValuesToSearchFilters]
-    A4[pickEqualityIndex + cursor]
+    A4[RAM bucket + pickEqualityFilterKey]
     A5[matches*SearchFilters post-filter]
     A6[PaginatedCardsList]
     A7[CatalogShowcase idle]
@@ -405,7 +417,7 @@ flowchart TB
   subgraph DiscOnly["Только диски"]
     D1[diskType + ranges cb/width/et]
     D2[getAvailableDiscParameterOptions]
-    D3[skip cascade on brand-only change]
+    D3[skip cascade on brand / onlyAmountFrom4]
   end
 
   A1 --> T1

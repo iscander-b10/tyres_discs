@@ -5,14 +5,16 @@ import {
 import {
   collectDiscFacetOptions,
   collectTireFacetOptions,
+  createEmptyDiscFacetOptions,
+  createEmptyTireFacetOptions,
 } from './catalogFacetOptions';
 import {
   collectShowcaseCandidatesFromStore,
   DISC_SEARCH_INDEX_HINTS,
-  pickEqualityIndex,
   replaceSupplierItemsInStore,
   TIRE_SEARCH_INDEX_HINTS,
 } from './catalogIdbQueries';
+import { createCategoryMemory, filterIndexedItems } from './catalogIdbMemory';
 import {
   prepareCatalogItems,
   validateCatalogItemsForSupplier,
@@ -94,10 +96,20 @@ class CatalogIdbSession {
     this.catalogDb = null;
     this._migrationComplete = false;
     this._ensurePromise = null;
+    this._dataRevision = 0;
+    this._readCache = null;
+    this._readCacheHydrate = Object.create(null);
+    this._readStoreGetAllCount = 0;
     /** @deprecated тестовый shim */
     this.db = null;
     /** @deprecated тестовый shim */
     this.discDb = null;
+  }
+
+  _invalidateReadCache() {
+    this._dataRevision += 1;
+    this._readCache = null;
+    this._readCacheHydrate = Object.create(null);
   }
 
   setActiveStore(storeId) {
@@ -114,6 +126,7 @@ class CatalogIdbSession {
     this.discDb = null;
     this._migrationComplete = false;
     this._ensurePromise = null;
+    this._invalidateReadCache();
     return this._generation;
   }
 
@@ -134,6 +147,7 @@ class CatalogIdbSession {
     this.discDb = null;
     this._migrationComplete = false;
     this._ensurePromise = null;
+    this._invalidateReadCache();
     return true;
   }
 
@@ -181,6 +195,90 @@ class CatalogIdbSession {
     const database = await this.ensureCatalogReady(generation);
     this._assertActiveGeneration(generation);
     return { database, generation };
+  }
+
+  _readStoreAll(database, storeName, generation) {
+    return new Promise((resolve, reject) => {
+      const transaction = database.transaction([storeName], 'readonly');
+      const request = transaction.objectStore(storeName).getAll();
+      this._readStoreGetAllCount += 1;
+      request.onsuccess = () => {
+        this._resolveIfActive(resolve, reject, generation, request.result || []);
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async _ensureReadCache(storeName) {
+    const { database, generation } = await this._getReadyContext();
+    if (!database) return null;
+
+    const cache = this._readCache;
+    if (
+      cache &&
+      cache.generation === generation &&
+      cache.revision === this._dataRevision &&
+      cache.storeId === this.activeStoreId &&
+      cache[storeName]
+    ) {
+      return cache[storeName];
+    }
+
+    const inflightKey = `${storeName}:${generation}:${this._dataRevision}`;
+    if (this._readCacheHydrate[inflightKey]) {
+      return this._readCacheHydrate[inflightKey];
+    }
+
+    const hydrate = this._hydrateReadCache(database, generation, storeName);
+    this._readCacheHydrate[inflightKey] = hydrate;
+    try {
+      return await hydrate;
+    } finally {
+      if (this._readCacheHydrate[inflightKey] === hydrate) {
+        delete this._readCacheHydrate[inflightKey];
+      }
+    }
+  }
+
+  async _hydrateReadCache(database, generation, storeName, attempt = 0) {
+    const revision = this._dataRevision;
+    const storeId = this.activeStoreId;
+    const items = await this._readStoreAll(database, storeName, generation);
+    this._assertActiveGeneration(generation);
+
+    if (revision !== this._dataRevision || storeId !== this.activeStoreId) {
+      if (attempt >= 2) {
+        throw this._createStaleStoreError();
+      }
+      const { database: nextDatabase, generation: nextGeneration } =
+        await this._getReadyContext();
+      if (!nextDatabase) return null;
+      return this._hydrateReadCache(
+        nextDatabase,
+        nextGeneration,
+        storeName,
+        attempt + 1
+      );
+    }
+
+    const kind = storeName === CATALOG_STORES.discs ? 'discs' : 'tires';
+    const categoryMemory = createCategoryMemory(items, kind);
+    if (
+      !this._readCache ||
+      this._readCache.generation !== generation ||
+      this._readCache.revision !== revision ||
+      this._readCache.storeId !== storeId
+    ) {
+      this._readCache = {
+        generation,
+        revision,
+        storeId,
+        tires: null,
+        discs: null,
+      };
+    }
+    this._readCache[storeName] = categoryMemory;
+    return categoryMemory;
   }
 
   async ensureCatalogReady(expectedGeneration = this._generation) {
@@ -249,6 +347,7 @@ class CatalogIdbSession {
       legacyVersion
     );
     this._assertActiveGeneration(generation);
+    this._invalidateReadCache();
     if (shouldMigrateLegacy) {
       await this._cleanupLegacyCatalogSources();
       this._assertActiveGeneration(generation);
@@ -633,6 +732,7 @@ class CatalogIdbSession {
           resolve({ applied: false, writes: 0, skipped: true });
           return;
         }
+        this._invalidateReadCache();
         resolve({ applied: true, writes: writes.length, skipped: false });
       };
       transaction.onabort = () =>
@@ -766,11 +866,13 @@ class CatalogIdbSession {
         }
       };
 
-      transaction.oncomplete = () =>
+      transaction.oncomplete = () => {
+        this._invalidateReadCache();
         this._resolveIfActive(resolve, reject, generation, {
           saved: items.length,
           skipped,
         });
+      };
       transaction.onabort = () =>
         reject(
           abortCause ||
@@ -788,108 +890,36 @@ class CatalogIdbSession {
     });
   }
 
-  async searchTires(filters) {
-    const { database, generation } = await this._getReadyContext();
-    if (!database) return [];
-
-    return new Promise((resolve, reject) => {
-      const transaction = database.transaction(
-        [CATALOG_STORES.tires],
-        'readonly'
-      );
-      const store = transaction.objectStore(CATALOG_STORES.tires);
-      const request = pickEqualityIndex(
-        store,
-        filters,
-        TIRE_SEARCH_INDEX_HINTS
-      );
-      const results = [];
-
-      request.onsuccess = () => {
-        const cursor = request.result;
-        if (cursor) {
-          const tire = cursor.value;
-          if (matchesTireSearchFilters(tire, filters)) {
-            results.push(tire);
-          }
-
-          cursor.continue();
-        } else {
-          this._resolveIfActive(resolve, reject, generation, results);
-        }
-      };
-
-      request.onerror = () => reject(request.error);
-    });
+  async searchTires(filters = {}) {
+    const memory = await this._ensureReadCache(CATALOG_STORES.tires);
+    if (!memory) return [];
+    return filterIndexedItems(
+      memory.items,
+      memory.indexMaps,
+      filters,
+      TIRE_SEARCH_INDEX_HINTS,
+      matchesTireSearchFilters
+    );
   }
 
   async getAvailableParameterOptions(filters = {}) {
-    const { database, generation } = await this._getReadyContext();
-    if (!database) {
-      return {
-        widths: [],
-        profiles: [],
-        diameters: [],
-        seasons: [],
-        brands: [],
-        suppliers: [],
-      };
+    const memory = await this._ensureReadCache(CATALOG_STORES.tires);
+    if (!memory) {
+      return createEmptyTireFacetOptions();
     }
-
-    return new Promise((resolve, reject) => {
-      const transaction = database.transaction(
-        [CATALOG_STORES.tires],
-        'readonly'
-      );
-      const store = transaction.objectStore(CATALOG_STORES.tires);
-      const request = store.getAll();
-
-      request.onsuccess = () => {
-        this._resolveIfActive(
-          resolve,
-          reject,
-          generation,
-          collectTireFacetOptions(request.result, filters)
-        );
-      };
-
-      request.onerror = () => reject(request.error);
-    });
+    return collectTireFacetOptions(memory.facetRows, filters);
   }
 
-  async searchDiscs(filters) {
-    const { database, generation } = await this._getReadyContext();
-    if (!database) return [];
-
-    return new Promise((resolve, reject) => {
-      const transaction = database.transaction(
-        [CATALOG_STORES.discs],
-        'readonly'
-      );
-      const store = transaction.objectStore(CATALOG_STORES.discs);
-      const request = pickEqualityIndex(
-        store,
-        filters,
-        DISC_SEARCH_INDEX_HINTS
-      );
-      const results = [];
-
-      request.onsuccess = () => {
-        const cursor = request.result;
-        if (cursor) {
-          const disc = cursor.value;
-          if (matchesDiscSearchFilters(disc, filters)) {
-            results.push(disc);
-          }
-
-          cursor.continue();
-        } else {
-          this._resolveIfActive(resolve, reject, generation, results);
-        }
-      };
-
-      request.onerror = () => reject(request.error);
-    });
+  async searchDiscs(filters = {}) {
+    const memory = await this._ensureReadCache(CATALOG_STORES.discs);
+    if (!memory) return [];
+    return filterIndexedItems(
+      memory.items,
+      memory.indexMaps,
+      filters,
+      DISC_SEARCH_INDEX_HINTS,
+      matchesDiscSearchFilters
+    );
   }
 
   async collectTireShowcaseCandidates(options = {}) {
@@ -923,40 +953,11 @@ class CatalogIdbSession {
   }
 
   async getAvailableDiscParameterOptions(filters = {}) {
-    const { database, generation } = await this._getReadyContext();
-    if (!database) {
-      return {
-        brands: [],
-        suppliers: [],
-        diameters: [],
-        widths: [],
-        cb: [],
-        et: [],
-        pcd: [],
-        pn: [],
-        diskTypes: [],
-      };
+    const memory = await this._ensureReadCache(CATALOG_STORES.discs);
+    if (!memory) {
+      return createEmptyDiscFacetOptions();
     }
-
-    return new Promise((resolve, reject) => {
-      const transaction = database.transaction(
-        [CATALOG_STORES.discs],
-        'readonly'
-      );
-      const store = transaction.objectStore(CATALOG_STORES.discs);
-      const request = store.getAll();
-
-      request.onsuccess = () => {
-        this._resolveIfActive(
-          resolve,
-          reject,
-          generation,
-          collectDiscFacetOptions(request.result, filters)
-        );
-      };
-
-      request.onerror = () => reject(request.error);
-    });
+    return collectDiscFacetOptions(memory.facetRows, filters);
   }
 }
 

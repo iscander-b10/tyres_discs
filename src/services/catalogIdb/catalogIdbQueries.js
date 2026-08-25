@@ -5,26 +5,34 @@ import {
 } from './catalogSearchFilters';
 
 export const TIRE_SEARCH_INDEX_HINTS = [
+  'width',
+  'profile',
   'diameter',
-  'season',
   'brand',
   'supplier',
+  'season',
 ];
 
 export const DISC_SEARCH_INDEX_HINTS = [
   'diameter',
+  'pcd',
+  'pn',
   'diskType',
   'brand',
   'supplier',
 ];
 
-export const pickEqualityIndex = (store, filters, hintOrder) => {
-  const filterCount = Object.keys(filters).filter((key) =>
+/**
+ * Первый активный equality-hint. `season` у шин намеренно последний:
+ * он почти всегда задан в форме и иначе перебивает селективный `width`.
+ */
+export const pickEqualityFilterKey = (filters, hintOrder) => {
+  const filterCount = Object.keys(filters || {}).filter((key) =>
     isActiveFilterValue(filters[key])
   ).length;
 
   if (filterCount === 0) {
-    return store.openCursor();
+    return null;
   }
 
   for (let i = 0; i < hintOrder.length; i += 1) {
@@ -32,14 +40,22 @@ export const pickEqualityIndex = (store, filters, hintOrder) => {
     if (hint === 'brand') {
       const singleBrand = getSingleBrandForIndex(filters.brand);
       if (singleBrand) {
-        return store.index('brand').openCursor(IDBKeyRange.only(singleBrand));
+        return { key: 'brand', value: singleBrand };
       }
     } else if (isActiveFilterValue(filters[hint])) {
-      return store.index(hint).openCursor(IDBKeyRange.only(filters[hint]));
+      return { key: hint, value: filters[hint] };
     }
   }
 
-  return store.openCursor();
+  return null;
+};
+
+export const pickEqualityIndex = (store, filters, hintOrder) => {
+  const picked = pickEqualityFilterKey(filters, hintOrder);
+  if (!picked) {
+    return store.openCursor();
+  }
+  return store.index(picked.key).openCursor(IDBKeyRange.only(picked.value));
 };
 
 export const replaceSupplierItemsInStore = (
