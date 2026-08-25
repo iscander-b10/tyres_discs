@@ -32,7 +32,6 @@
 | --- | --- | --- | --- |
 | `LoginPage` | `src/components/LoginPage/LoginPage.jsx` | Modal входа, redirect после auth | [Маршруты и вход](/03-routing-shell/routes-and-login-modal) |
 | `BasketPage` | `src/components/Basket/BasketPage.jsx` | Список корзины, итоги, client mode | [Корзина UI](/10-ui/basket-and-client-mode) |
-| `LegacyCartMigrationModal` | `src/cart/LegacyCartMigrationModal.jsx` | Миграция legacy localStorage | [Миграция](/09-cart/migration-and-multitab) |
 
 ### `LoginPage`
 

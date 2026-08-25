@@ -1,7 +1,7 @@
 # Миграция и вкладки
 
 ::: tip Статус: проверено по коду
-`cartSync`, legacy migration, account→store перенос и политика logout сверены с `cartSync.js`, `legacyCartMigration.js`, `useLogout.js` и тестами `*.test.js` / `useLogout.cartPolicy.test.jsx`.
+`cartSync`, legacy migration, account→store перенос и политика logout сверены с `cartSync.js`, `legacyCartMigration.js`, `CartContext.jsx`, `useLogout.js` и тестами `*.test.js` / `useLogout.cartPolicy.test.jsx`.
 :::
 
 ## Назначение
@@ -17,7 +17,7 @@
 
 ## Простыми словами
 
-Две вкладки одного менеджера в одном магазине должны видеть одну корзину. После успешного commit вкладка A публикует envelope; вкладка B применяет его, только если revision/updatedAt новее. Старые форматы `cart.staff.v1` / `v2` / `ivanor.cart.v1` не импортируются молча: появляется модалка «Перенести» или «Удалить». Решение запоминается маркером, чтобы вопрос не всплывал снова.
+Две вкладки одного менеджера в одном магазине должны видеть одну корзину. После успешного commit вкладка A публикует envelope; вкладка B применяет его, только если revision/updatedAt новее. Старые форматы `cart.staff.v1` / `v2` / `ivanor.cart.v1` при готовности workspace обрабатываются тихо: valid — merge в envelope v3, corrupted — discard. Решение запоминается маркером, чтобы миграция не повторялась. UI/модалки нет.
 
 Выход из аккаунта **сохраняет** v3 на диске и отцепляет runtime. Следующий вход в тот же `accountId` + `storeId` поднимает ту же корзину.
 
@@ -25,7 +25,7 @@
 
 - [`src/cart/cartSync.js`](https://github.com/iscander-b10/tyres_discs/blob/main/src/cart/cartSync.js)
 - [`src/cart/legacyCartMigration.js`](https://github.com/iscander-b10/tyres_discs/blob/main/src/cart/legacyCartMigration.js)
-- [`src/cart/LegacyCartMigrationModal.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/cart/LegacyCartMigrationModal.jsx)
+- [`src/cart/CartContext.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/cart/CartContext.jsx) — silent auto-migrate/discard при load workspace
 - [`src/cart/cartStorage.js`](https://github.com/iscander-b10/tyres_discs/blob/main/src/cart/cartStorage.js) — account→store
 - [`src/auth/useLogout.js`](https://github.com/iscander-b10/tyres_discs/blob/main/src/auth/useLogout.js)
 
@@ -65,7 +65,7 @@ flowchart TB
   CtxB --> V3
 
   Acc -.->|migrateAccountCartToStore| V3
-  Leg -.->|модалка migrate/discard| V3
+  Leg -.->|silent migrate / discard| V3
   Leg -.-> Marker
 ```
 
@@ -148,9 +148,9 @@ flowchart TB
 
 ## 8. Legacy migration
 
-### Зачем явный UI
+### Тихая миграция при load workspace
 
-Повреждённый или старый формат нельзя молча слить в v3: риск потерять данные или занести мусор. Corrupt v3 при обычном чтении даёт пустую корзину **без** автоимпорта legacy.
+При готовности workspace `CartProviderCore` после чтения v3 и подключения sync вызывает `detectLegacyCart`. UI нет: valid → auto-migrate, corrupted → auto-discard. Corrupt v3 при обычном чтении даёт пустую корзину; если рядом есть **valid** legacy — он тихо мержится в v3 (отдельный шаг, не fallback внутри `readCartEnvelope`).
 
 ### `detectLegacyCart(storage, accountId, storeId)`
 
@@ -172,55 +172,55 @@ flowchart TB
 
 Marker `discarded` + удаление legacy keys. Идемпотентно при повторном вызове.
 
-### `LegacyCartMigrationModal`
+### Поведение в `CartProviderCore`
 
 | | |
 | --- | --- |
-| **Назначение** | Ant Design Modal: «Перенести» / «Удалить» |
-| **Состояние** | detection при mount; `closable={false}` |
-| **Поведение** | corrupted → OK (перенос) disabled; только discard |
-| **Side effects** | migrate/discard storage; `onMigrated(envelope)` → `handleMigrated` в Context (replaceRuntime + publish) |
-| **Гварды** | `isCurrent()` после async — не применять к чужому generation |
-| **Кто монтирует** | `CartProviderCore`, когда `isLoaded` и есть active workspace |
-| **Тесты** | `LegacyCartMigrationModal.test.jsx`, `legacyCartMigration.test.js` |
+| **Когда** | В том же effect, где читается v3 и поднимается sync |
+| **valid** | `migrateLegacyCart` → при `isCurrent()`: `replaceRuntime(envelope)` + `publish` |
+| **corrupted** | `discardLegacyCart` тихо |
+| **null** | ничего |
+| **Ошибки** | best-effort: `appLog`, UI не роняется; fail migrate откатывает v3/legacy внутри `migrateLegacyCart` |
+| **Гварды** | `isCurrent()` / generation — не применять migrate-результат к устаревшему workspace |
+| **Тесты** | `CartContext.test.jsx` (silent migrate/discard/marker), `legacyCartMigration.test.js` |
 
-### Sequence: миграция
+### Sequence: тихая миграция
 
 ```mermaid
 sequenceDiagram
   participant Cart as CartProviderCore
-  participant Modal as LegacyCartMigrationModal
   participant Detect as detectLegacyCart
   participant Mig as migrateLegacyCart
+  participant Disc as discardLegacyCart
   participant LS as localStorage
   participant Sync as createCartSync
 
-  Cart->>Modal: mount (isLoaded)
-  Modal->>Detect: detect(storage, account, store)
+  Cart->>Cart: read v3 / empty + createCartSync
+  Cart->>Detect: detect(storage, account, store)
   alt marker уже есть / нет legacy
-    Detect-->>Modal: null
-    Note over Modal: не показывать
+    Detect-->>Cart: null
+    Note over Cart: ничего
   else valid
-    Detect-->>Modal: status valid + items
-    Modal->>Modal: показать диалог
-    User->>Modal: Перенести
-    Modal->>Mig: migrateLegacyCart
+    Detect-->>Cart: status valid + items
+    Cart->>Mig: migrateLegacyCart
     Mig->>LS: write v3 + verify + remove legacy + marker
-    Mig-->>Modal: envelope
-    Modal->>Cart: onMigrated(envelope)
-    Cart->>Cart: replaceRuntime
-    Cart->>Sync: publish
+    Mig-->>Cart: envelope
+    alt isCurrent
+      Cart->>Cart: replaceRuntime
+      Cart->>Sync: publish
+    end
   else corrupted
-    Detect-->>Modal: status corrupted
-    Note over Modal: только «Удалить»
+    Detect-->>Cart: status corrupted
+    Cart->>Disc: discardLegacyCart
+    Disc->>LS: remove legacy + marker discarded
   end
 ```
 
 ### Опасные места
 
-- Менять семантику marker → модалка снова появится или наоборот никогда не появится.
+- Менять семантику marker → миграция повторится или наоборот никогда не сработает.
 - Миграция без verify readback — риск «думали, записали».
-- Автоимпорт без UI нарушит контракт «corrupt v3 ≠ silent legacy».
+- Применять envelope migrate без `isCurrent` после смены workspace — чужая корзина в runtime.
 
 ---
 
@@ -234,8 +234,8 @@ sequenceDiagram
 
 1. `CartProvider` читает store-scoped v3 (или empty).
 2. Подключает sync.
-3. Монтирует `CartReconciliationHost` (через `WorkspaceHosts`).
-4. При необходимости показывает legacy-модалку.
+3. При необходимости тихо мигрирует или discard’ит legacy.
+4. Монтирует `CartReconciliationHost` (через `WorkspaceHosts`).
 
 Смена `accountId` или `storeId` → новый generation, другой ключ storage, прежняя корзина другого магазина не смешивается.
 

@@ -101,7 +101,7 @@ Pure/domain логика без React: `src/catalog/` и domain-часть `src/
 
 ### Группа pricing/stock helpers
 
-`getUnitSellingPrice`, `getUnitB2bPrice`, `isCatalogItemSellable`, `clampCartQty`, `getCartItemKey`, `parseStock` — **sync pure**. Используются Context, AddToCart, BasketPage.
+`getUnitSellingPrice`, `getUnitB2bPrice`, `isCatalogItemSellable`, `clampCartQty`, `getCartItemKey`, `parseStock` — **sync pure**. Используются Context, AddToCart, BasketPage. `CART_CATEGORIES` / `isCartCategory` — `tyres` и `discs` (не путать с IDB store `tires`).
 
 ---
 
@@ -141,9 +141,9 @@ Factory изолирует сообщения по account/store, использ
 | `migrateLegacyCart()` | Import в envelope v3 |
 | `discardLegacyCart()` | Удаление legacy |
 
-`CART_CATEGORIES` и `isCartCategory` фиксируют доменные категории корзины: `tyres` и `discs`. Это намеренно отличается от имени IDB store `tires`.
+Вызывается из `CartProviderCore` при load workspace (silent auto-migrate / auto-discard). Marker обеспечивает идемпотентность.
 
-**Тесты:** `legacyCartMigration.test.js`. **Страница:** [Миграция](/09-cart/migration-and-multitab).
+**Тесты:** `legacyCartMigration.test.js`, silent path в `CartContext.test.jsx`. **Страница:** [Миграция](/09-cart/migration-and-multitab).
 
 ---
 

@@ -66,7 +66,6 @@ describe('useLogout cart policy', () => {
         <CartProviderCore
           workspace={workspace}
           isWorkspaceReady
-          showLegacyMigration={false}
         >
           <Probe
             onReady={(next) => {

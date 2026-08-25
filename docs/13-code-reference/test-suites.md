@@ -40,9 +40,8 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 | `cart/cartStorage.test.js` | envelope v3 parse/write |
 | `cart/cartSync.test.js` | multitab broadcast |
 | `cart/legacyCartMigration.test.js` | legacy keys |
-| `cart/CartContext.test.jsx` | CRUD, namespace |
+| `cart/CartContext.test.jsx` | CRUD, namespace, silent legacy migrate |
 | `cart/CartReconciliationHost.test.jsx` | post-snapshot reconcile |
-| `cart/LegacyCartMigrationModal.test.jsx` | modal flow |
 
 **Страницы:** [Cart domain](/09-cart/cart-domain-and-storage), [Reconciliation](/09-cart/catalog-reconciliation).
 

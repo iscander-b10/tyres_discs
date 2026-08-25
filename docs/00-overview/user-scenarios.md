@@ -65,7 +65,7 @@ flowchart TD
 | 13 | Добавление в корзину | Read-before-add из IDB | `AddToCartControl`, `CartContext` | [Корзина](/09-cart/cart-domain-and-storage), [UI каталога](/10-ui/catalog-components) |
 | 14 | Количество и удаление | Commit envelope v3 | `BasketPage`, cart mutations | [Корзина](/09-cart/cart-domain-and-storage) |
 | 15 | Корзина между вкладками | BroadcastChannel / storage ping | `cartSync.js` | [Миграция и вкладки](/09-cart/migration-and-multitab) |
-| 16 | Миграция legacy-корзины | Старые отдельные ключи → envelope v3 или discard через modal | `legacyCartMigration.js`, `LegacyCartMigrationModal` | [Миграция и вкладки](/09-cart/migration-and-multitab) |
+| 16 | Миграция legacy-корзины | Старые отдельные ключи → тихий merge в envelope v3 или discard | `legacyCartMigration.js`, `CartContext.jsx` | [Миграция и вкладки](/09-cart/migration-and-multitab) |
 | 17 | Reconciliation | После нового snapshot обновить строки | `CartReconciliationHost` | [Reconciliation](/09-cart/catalog-reconciliation) |
 | 18 | Частичный сбой поставщика | `keepPrevious` вместо purge | `snapshotCommands.js` | [Snapshot protocol](/06-catalog-sync/snapshot-protocol-validation), [Cloud sync](/06-catalog-sync/yandex-catalog-sync) |
 | 19 | Client/manager mode и тема | Скрыть B2B; переключить appearance | `ModeToggle`, `AppShell`, `appearance.js` | [Корзина и client mode](/10-ui/basket-and-client-mode), [Тема](/10-ui/theme-and-shell-components) |

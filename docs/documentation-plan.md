@@ -289,7 +289,7 @@ docs/
 
 Приоритет P1:
 
-- `LoginPage`, `LegacyCartMigrationModal`;
+- `LoginPage`;
 - `CatalogItemCard`, `CatalogItemModalWindow`;
 - `CartQtyControls`, `CatalogPriceStrip`, `CatalogItemPromoBadges`;
 - `PaginatedCardsList`, `ShowcaseShelf`, `ShowcaseSizeChips`;

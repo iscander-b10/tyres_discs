@@ -182,11 +182,11 @@ Sync; сначала ищет mapping по accountId, затем по normalized
 | Export | Назначение |
 | --- | --- |
 | `CartProvider` | Provider с namespace account/store |
-| `CartProviderCore` | Тестируемое ядро без modal |
+| `CartProviderCore` | Тестируемое ядро (storage/syncFactory inject) |
 | `useCart` | Hook корзины |
 | `getCartStorageKey` | Ключ localStorage для store |
 
-`CartProviderCore` принимает `workspace`, `isWorkspaceReady`, `children` и тестовые точки инъекции `storage`, `syncFactory`, `showLegacyMigration`. Обычный `CartProvider` получает workspace из Auth Context и передаёт его ядру.
+`CartProviderCore` принимает `workspace`, `isWorkspaceReady`, `children` и тестовые точки инъекции `storage`, `syncFactory`. При готовности workspace тихо вызывает `detectLegacyCart` → migrate или discard. Обычный `CartProvider` получает workspace из Auth Context и передаёт его ядру.
 
 ### `useCart()` — операции
 

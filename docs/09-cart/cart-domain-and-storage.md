@@ -243,7 +243,7 @@ sequenceDiagram
 
 ### Повреждённый v3
 
-Corrupt JSON / невалидный envelope при чтении → пустая корзина revision 0. **Автоимпорта v1/v2 нет** — только явная legacy-модалка (глава о миграции).
+Corrupt JSON / невалидный envelope при чтении → пустая корзина revision 0. Legacy v1/v2 не подмешиваются внутри `readCartEnvelope`; при load workspace `CartProviderCore` делает silent migrate/discard (глава о миграции).
 
 ---
 

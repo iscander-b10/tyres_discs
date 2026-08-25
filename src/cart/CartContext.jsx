@@ -27,7 +27,11 @@ import {
   writeCartEnvelope,
 } from './cartStorage';
 import { createCartSync } from './cartSync';
-import { LegacyCartMigrationModal } from './LegacyCartMigrationModal';
+import {
+  detectLegacyCart,
+  discardLegacyCart,
+  migrateLegacyCart,
+} from './legacyCartMigration';
 import { appLog, isQuotaExceededError } from '../utils/appLog';
 
 export { getCartStorageKey } from './cartStorage';
@@ -63,7 +67,6 @@ export function CartProviderCore({
   isWorkspaceReady,
   storage = window.localStorage,
   syncFactory = createCartSync,
-  showLegacyMigration = true,
 }) {
   const [items, setItems] = useState([]);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -128,6 +131,27 @@ export function CartProviderCore({
       });
     } catch {
       syncRef.current = null;
+    }
+
+    try {
+      const detection = detectLegacyCart(storage, accountId, storeId);
+      if (detection?.status === 'valid') {
+        const migrated = migrateLegacyCart(storage, detection);
+        if (isCurrent()) {
+          replaceRuntime(migrated);
+          syncRef.current?.publish(migrated);
+        }
+      } else if (detection?.status === 'corrupted') {
+        discardLegacyCart(storage, detection);
+      }
+    } catch (error) {
+      appLog.error({
+        code: 'cart.legacy_migration_failed',
+        domain: 'cart',
+        message: 'Silent legacy cart migration failed',
+        error,
+        context: { accountId, storeId },
+      });
     }
 
     return () => {
@@ -321,17 +345,6 @@ export function CartProviderCore({
     return true;
   }, [isCapturedCurrent, replaceRuntime, storage]);
 
-  const handleMigrated = useCallback(
-    (envelope) => {
-      const captured = activeRef.current;
-      if (!captured || !isCapturedCurrent(captured)) return false;
-      replaceRuntime(envelope);
-      syncRef.current?.publish(envelope);
-      return true;
-    },
-    [isCapturedCurrent, replaceRuntime]
-  );
-
   const getItem = useCallback(
     (itemOrKey) => {
       const key =
@@ -391,21 +404,8 @@ export function CartProviderCore({
     ]
   );
 
-  const active = activeRef.current;
   return (
-    <CartContext.Provider value={value}>
-      {children}
-      {showLegacyMigration && isLoaded && active ? (
-        <LegacyCartMigrationModal
-          accountId={active.accountId}
-          storeId={active.storeId}
-          generation={active.generation}
-          storage={storage}
-          isCurrent={() => isCapturedCurrent(active)}
-          onMigrated={handleMigrated}
-        />
-      ) : null}
-    </CartContext.Provider>
+    <CartContext.Provider value={value}>{children}</CartContext.Provider>
   );
 }
 

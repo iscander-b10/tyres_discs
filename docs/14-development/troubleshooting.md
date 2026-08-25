@@ -63,7 +63,7 @@ Steps:
 
 | Симптом | Причина |
 | --- | --- |
-| Legacy modal | `detectLegacyCart()` true |
+| Legacy ключи остались после входа | marker уже стоит, migrate упал (см. appLog `cart.legacy_migration_failed`), или ключи не из `LEGACY_CART_KEYS` |
 | Цены устарели | reconciliation не сработал — проверить `CartReconciliationHost` |
 | Вкладки расходятся | cartSync channel / storage event |
 

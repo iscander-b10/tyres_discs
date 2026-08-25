@@ -2,6 +2,7 @@ import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { CartProviderCore, useCart } from './CartContext';
 import { createCartEnvelope, getCartStorageKey } from './cartStorage';
+import { LEGACY_CART_KEYS, detectLegacyCart } from './legacyCartMigration';
 
 jest.mock('../auth/AuthContext', () => ({ useAuth: jest.fn() }));
 
@@ -25,7 +26,6 @@ async function mountCart(initial = {}) {
   let props = {
     workspace: workspaces.a,
     isWorkspaceReady: true,
-    showLegacyMigration: false,
     ...initial,
   };
   const syncInstances = [];
@@ -122,15 +122,57 @@ describe('CartContext workspace lifecycle', () => {
     await harness.unmount();
   });
 
-  test('повреждённый v3 даёт пустой runtime без legacy fallback', async () => {
+  test('повреждённый v3 без legacy даёт пустой runtime', async () => {
     localStorage.setItem(getCartStorageKey('account-a', 'store-a'), '{"version":3');
-    localStorage.setItem(
-      'cart.staff.v2',
-      JSON.stringify({ version: 2, items: [{ key: 'tyres:x', quantity: 1 }] })
-    );
     const harness = await mountCart();
     expect(harness.api.isLoaded).toBe(true);
     expect(harness.api.items).toEqual([]);
+    await harness.unmount();
+  });
+
+  test('valid legacy тихо мигрирует в runtime и пишет marker', async () => {
+    const legacyItems = [{ key: 'tyres:legacy', quantity: 2 }];
+    localStorage.setItem(
+      LEGACY_CART_KEYS[0],
+      JSON.stringify({ version: 2, items: legacyItems })
+    );
+
+    const harness = await mountCart();
+    expect(harness.api.isLoaded).toBe(true);
+    expect(harness.api.items).toEqual(legacyItems);
+    expect(localStorage.getItem(LEGACY_CART_KEYS[0])).toBeNull();
+    expect(
+      JSON.parse(localStorage.getItem(getCartStorageKey('account-a', 'store-a')))
+    ).toMatchObject({ version: 3, items: legacyItems });
+    expect(harness.syncInstances[0].publish).toHaveBeenCalledWith(
+      expect.objectContaining({ version: 3, items: legacyItems })
+    );
+
+    localStorage.setItem(
+      LEGACY_CART_KEYS[0],
+      JSON.stringify({
+        version: 2,
+        items: [{ key: 'tyres:other', quantity: 9 }],
+      })
+    );
+    expect(detectLegacyCart(localStorage, 'account-a', 'store-a')).toBeNull();
+
+    await harness.unmount();
+    const harness2 = await mountCart();
+    expect(harness2.api.items).toEqual(legacyItems);
+    expect(localStorage.getItem(LEGACY_CART_KEYS[0])).not.toBeNull();
+    expect(harness2.syncInstances[0].publish).not.toHaveBeenCalled();
+    await harness2.unmount();
+  });
+
+  test('corrupted legacy тихо discard без падения UI', async () => {
+    localStorage.setItem(LEGACY_CART_KEYS[0], '{broken');
+    const harness = await mountCart();
+    expect(harness.api.isLoaded).toBe(true);
+    expect(harness.api.items).toEqual([]);
+    expect(localStorage.getItem(LEGACY_CART_KEYS[0])).toBeNull();
+    expect(detectLegacyCart(localStorage, 'account-a', 'store-a')).toBeNull();
+    expect(harness.syncInstances[0].publish).not.toHaveBeenCalled();
     await harness.unmount();
   });
 
