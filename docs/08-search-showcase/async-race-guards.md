@@ -57,14 +57,15 @@ setSearchResults(dbResults);
 
 ### Инвалидация при reset
 
-При смене `workspaceResetKey` effect делает:
+При смене `workspaceResetKey` effect вызывает `invalidateCatalogSearchRequest`
+(инкремент `searchRequestIdRef`, сброс `foregroundRequestIdRef`, `loadingSearch=false`)
+и отдельно инкрементирует `loadRequestIdRef`.
 
-```js
-loadRequestIdRef.current += 1;
-searchRequestIdRef.current += 1;
-```
-
-Все in-flight запросы становятся stale **без отмены Promise** (IndexedDB cursor нельзя abort cleanly).
+Кнопка «Сбросить фильтры» делает то же для поиска: in-flight `searchTires` /
+`searchDiscs` становится stale **без отмены Promise** (IndexedDB cursor/getAll
+нельзя abort cleanly). Поздний ответ не пишет `searchResults` / `errorSearch`
+и не включает spinner. Каскад facets после сброса — загрузка опций Select,
+не поиск SKU.
 
 ---
 
@@ -155,7 +156,15 @@ if (!hasStaleShowcase) {
 
 ## catalogIdbSession: generation guard
 
-`_resolveIfActive(resolve, reject, generation, value)` — если generation IDB изменилась (commit sync, workspace reset), Promise resolve **не вызывается**. Это второй слой ниже UI guards.
+`_resolveIfActive(resolve, reject, generation, value)` — если generation IDB
+изменилась (commit sync, workspace reset), Promise **отклоняется**
+`StaleCatalogStoreError`, а не зависает. Это второй слой ниже UI guards.
+`isExpectedOperationalError` считает эту ошибку ожидаемой: spinner «Найти»
+гасится, `errorSearch` не пишется.
+
+Холодный hydrate (`_readStoreAll`) слушает `request.onsuccess/onerror` и
+`transaction.onabort/oncomplete`, чтобы Promise не остался pending, если
+транзакция оборвалась без `request.onerror` (закрытие соединения).
 
 ---
 
@@ -207,8 +216,10 @@ sequenceDiagram
 
 | Тест | Инвариант |
 | --- | --- |
-| `TiresSearchParameters.searchRace.test.jsx` | поздний stale id не перетирает latest; spinner гаснет на StaleCatalogStoreError; чекбоксы не бьют facets |
+| `TiresSearchParameters.searchRace.test.jsx` | поздний stale id не перетирает latest; spinner гаснет на StaleCatalogStoreError; чекбоксы не бьют facets; сброс во время pending гасит spinner и не применяет поздний результат |
 | `DiscsSearchParameters.searchRace.test.jsx` | то же для дисков |
+| `searchFormCascade.test.js` | `invalidateCatalogSearchRequest` делает поиск stale; late settle не трогает spinner |
+| `catalogIdbSession.readStoreAll.test.js` | abort hydrate без `request.onsuccess` отклоняет Promise |
 | `App.catalogDualMount.test.jsx` | неактивная панель не вызывает search |
 
 ### Пример из теста (шины)
@@ -239,7 +250,7 @@ addItem(currentItem, category);
 
 | Ошибка | Симптом |
 | --- | --- |
-| Забыть инкремент id при reset workspace | ghost updates после logout |
+| Забыть инкремент id при reset workspace или «Сбросить фильтры» | ghost results / вечный spinner «Найти» |
 | setState без mounted check | React warning после unmount |
 | Background search с `setSearchResults(null)` | flash empty / showcase |
 | Единый id для load и search | facets completion блокирует search spinner |

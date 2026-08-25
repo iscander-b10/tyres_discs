@@ -189,4 +189,52 @@ describe('DiscsSearchParameters search races', () => {
       'ant-btn-loading'
     );
   });
+
+  test('сброс во время in-flight поиска гасит spinner, возвращает витрину и игнорирует поздний ответ', async () => {
+    const pending = deferred();
+    indexedDBService.searchDiscs.mockReturnValueOnce(pending.promise);
+
+    render(
+      <AppShellProvider value={shellValue(0)}>
+        <DiscsSearchParameters isActive />
+      </AppShellProvider>
+    );
+    const form = await screen.findByRole('form', {
+      name: 'Параметры поиска дисков',
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      fireEvent.submit(form);
+    });
+    expect(screen.getByRole('button', { name: 'Найти' })).toHaveClass(
+      'ant-btn-loading'
+    );
+    expect(screen.queryByTestId('discs-showcase')).not.toBeInTheDocument();
+    expect(indexedDBService.searchDiscs).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Сбросить фильтры' }));
+    });
+
+    expect(screen.getByRole('button', { name: 'Найти' })).not.toHaveClass(
+      'ant-btn-loading'
+    );
+    expect(screen.getByTestId('discs-showcase')).toBeInTheDocument();
+    expect(indexedDBService.searchDiscs).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      pending.resolve([{ id: 'late-disc', title: 'Поздний диск' }]);
+      await pending.promise;
+    });
+
+    expect(screen.queryByText('Поздний диск')).not.toBeInTheDocument();
+    expect(screen.getByTestId('discs-showcase')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Найти' })).not.toHaveClass(
+      'ant-btn-loading'
+    );
+    expect(indexedDBService.searchDiscs).toHaveBeenCalledTimes(1);
+  });
 });

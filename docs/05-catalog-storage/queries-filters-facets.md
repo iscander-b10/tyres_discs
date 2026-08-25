@@ -273,6 +273,8 @@ abort-ит всю операцию; тест проверяет как един�
 ## Ошибки и race guarantees
 
 - Request error hydrate отклоняет Promise исходной `request.error`.
+- Abort транзакции hydrate без `request.onerror` отклоняет Promise (`AbortError`),
+  а не оставляет pending.
 - Hydrate, чей generation/revision устарел, не записывает кэш; повторный
   `_hydrateReadCache` читает уже новый store. `StaleCatalogStoreError` после
   смены магазина.
@@ -289,6 +291,7 @@ abort-ит всю операцию; тест проверяет как един�
 - `catalogIdbMemory.test.js`: RAM-bucket ширины меньше сезонного.
 - `catalogReadCache.fakeIndexedDB.test.js`: тысячи SKU, один `getAll` на каскад+search,
   изоляция workspace, invalidate после snapshot.
+- `catalogIdbSession.readStoreAll.test.js`: abort `getAll` без `onsuccess` не зависает.
 - `indexedDBService.searchFilters.test.js`: `minAmount`, spikes, runflat,
   width-only, массив brand, диапазон ET, PCD/PN/diskType.
 - `catalogFacetOptions.test.js`: каскадная независимость width/profile/diameter

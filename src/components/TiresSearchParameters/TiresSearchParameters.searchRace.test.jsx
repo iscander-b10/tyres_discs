@@ -184,4 +184,50 @@ describe('TiresSearchParameters search races', () => {
       'ant-btn-loading'
     );
   });
+
+  test('сброс во время in-flight поиска гасит spinner, возвращает витрину и игнорирует поздний ответ', async () => {
+    const pending = deferred();
+    indexedDBService.searchTires.mockReturnValueOnce(pending.promise);
+
+    render(
+      <AppShellProvider value={shellValue(0)}>
+        <TiresSearchParameters isActive />
+      </AppShellProvider>
+    );
+    const form = await screen.findByRole('form', { name: 'Параметры поиска шин' });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      fireEvent.submit(form);
+    });
+    expect(screen.getByRole('button', { name: 'Найти' })).toHaveClass(
+      'ant-btn-loading'
+    );
+    expect(screen.queryByTestId('tires-showcase')).not.toBeInTheDocument();
+    expect(indexedDBService.searchTires).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Сбросить фильтры' }));
+    });
+
+    expect(screen.getByRole('button', { name: 'Найти' })).not.toHaveClass(
+      'ant-btn-loading'
+    );
+    expect(screen.getByTestId('tires-showcase')).toBeInTheDocument();
+    expect(indexedDBService.searchTires).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      pending.resolve([{ id: 'late', title: 'Поздний результат' }]);
+      await pending.promise;
+    });
+
+    expect(screen.queryByText('Поздний результат')).not.toBeInTheDocument();
+    expect(screen.getByTestId('tires-showcase')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Найти' })).not.toHaveClass(
+      'ant-btn-loading'
+    );
+    expect(indexedDBService.searchTires).toHaveBeenCalledTimes(1);
+  });
 });

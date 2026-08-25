@@ -3,6 +3,7 @@ import {
   TIRE_FACET_IRRELEVANT_FIELDS,
   beginCatalogSearchRequest,
   didOnlyIrrelevantSearchFieldsChange,
+  invalidateCatalogSearchRequest,
   settleCatalogSearchLoading,
 } from './searchFormCascade';
 
@@ -107,5 +108,49 @@ describe('searchFormCascade', () => {
     });
     expect(bg).toBe(2);
     expect(foregroundRequestIdRef.current).toBe(1);
+  });
+
+  test('invalidate делает in-flight поиск stale и гасит spinner', () => {
+    const searchRequestIdRef = { current: 1 };
+    const foregroundRequestIdRef = { current: 1 };
+    const setLoadingSearch = jest.fn();
+
+    invalidateCatalogSearchRequest({
+      searchRequestIdRef,
+      foregroundRequestIdRef,
+      setLoadingSearch,
+    });
+
+    expect(searchRequestIdRef.current).toBe(2);
+    expect(foregroundRequestIdRef.current).toBe(0);
+    expect(setLoadingSearch).toHaveBeenCalledWith(false);
+  });
+
+  test('после invalidate late settle не трогает spinner', () => {
+    const searchRequestIdRef = { current: 1 };
+    const foregroundRequestIdRef = { current: 1 };
+    const mountedRef = { current: true };
+    const workspaceKeyRef = { current: 'store-a' };
+    const setLoadingSearch = jest.fn();
+
+    invalidateCatalogSearchRequest({
+      searchRequestIdRef,
+      foregroundRequestIdRef,
+      setLoadingSearch,
+    });
+    setLoadingSearch.mockClear();
+
+    settleCatalogSearchLoading({
+      background: false,
+      requestId: 1,
+      searchRequestIdRef,
+      foregroundRequestIdRef,
+      mountedRef,
+      requestedWorkspaceKey: 'store-a',
+      workspaceKeyRef,
+      setLoadingSearch,
+    });
+
+    expect(setLoadingSearch).not.toHaveBeenCalled();
   });
 });

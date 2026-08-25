@@ -24,6 +24,7 @@ import {
   beginCatalogSearchRequest,
   clearDebounced,
   didOnlyIrrelevantSearchFieldsChange,
+  invalidateCatalogSearchRequest,
   scheduleDebounced,
   settleCatalogSearchLoading,
 } from '../../catalog/search/searchFormCascade';
@@ -100,13 +101,14 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
   useEffect(() => {
     workspaceKeyRef.current = workspaceResetKey;
     loadRequestIdRef.current += 1;
-    searchRequestIdRef.current += 1;
-    foregroundRequestIdRef.current = 0;
-    loadingSearchRef.current = false;
+    invalidateCatalogSearchRequest({
+      searchRequestIdRef,
+      foregroundRequestIdRef,
+      setLoadingSearch: setSearchLoading,
+    });
     optionsReadyRef.current = false;
     clearDebounced(cascadeTimerRef);
     setLoadingOptions(false);
-    setSearchLoading(false);
     setErrorSearch(null);
     setSearchResults(null);
     setAvailableWidths([]);
@@ -333,9 +335,15 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
 
   const handleResetFilters = () => {
     clearDebounced(cascadeTimerRef);
+    invalidateCatalogSearchRequest({
+      searchRequestIdRef,
+      foregroundRequestIdRef,
+      setLoadingSearch: setSearchLoading,
+    });
     setSearchResetKey((key) => key + 1);
-    form.resetFields();
+    setErrorSearch(null);
     setSearchResults(null);
+    form.resetFields();
     loadAvailableParameters({ season: DEFAULT_SEASON });
   };
 

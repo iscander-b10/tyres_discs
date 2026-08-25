@@ -94,7 +94,7 @@ showSpikesFilter = selectedSeason === 'w'
 | --- | --- | --- |
 | `handleSearch(values, { background })` | submit / chip / catch-up | map → IDB → setSearchResults |
 | `handleFormChange(changed, all)` | onValuesChange | season/spikes sync; debounce каскада; skip brand/supplier/чекбоксы/spikes (они не меняют size options); auto-resubmit чекбоксов |
-| `handleResetFilters` | кнопка сброса | reset form, searchResults=null, reload facets |
+| `handleResetFilters` | кнопка сброса | reset form, `searchResults=null`, `loadingSearch=false`, bump `searchRequestIdRef` (in-flight поиск stale), reload facets. **Не** вызывает `searchTires` |
 | `handleShowcaseChipClick(chip)` | чип витрины | set width/profile/diameter + search |
 | `softInvalidateIncompatibleSizeValues` | cascade | drop несовместимых width/profile/diameter |
 
@@ -128,7 +128,7 @@ Form (всегда)
 
 ### Связанные тесты
 
-- `TiresSearchParameters.searchRace.test.jsx` — stale searchRequestId
+- `TiresSearchParameters.searchRace.test.jsx` — stale searchRequestId; сброс во время in-flight гасит spinner и игнорирует поздний ответ
 - `App.catalogDualMount.test.jsx` — discs не вызывается на вкладке шин
 
 ### Пример взаимодействия
@@ -141,7 +141,7 @@ Form (всегда)
 - Не обработать season change в `handleFormChange` → spikes останутся от летнего режима
 - Убрать `isActive` guard у showcase → две панели одновременно грузят витрину
 - Вернуть `season` выше `width` в hints → «Найти» снова сканирует весь сезон
-- Не инвалидировать RAM-кэш после `applyCatalogSnapshot` / `setActiveStore` → смесь магазинов или stale SKU
+- Забыть `invalidateCatalogSearchRequest` в `handleResetFilters` → spinner «Найти» живёт, пока не settle Promise; поздний ответ может снова заполнить список
 
 ---
 
@@ -169,7 +169,7 @@ Form (всегда)
 | `handleFormChange` | skip если изменились только `brand` или `onlyAmountFrom4`; при `diskType` — soft invalidate с `{ diskType }`; debounce ~16 ms |
 | Auto-resubmit | только `onlyAmountFrom4` |
 | Showcase chip | patch: diameter, pn, pcd, cbFrom/cbTo |
-| `handleResetFilters` | `loadAvailableParameters()` без season default |
+| `handleResetFilters` | `invalidateCatalogSearchRequest` + `loadAvailableParameters()` без season default |
 
 ### Ant Design
 
@@ -177,7 +177,7 @@ Form (всегда)
 
 ### Тесты
 
-`DiscsSearchParameters.searchRace.test.jsx`
+`DiscsSearchParameters.searchRace.test.jsx` — stale request id, StaleCatalogStoreError, сброс во время in-flight.
 
 ---
 

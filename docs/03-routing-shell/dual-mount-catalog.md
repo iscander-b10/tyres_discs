@@ -161,7 +161,7 @@ Prop сам по себе не очищает все `useState`, Form instance �
 - скрыть панель;
 - размонтировать компонент.
 
-Поэтому результат коммитится только если request id всё ещё последний, component mounted, workspace совпадает и запрос относится к допустимому lifecycle. Search race tests создают медленный старый запрос, затем version bump и новый запрос; поздний старый результат не должен перезаписать новый UI.
+Поэтому результат коммитится только если request id всё ещё последний, component mounted, workspace совпадает и запрос относится к допустимому lifecycle. Кнопка «Сбросить фильтры» синхронно вызывает `invalidateCatalogSearchRequest`: in-flight поиск не пишет UI и не оставляет spinner. Search race tests создают медленный запрос, затем либо version bump и новый запрос, либо reset во время pending.
 
 `isActive=false` предотвращает новые запросы, но сам по себе не отменяет уже выполняющийся Promise. За корректность его завершения отвечают request/generation refs.
 
@@ -205,7 +205,7 @@ Prop сам по себе не очищает все `useState`, Form instance �
 - [`TiresSearchParameters.searchRace.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/components/TiresSearchParameters/TiresSearchParameters.searchRace.test.jsx)
 - [`DiscsSearchParameters.searchRace.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/components/DiscsSearchParameters/DiscsSearchParameters.searchRace.test.jsx)
 
-Они подтверждают, что старый async result после catalog version change не возвращается в UI поверх нового.
+Они подтверждают, что старый async result после catalog version change не возвращается в UI поверх нового, и что сброс фильтров во время pending гасит spinner и не применяет поздний ответ.
 
 ## Ошибки и крайние случаи
 

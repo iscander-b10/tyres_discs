@@ -92,7 +92,8 @@ Re-export schema, filters, validation + **default** `catalogIdbSession`.
 
 **Тесты:** `indexedDBService.test.js`, `indexedDBService.fakeIndexedDB.test.js`,
 `catalogIdbQueries.test.js`, `catalogIdbMemory.test.js`,
-`catalogReadCache.fakeIndexedDB.test.js`.
+`catalogReadCache.fakeIndexedDB.test.js`,
+`catalogIdbSession.readStoreAll.test.js`.
 
 **Страницы:** [Схема IDB](/05-catalog-storage/indexeddb-schema), [queries/facets](/05-catalog-storage/queries-filters-facets), [lifecycle](/05-catalog-storage/lifecycle-and-migration).
 

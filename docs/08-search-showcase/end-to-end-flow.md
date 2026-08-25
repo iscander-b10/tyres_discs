@@ -199,7 +199,11 @@ mapDiscFormValuesToSearchFilters(values)
 **Паттерн в `handleSearch`:**
 
 ```js
-const requestId = ++searchRequestIdRef.current;
+const requestId = beginCatalogSearchRequest({
+  searchRequestIdRef,
+  foregroundRequestIdRef,
+  background,
+});
 const requestedWorkspaceKey = workspaceResetKey;
 const isCurrentRequest = () =>
   mountedRef.current &&
@@ -210,6 +214,10 @@ const isCurrentRequest = () =>
 if (!isCurrentRequest()) return; // stale — не трогаем UI
 setSearchResults(dbResults);
 ```
+
+Кнопка «Сбросить фильтры» вызывает `invalidateCatalogSearchRequest` **синхронно
+с жестом**: `searchResults=null`, `loadingSearch=false`, текущий search request id
+невалиден. Late `finally` не включает spinner и не пишет результаты.
 
 **Background-поиск** (`{ background: true }`) — после обновления каталога (`catalogDataVersion`): не сбрасывает `searchResults`, не показывает spinner, но обновляет данные если request актуален.
 
@@ -355,6 +363,7 @@ sequenceDiagram
 | Добавить filter без matcher | RAM-bucket может отдать лишние SKU |
 | Не сбросить RAM-кэш после snapshot | stale каталог до reload |
 | Убрать `searchRequestIdRef` check | stale results перетирают новые |
+| Сброс фильтров без `invalidateCatalogSearchRequest` | spinner «Найти» не гаснет, поздний поиск заполняет витрину |
 | Менять семантику `null` vs `[]` для `searchResults` | сломается переключение витрина/empty/list |
 | Добавлять товар в корзину без fresh IDB read | устаревшая цена/остаток в корзине |
 | Использовать `Math.random()` в showcase | порядок карточек меняется при каждом рендере |

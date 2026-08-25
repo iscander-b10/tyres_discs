@@ -199,13 +199,54 @@ class CatalogIdbSession {
 
   _readStoreAll(database, storeName, generation) {
     return new Promise((resolve, reject) => {
-      const transaction = database.transaction([storeName], 'readonly');
-      const request = transaction.objectStore(storeName).getAll();
+      let settled = false;
+      const settle = (fn, value) => {
+        if (settled) return;
+        settled = true;
+        fn(value);
+      };
+      const settleResolve = (value) => settle(resolve, value);
+      const settleReject = (error) => settle(reject, error);
+
+      let request;
+      let transaction;
+      try {
+        transaction = database.transaction([storeName], 'readonly');
+        request = transaction.objectStore(storeName).getAll();
+      } catch (error) {
+        settleReject(error);
+        return;
+      }
+
       this._readStoreGetAllCount += 1;
       request.onsuccess = () => {
-        this._resolveIfActive(resolve, reject, generation, request.result || []);
+        this._resolveIfActive(
+          settleResolve,
+          settleReject,
+          generation,
+          request.result || []
+        );
       };
-      request.onerror = () => reject(request.error);
+      request.onerror = () => settleReject(request.error);
+      transaction.onabort = () => {
+        const abortError = transaction.error;
+        if (abortError) {
+          settleReject(abortError);
+          return;
+        }
+        const error = new Error('IndexedDB transaction aborted');
+        error.name = 'AbortError';
+        settleReject(error);
+      };
+      transaction.oncomplete = () => {
+        if (settled) return;
+        this._resolveIfActive(
+          settleResolve,
+          settleReject,
+          generation,
+          request.result || []
+        );
+      };
     });
   }
 

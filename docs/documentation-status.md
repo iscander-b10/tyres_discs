@@ -12,7 +12,7 @@
 | 4. Начало работы | `01-getting-started/**` | Проверено по коду | install, config, deploy |
 | 5. Архитектура | `02-architecture/**` | Проверено по коду | — |
 | 6–12 | Модульные разделы `03`–`10` | Проверено по коду | Включая тему/shell и production catalog flows |
-| 13. Справочник кода | `13-code-reference/**` | Проверено по коду | Сигнатуры, callers и 48 root + 1 cloud test-файл |
+| 13. Справочник кода | `13-code-reference/**` | Проверено по коду | Сигнатуры, callers и 49 root + 1 cloud test-файл |
 | 14. Dev guides | `14-development/**` | Проверено по коду | component, supplier, IDB, sync, troubleshooting |
 | 11–12 | testing + operations | Проверено по коду | Включая logging/diagnostics |
 | 16. ADR | `adr/001`–`008` | Проверено по коду | альтернативы не выдумывались |

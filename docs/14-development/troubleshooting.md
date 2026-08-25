@@ -49,6 +49,8 @@ Steps:
 | Симптом | Причина |
 | --- | --- |
 | Результат «мигает» | stale race — см. race tests |
+| «Найти» крутит spinner, сброс не гасит | in-flight поиск не инвалидирован — `handleResetFilters` должен вызвать `invalidateCatalogSearchRequest` |
+| Пустой экран при spinner | `showShowcase` скрыт пока `loadingSearch`; после settle — список / empty / ошибка |
 | Пустой showcase | IDB empty или `getCatalogShowcase` error |
 | Facets пустые | filters слишком строгие / no index match |
 

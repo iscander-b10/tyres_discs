@@ -22,6 +22,7 @@ import {
   beginCatalogSearchRequest,
   clearDebounced,
   didOnlyIrrelevantSearchFieldsChange,
+  invalidateCatalogSearchRequest,
   scheduleDebounced,
   settleCatalogSearchLoading,
 } from '../../catalog/search/searchFormCascade';
@@ -83,13 +84,14 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
 
   useEffect(() => {
     loadRequestIdRef.current += 1;
-    searchRequestIdRef.current += 1;
-    foregroundRequestIdRef.current = 0;
-    loadingSearchRef.current = false;
+    invalidateCatalogSearchRequest({
+      searchRequestIdRef,
+      foregroundRequestIdRef,
+      setLoadingSearch: setSearchLoading,
+    });
     optionsReadyRef.current = false;
     clearDebounced(cascadeTimerRef);
     setLoadingOptions(false);
-    setSearchLoading(false);
     setErrorSearch(null);
     setSearchResults(null);
     setAvailableBrands([]);
@@ -340,9 +342,15 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
 
   const handleResetFilters = () => {
     clearDebounced(cascadeTimerRef);
+    invalidateCatalogSearchRequest({
+      searchRequestIdRef,
+      foregroundRequestIdRef,
+      setLoadingSearch: setSearchLoading,
+    });
     setSearchResetKey((key) => key + 1);
-    form.resetFields();
+    setErrorSearch(null);
     setSearchResults(null);
+    form.resetFields();
     loadAvailableParameters();
   };
 

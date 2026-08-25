@@ -49,6 +49,17 @@ export function beginCatalogSearchRequest({
   return requestId;
 }
 
+/** Синхронно делает in-flight поиск stale и гасит spinner «Найти». */
+export function invalidateCatalogSearchRequest({
+  searchRequestIdRef,
+  foregroundRequestIdRef,
+  setLoadingSearch,
+}) {
+  searchRequestIdRef.current += 1;
+  foregroundRequestIdRef.current = 0;
+  setLoadingSearch(false);
+}
+
 export function settleCatalogSearchLoading({
   background,
   requestId,

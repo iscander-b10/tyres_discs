@@ -28,7 +28,7 @@ Pure/domain логика без React: `src/catalog/` и domain-часть `src/
 | --- | --- |
 | `didOnlyIrrelevantSearchFieldsChange` | brand/чекбоксы/шипы не пересчитывают facets |
 | `scheduleDebounced` / `SEARCH_FACET_DEBOUNCE_MS` | 16 ms coalesce каскада |
-| `beginCatalogSearchRequest` / `settleCatalogSearchLoading` | spinner «Найти» и overlap foreground/background |
+| `beginCatalogSearchRequest` / `settleCatalogSearchLoading` / `invalidateCatalogSearchRequest` | spinner «Найти», overlap foreground/background, сброс in-flight поиска |
 
 **Тесты:** `searchFormCascade.test.js`. **Страница:** [Поиск](/08-search-showcase/tire-and-disc-search), [гонки](/08-search-showcase/async-race-guards).
 
