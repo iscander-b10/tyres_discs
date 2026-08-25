@@ -1,4 +1,4 @@
-export const CATALOG_SURFACE_FADE_MS = 280;
+export const CATALOG_SURFACE_FADE_MS = 50;
 
 export function prefersCatalogSurfaceFadeInstant() {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {

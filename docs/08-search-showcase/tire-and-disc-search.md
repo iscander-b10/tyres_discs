@@ -103,7 +103,7 @@ showSpikesFilter = selectedSeason === 'w'
 ```
 Form (всегда)
 ├─ Alert errorSearch, если есть
-└─ CatalogResultsFade (opacity 280ms, delayed unmount)
+└─ CatalogResultsFade (opacity 50ms, delayed unmount)
    ├─ showShowcase && isActive → CatalogShowcase kind="tires"
    ├─ showSearchEmpty → CatalogSearchEmptyHint
    └─ showSearchResults → PaginatedCardsList

@@ -79,7 +79,7 @@ useEffect(() => {
 | `status === 'loading'` или `status === 'ready' && showcase.empty` | `ShowcaseShelf skeleton` + чипы (Empty catalog-empty нет) |
 | `status === 'ready'` и полки есть | shelves + `ShowcaseSizeChips` |
 
-Cold-start пустого IndexedDB закрывает полноэкранная шторка AppShell (`CatalogBootstrapOverlay`), не Empty витрины. Overlay не уходит по одному `phase: 'ready'`: витрина вызывает `notifyCatalogSurfaceReady`, когда полки settled (не skeleton). Тогда шторка и зона результатов гаснут/проявляются opacity 280ms. Enter витрины без `translateY` — сдвиг блоков запрещён.
+Cold-start пустого IndexedDB закрывает полноэкранная шторка AppShell (`CatalogBootstrapOverlay`), не Empty витрины. Overlay не уходит по одному `phase: 'ready'`: витрина вызывает `notifyCatalogSurfaceReady`, когда полки settled (не skeleton). Тогда шторка и зона результатов гаснут/проявляются opacity 50ms. Enter витрины без `translateY` — сдвиг блоков запрещён.
 
 ### Ant Design
 

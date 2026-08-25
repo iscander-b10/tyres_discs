@@ -84,7 +84,7 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 | `CatalogShowcase.appLog.test.jsx` | error logging on showcase fail |
 | `CatalogShowcase.bootstrap.test.jsx` | пустой store / loading → skeleton; Empty «Каталог ещё загружается» отсутствует; notify только на settled полках |
 | `CatalogBootstrapOverlay.test.jsx` | шторка на blocking/error, нет на idle/ready, Escape не закрывает, МБ вместо % файла, waiting lock без 0%, waitForShowcase держит до витрины затем fade |
-| `CatalogResultsFade.test.jsx` | delayed unmount 280ms, reduced-motion сразу |
+| `CatalogResultsFade.test.jsx` | delayed unmount 50ms, reduced-motion сразу |
 
 **Страница:** [Async race guards](/08-search-showcase/async-race-guards).
 

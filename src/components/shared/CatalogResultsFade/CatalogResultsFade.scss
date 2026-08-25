@@ -2,7 +2,7 @@
   width: 100%;
   min-width: 0;
   opacity: 1;
-  transition: opacity 280ms ease-out;
+  transition: opacity 50ms ease-out;
 }
 
 .catalog-results-fade--hidden {
@@ -15,7 +15,7 @@
 }
 
 .catalog-results-fade--reveal {
-  animation: catalog-results-fade-in 280ms ease-out both;
+  animation: catalog-results-fade-in 50ms ease-out both;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -171,7 +171,7 @@ Sync; сначала ищет mapping по accountId, затем по normalized
 | `continueSelection` / `handleBrandClick` | Nav helpers для landing |
 | `lastBackgroundPath` | Return path для dual-mount |
 
-**Side effects:** `clientMode` в localStorage; `useLayoutEffect` вызывает `setActiveStore`/`invalidateActiveStore` и сбрасывает `catalogBootstrap` при смене workspace; подписка на catalog channel обновляет версии; `CatalogBootstrapOverlay` порталится на `document.body` при `blocking`/`error` и на cold start держится до settled витрины, затем opacity 280ms. **Страница:** [AppShell state](/03-routing-shell/app-shell-state).
+**Side effects:** `clientMode` в localStorage; `useLayoutEffect` вызывает `setActiveStore`/`invalidateActiveStore` и сбрасывает `catalogBootstrap` при смене workspace; подписка на catalog channel обновляет версии; `CatalogBootstrapOverlay` порталится на `document.body` при `blocking`/`error` и на cold start держится до settled витрины, затем opacity 50ms. **Страница:** [AppShell state](/03-routing-shell/app-shell-state).
 
 ---
 

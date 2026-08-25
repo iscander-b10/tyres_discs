@@ -64,7 +64,7 @@ flowchart LR
 9. Под exclusive lock сервис читает маленькую meta. Если локальная версия не старее и база не пуста, большой snapshot не скачивается.
 10. Новый snapshot полностью валидируется и нормализуется в памяти.
 11. Все команды и `snapshotVersion` применяются одной readwrite-транзакцией IndexedDB. Ошибка любой записи отменяет весь commit.
-12. После успешного commit публикуется событие между вкладками. На холодном старте host сначала прогревает RAM шин и дисков, затем `AppShellContext` увеличивает `catalogDataVersion`; поиск, витрина и сверка корзины перечитывают уже тёплый кэш. Пока snapshot не в IndexedDB и RAM не прогрет, UI закрыт шторкой `catalogBootstrap.phase === 'blocking'`. Снятие шторки на cold start ждёт settled витрину (полки, не skeleton), затем opacity 280ms.
+12. После успешного commit публикуется событие между вкладками. На холодном старте host сначала прогревает RAM шин и дисков, затем `AppShellContext` увеличивает `catalogDataVersion`; поиск, витрина и сверка корзины перечитывают уже тёплый кэш. Пока snapshot не в IndexedDB и RAM не прогрет, UI закрыт шторкой `catalogBootstrap.phase === 'blocking'`. Снятие шторки на cold start ждёт settled витрину (полки, не skeleton), затем opacity 50ms.
 
 ## Главные форматы
 
