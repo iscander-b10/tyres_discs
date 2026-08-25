@@ -9,10 +9,14 @@ flowchart TB
   Search["Tires/DiscsSearchParameters"]
   Search --> Showcase["CatalogShowcase"]
   Search --> List["PaginatedCardsList"]
-  Search --> Empty["CatalogSearchEmptyHint"]
+  Search --> EmptyHint["CatalogSearchEmptyHint"]
 
   Showcase --> Shelf["ShowcaseShelf"]
   Showcase --> Chips["ShowcaseSizeChips"]
+
+  EmptyHint --> EmptyBlock["CatalogSearchEmpty"]
+  EmptyHint --> Chips
+  List --> EmptyBlock
 
   List --> Card["CatalogItemCard"]
   Shelf --> Card
@@ -275,7 +279,7 @@ Grid результатов поиска с client-side title filter, сорти
 | `error` | string \| null | — |
 | `isClientMode` | boolean | — |
 | `renderCard` | function | — |
-| `emptyText` | string | — |
+| `onResetFilters` | function \| undefined | — |
 | `itemsPerPage` | number | `20` |
 | `containerClassName`, `gridClassName` | string | — |
 | `searchResetKey` | number | `0` |
@@ -309,13 +313,17 @@ Grid результатов поиска с client-side title filter, сорти
 error → Alert
 !items → null
 hasVisibleItems → grid + pagination
-isTitleFilterEmpty → «Нет совпадений» + clear
-else → Empty(emptyText)
+isTitleFilterEmpty → CatalogSearchEmpty (`.empty-state`) + «Очистить поиск»
+else → CatalogSearchEmpty (`.empty-state`) + onResetFilters
 ```
+
+Обе empty-ветки списка: `min-height: 420px`, контент в верхней трети — тот же ритм, что у `CatalogSearchEmptyHint`. Title-filter empty чистит локальный поиск по названию (`handleSearchClear`), не форму фильтров.
+
+Пустой source (`items = []`) — запасной путь: родители обычно показывают `CatalogSearchEmptyHint` вместо списка.
 
 ### Ant Design
 
-`Alert`, `Button`, `Dropdown`, `Empty`, `Flex`, `Input`, `Pagination`
+`Alert`, `Dropdown`, `Flex`, `Input`, `Pagination` (+ `Button` внутри `CatalogSearchEmpty`)
 
 ### Side effects
 
@@ -331,15 +339,42 @@ else → Empty(emptyText)
 
 ---
 
+## React-компонент: `CatalogSearchEmpty`
+
+**Путь:** `src/components/shared/CatalogShowcase/CatalogSearchEmpty.jsx`
+
+Переиспользуемый empty-блок поиска (не Ant Design `Empty`): иконка `FileSearchOutlined` в мягком круге, заголовок «Ничего не найдено», muted description, CTA «Сбросить фильтры» (`Reset.svg` + `onResetFilters`).
+
+| Prop | Тип | Default |
+| --- | --- | --- |
+| `title` | string | `Ничего не найдено` |
+| `description` | string | про фильтры / размер ниже |
+| `onResetFilters` | function \| undefined | — |
+| `resetLabel` | string | `Сбросить фильтры` |
+| `actionIcon` | ReactNode | `Reset.svg` |
+| `className` | string | `''` |
+
+Enter: stagger opacity + translateY (~100ms), только при `prefers-reduced-motion: no-preference`. Стили: `CatalogSearchEmpty.scss` (токены).
+
+---
+
 ## React-компонент: `CatalogSearchEmptyHint`
 
 **Путь:** `src/components/shared/CatalogShowcase/CatalogSearchEmptyHint.jsx`
 
-Empty state **после поиска** с чипами альтернативных размеров. Props: `kind`, `emptyText`, `onChipClick`.
+Empty state **после поиска** (`searchResults.length === 0`): `CatalogSearchEmpty` + чипы альтернативных размеров (`ShowcaseSizeChips`).
+
+| Prop | Тип | Default |
+| --- | --- | --- |
+| `kind` | `'tires'` \| `'discs'` | `'tires'` |
+| `onResetFilters` | function | — |
+| `onChipClick` | function | — |
+
+Зона `__search-empty-main`: `min-height: 420px`, контент в верхней трети (`padding-top: 72px`), gap до чипов как у витрины. `onResetFilters` — тот же `handleResetFilters`, что и красная кнопка сброса в форме.
 
 Пока foreground-поиск идёт, витрина или прошлый список не размонтируются в blank (кнопка «Найти» в `loading`).
 
-Ant Design: `Empty`.
+Ant Design: `Button` (внутри `CatalogSearchEmpty`); иконка `@ant-design/icons` `FileSearchOutlined`.
 
 ---
 

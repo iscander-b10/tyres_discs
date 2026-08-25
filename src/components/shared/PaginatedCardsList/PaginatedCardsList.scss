@@ -338,85 +338,19 @@
 }
 
 .empty-state {
-  grid-column: 1 / -1;
-  text-align: center;
-  padding: 60px 20px;
-
-  .ant-empty-description {
-    color: $color-text;
-  }
-}
-
-.list-filter-empty {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: flex-start;
-  gap: $space-4;
   align-self: stretch;
   box-sizing: border-box;
+  grid-column: 1 / -1;
   width: 100%;
   margin: 0;
-  /* Reserve results-zone height (same cue as catalog-showcase--loading).
-     padding-top places the text+CTA unit in the upper third — not mid-viewport. */
+  /* Same results-zone reserve as catalog-showcase--loading / search-empty. */
   padding: 72px 0 $space-6;
   min-height: 420px;
   text-align: start;
-}
-
-.list-filter-empty__text {
-  margin: 0;
-  max-width: 36ch;
-  color: $color-text-muted;
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.5;
-  text-wrap: pretty;
-}
-
-.list-filter-empty__clear.ant-btn {
-  min-height: 40px;
-  height: auto;
-  padding-block: 8px;
-  padding-inline: 14px;
-  border-radius: $radius-md;
-  border: 1px solid $color-border;
-  background: $color-surface;
-  color: $color-text;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.3;
-  box-shadow: none;
-  transition-property: background-color, border-color, color, transform;
-  transition-duration: 0.2s, 0.2s, 0.2s, 0.15s;
-  transition-timing-function: ease;
-
-  &:not(:disabled):hover {
-    border-color: $color-border !important;
-    background: $color-bg-sunken !important;
-    color: $color-text !important;
-  }
-
-  &:focus {
-    outline: none;
-  }
-
-  &:focus-visible {
-    outline: 2px solid $color-cta;
-    outline-offset: 2px;
-  }
-
-  &:not(:disabled):active {
-    transform: scale(0.96);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-
-    &:not(:disabled):active {
-      transform: none;
-    }
-  }
 }
 
 .pagination-container {

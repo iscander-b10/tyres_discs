@@ -88,14 +88,15 @@ singleton `catalogIdbSession`). При `searchResults === null` панель р�
 | `CatalogShowcase` | `shared/CatalogShowcase/CatalogShowcase.jsx` | `kind`, `renderCard`, `onChipClick` | [Showcase](/08-search-showcase/showcase-selection) |
 | `ShowcaseShelf` | `shared/CatalogShowcase/ShowcaseShelf.jsx` | `title`, `items`, `renderCard`, `skeleton` | [UI каталога](/10-ui/catalog-components) |
 | `ShowcaseSizeChips` | `shared/CatalogShowcase/ShowcaseSizeChips.jsx` | `chips`, `onChipClick` | [Showcase](/08-search-showcase/showcase-selection) |
-| `CatalogSearchEmptyHint` | `shared/CatalogShowcase/CatalogSearchEmptyHint.jsx` | `kind`, `emptyText` | [UI каталога](/10-ui/catalog-components) |
+| `CatalogSearchEmpty` | `shared/CatalogShowcase/CatalogSearchEmpty.jsx` | `title`, `description`, `onResetFilters`, `actionIcon` | [UI каталога](/10-ui/catalog-components) |
+| `CatalogSearchEmptyHint` | `shared/CatalogShowcase/CatalogSearchEmptyHint.jsx` | `kind`, `onResetFilters`, `onChipClick` | [UI каталога](/10-ui/catalog-components) |
 | `CatalogItemCard` | `shared/CatalogItemCard/CatalogItemCard.jsx` | `item`, `category`, `isClientMode` | [UI каталога](/10-ui/catalog-components) |
 | `CatalogItemModalWindow` | `shared/CatalogItemModalWindow/...` | `isOpen`, `item`, `category` | [UI каталога](/10-ui/catalog-components) |
 | `CatalogPriceStrip` | `shared/CatalogPriceStrip/...` | `item`, `isClientMode` | [UI каталога](/10-ui/catalog-components) |
 | `CatalogItemPromoBadges` | `shared/CatalogItemPromoBadges/...` | `item`, `variant` | [UI каталога](/10-ui/catalog-components) |
 | `AddToCartControl` | `shared/AddToCartControl/...` | `item`, `category`, `onGoToCart` | [Корзина](/10-ui/basket-and-client-mode) |
 | `CartQtyControls` | `shared/CartQtyControls/...` | `quantity`, `maxStock`, handlers | [Корзина](/10-ui/basket-and-client-mode) |
-| `PaginatedCardsList` | `shared/PaginatedCardsList/...` | `items`, `renderCard`, pagination | [UI каталога](/10-ui/catalog-components) |
+| `PaginatedCardsList` | `shared/PaginatedCardsList/...` | `items`, `renderCard`, `onResetFilters` | [UI каталога](/10-ui/catalog-components) |
 | `SupplierFilterSelect` | `shared/SupplierFilterSelect.jsx` | `options`, маскировка client mode | [Поиск](/08-search-showcase/tire-and-disc-search) |
 | `HoverTooltip` | `shared/HoverTooltip.jsx` | children + Tooltip props | [UI каталога](/10-ui/catalog-components) |
 

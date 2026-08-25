@@ -28,30 +28,16 @@
 }
 
 .catalog-showcase__search-empty-main {
-  padding-block: $space-5;
-}
-
-.catalog-showcase__empty-copy {
-  max-width: 36ch;
-  margin-inline: auto;
-}
-
-.catalog-showcase__empty-title {
-  margin: 0;
-  color: $color-text;
-  font-size: $catalog-type-title-size;
-  font-weight: $catalog-type-title-weight;
-  line-height: $catalog-type-title-lh;
-  text-wrap: balance;
-}
-
-.catalog-showcase__empty-hint {
-  margin: $space-2 0 0;
-  color: $color-text-muted;
-  font-size: $catalog-type-label-size;
-  font-weight: $catalog-type-label-weight;
-  line-height: $catalog-type-label-lh;
-  text-wrap: pretty;
+  /* Reserve results-zone height (same cue as --loading / .list-filter-empty).
+     padding-top places the empty unit in the upper third — not mid-viewport. */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 420px;
+  padding: 72px 0 $space-6;
 }
 
 .catalog-showcase__shelf {

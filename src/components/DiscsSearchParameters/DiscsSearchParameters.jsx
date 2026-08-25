@@ -682,7 +682,7 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
       {showSearchEmpty ? (
         <CatalogSearchEmptyHint
           kind="discs"
-          emptyText="Ничего не найдено. Сбросьте фильтры."
+          onResetFilters={handleResetFilters}
           onChipClick={handleShowcaseChipClick}
         />
       ) : null}
@@ -694,7 +694,7 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
           searchResetKey={searchResetKey}
           containerClassName="items-list-container"
           gridClassName="items-grid"
-          emptyText="Ничего не найдено. Сбросьте фильтры."
+          onResetFilters={handleResetFilters}
           renderCard={renderCatalogCard}
         />
       ) : null}

@@ -1,10 +1,11 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Alert, Button, Dropdown, Empty, Flex, Input, Pagination } from 'antd';
+import { Alert, Dropdown, Flex, Input, Pagination } from 'antd';
 import { ReactComponent as SearchIcon } from '../../../icons/Search.svg';
 import { ReactComponent as ClearIcon } from '../../../icons/Clear.svg';
 import { ReactComponent as LoadingIcon } from '../../../icons/Loading.svg';
 import { ReactComponent as SortIcon } from '../../../icons/Sotring.svg';
 import { ReactComponent as PageSizeIcon } from '../../../icons/PageSize.svg';
+import CatalogSearchEmpty from '../CatalogShowcase/CatalogSearchEmpty';
 import HoverTooltip from '../HoverTooltip';
 import './PaginatedCardsList.scss';
 
@@ -119,12 +120,21 @@ const matchesTitleSearch = (item, normalizedQuery) => {
   return title.includes(normalizedQuery);
 };
 
+const LIST_EMPTY_DESCRIPTION =
+  'По этим фильтрам нет позиций. Сбросьте параметры или измените размер.';
+const TITLE_FILTER_EMPTY_DESCRIPTION =
+  'По этому названию нет позиций. Очистите поиск или измените запрос.';
+
+const titleFilterClearIcon = (
+  <ClearIcon className="catalog-search-empty__reset-icon" aria-hidden />
+);
+
 const PaginatedCardsList = ({
   items,
   error,
   isClientMode,
   renderCard,
-  emptyText = 'Ничего не найдено.',
+  onResetFilters,
   itemsPerPage: itemsPerPageProp = DEFAULT_ITEMS_PER_PAGE,
   containerClassName,
   gridClassName,
@@ -461,20 +471,21 @@ const PaginatedCardsList = ({
           )}
         </div>
       ) : isTitleFilterEmpty ? (
-        <div className="list-filter-empty" role="status">
-          <p className="list-filter-empty__text">Нет совпадений</p>
-          <Button
-            type="default"
-            className="list-filter-empty__clear"
-            onClick={handleSearchClear}
-          >
-            Очистить поиск
-          </Button>
+        <div className="empty-state">
+          <CatalogSearchEmpty
+            description={TITLE_FILTER_EMPTY_DESCRIPTION}
+            onResetFilters={handleSearchClear}
+            resetLabel="Очистить поиск"
+            actionIcon={titleFilterClearIcon}
+          />
         </div>
       ) : (
-        <Flex className="empty-state" justify="center" align="center">
-          <Empty description={emptyText} />
-        </Flex>
+        <div className="empty-state">
+          <CatalogSearchEmpty
+            description={LIST_EMPTY_DESCRIPTION}
+            onResetFilters={onResetFilters}
+          />
+        </div>
       )}
     </Flex>
   );
