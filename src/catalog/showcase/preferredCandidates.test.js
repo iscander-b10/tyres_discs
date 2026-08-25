@@ -6,20 +6,30 @@ import { buildTireShowcase } from './buildTireShowcase';
 const summerWl = SHOWCASE_CONFIG.tires.ikonSeasonModelsSummer;
 const winterWl = SHOWCASE_CONFIG.tires.ikonSeasonModelsWinter;
 
+const popularSizeOf = (index = 0) => {
+  const size =
+    SHOWCASE_CONFIG.tires.popularSizes[
+      index % SHOWCASE_CONFIG.tires.popularSizes.length
+    ];
+  return {
+    width: size.width,
+    profile: size.profile,
+    diameter: size.diameter,
+  };
+};
+
 const mk = (over) => ({
   id: over.id,
   brand: over.brand ?? 'Ikon',
   title: over.title,
   model: over.model,
-  width: over.width ?? 205,
-  profile: over.profile ?? 55,
-  diameter: over.diameter ?? 'R16',
   amount: over.amount ?? 8,
   photoUrl: 'x',
   sellingPrice: over.sellingPrice ?? 7000,
   season: over.season ?? 's',
   spikes: over.spikes,
   supplier: 'Шинсервис',
+  ...popularSizeOf(0),
   ...over,
 });
 
@@ -50,7 +60,7 @@ describe('preferred Ikon candidates', () => {
         id: i + 1,
         title: `Ikon Autograph Eco 3 ${80 + (i % 10)}H`,
         model: 'Autograph Eco 3',
-        diameter: `R${15 + (i % 4)}`,
+        ...popularSizeOf(i),
       })
     );
     const others = Array.from({ length: 40 }, (_, i) =>
@@ -72,9 +82,9 @@ describe('preferred Ikon candidates', () => {
       now: new Date('2026-06-15'),
     });
     const items = summer.shelves[0].items;
-    expect(items).toHaveLength(30);
+    expect(items).toHaveLength(25);
     expect(items.some((i) => i.brand === 'Ikon')).toBe(true);
-    expect(items.filter((i) => i.brand !== 'Ikon').length).toBeGreaterThan(20);
+    expect(items.filter((i) => i.brand !== 'Ikon').length).toBeGreaterThan(15);
   });
 
   test('Ikon buried after 480 others still reach summer/winter shelf', () => {
@@ -83,25 +93,25 @@ describe('preferred Ikon candidates', () => {
         id: 901,
         title: 'Ikon Character Eco 91H',
         season: 's',
-        diameter: 'R15',
+        ...popularSizeOf(3),
       }),
       mk({
         id: 902,
         title: 'Ikon Autograph Eco 3 91V',
         season: 's',
-        diameter: 'R16',
+        ...popularSizeOf(6),
       }),
       mk({
         id: 903,
         title: 'Ikon Autograph Aqua 3 94V',
         season: 's',
-        diameter: 'R17',
+        ...popularSizeOf(8),
       }),
       mk({
         id: 904,
         title: 'Ikon Character Aqua 91V',
         season: 's',
-        diameter: 'R18',
+        ...popularSizeOf(11),
       }),
     ];
     const frontOthers = Array.from({ length: 500 }, (_, i) =>
@@ -137,28 +147,28 @@ describe('preferred Ikon candidates', () => {
         title: 'Ikon Character Ice 8 95T',
         season: 'w',
         spikes: true,
-        diameter: 'R15',
+        ...popularSizeOf(3),
       }),
       mk({
         id: 912,
         title: 'Ikon Character Ice 7 99T',
         season: 'w',
         spikes: true,
-        diameter: 'R16',
+        ...popularSizeOf(6),
       }),
       mk({
         id: 913,
         title: 'Ikon Character Snow 2 94R',
         season: 'w',
         spikes: false,
-        diameter: 'R17',
+        ...popularSizeOf(8),
       }),
       mk({
         id: 914,
         title: 'Ikon Autograph Ice 9 94T',
         season: 'w',
         spikes: true,
-        diameter: 'R18',
+        ...popularSizeOf(11),
       }),
     ];
     const winterOthers = Array.from({ length: 500 }, (_, i) =>

@@ -1,2 +1,2 @@
-export { SHOWCASE_CONFIG } from './showcaseConfig';
+export { SHOWCASE_CONFIG, isPopularTireSize } from './showcaseConfig';
 export { getCatalogShowcase } from './getCatalogShowcase';

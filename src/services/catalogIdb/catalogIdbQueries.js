@@ -88,6 +88,7 @@ export const replaceSupplierItemsInStore = (
  *
  * `candidateLimit: null` / non-finite — без ранней отсечки (полка дисков).
  * `preferItem` — preferred не режутся лимитом; без него цикл обрывается на limit.
+ * `matchesItem` — доп. hard-filter (полка шин: частые размеры) до учёта в лимите.
  */
 export const collectShowcaseCandidatesFromItems = (
   items,
@@ -96,6 +97,7 @@ export const collectShowcaseCandidatesFromItems = (
     minAmount = 1,
     supplier = null,
     preferItem = null,
+    matchesItem = null,
   } = {}
 ) => {
   if (!Array.isArray(items) || items.length === 0) {
@@ -103,6 +105,7 @@ export const collectShowcaseCandidatesFromItems = (
   }
 
   const hasPrefer = typeof preferItem === 'function';
+  const hasMatch = typeof matchesItem === 'function';
   const unlimited =
     candidateLimit == null || !Number.isFinite(Number(candidateLimit));
   const limit = unlimited ? Number.POSITIVE_INFINITY : Math.max(0, Number(candidateLimit));
@@ -115,6 +118,7 @@ export const collectShowcaseCandidatesFromItems = (
 
     const amount = Number(item?.amount);
     if (Number.isNaN(amount) || amount < minAmount) continue;
+    if (hasMatch && !matchesItem(item)) continue;
 
     if (hasPrefer && preferItem(item)) {
       preferred.push(item);
@@ -150,6 +154,7 @@ export const collectShowcaseCandidatesFromItems = (
  *
  * `preferItem(item)` — позиции идут в приоритетный пул первым; при его наличии
  * курсор не обрывается на limit, пока не просмотрены все preferred (гарантия Ikon).
+ * `matchesItem(item)` — доп. hard-filter до учёта в лимите (как у RAM-helper).
  */
 export const collectShowcaseCandidatesFromStore = (
   store,
@@ -158,6 +163,7 @@ export const collectShowcaseCandidatesFromStore = (
     minAmount = 1,
     supplier = null,
     preferItem = null,
+    matchesItem = null,
   } = {}
 ) =>
   new Promise((resolve, reject) => {
@@ -178,6 +184,7 @@ export const collectShowcaseCandidatesFromStore = (
       const others = [];
       let settled = false;
       const hasPrefer = typeof preferItem === 'function';
+      const hasMatch = typeof matchesItem === 'function';
 
       const finish = (payload) => {
         if (settled) return;
@@ -190,6 +197,7 @@ export const collectShowcaseCandidatesFromStore = (
 
         const amount = Number(item?.amount);
         if (Number.isNaN(amount) || amount < minAmount) return;
+        if (hasMatch && !matchesItem(item)) return;
 
         if (hasPrefer && preferItem(item)) {
           preferred.push(item);

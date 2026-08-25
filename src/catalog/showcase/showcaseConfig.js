@@ -31,8 +31,8 @@ export const SHOWCASE_CONFIG = {
       { label: '225/55 R19', width: 225, profile: 55, diameter: 'R19' },
       { label: '235/55 R19', width: 235, profile: 55, diameter: 'R19' },
     ],
-    /** Цель полки «Сейчас в сезоне»: ровно до 30 карточек (clamp по наличию). */
-    seasonHitsCount: { min: 30, max: 30 },
+    /** Цель полки «Сейчас в сезоне»: ровно до 25 карточек (clamp по наличию). */
+    seasonHitsCount: { min: 25, max: 25 },
     /**
      * Whitelist Ikon для партнёрского блока полки «Сейчас в сезоне».
      * SUV/SUF/SAV, Eco C2/C3 и модели, которые сами Nordman, отсекаются.
@@ -62,7 +62,8 @@ export const SHOWCASE_CONFIG = {
      * остальные — до этого лимита суммарно с Ikon.
      */
     candidateLimit: 480,
-    minAmount: 1,
+    /** Целый комплект: на полку только позиции с amount ≥ 4. */
+    minAmount: 4,
   },
   discs: {
     /** @type {DiscSizeChip[]} */
@@ -124,4 +125,26 @@ export const getCatalogSeasonFromDate = (date = new Date()) => {
   const month = date.getMonth();
   const { summerMonthFrom, summerMonthTo } = SHOWCASE_CONFIG.season;
   return month >= summerMonthFrom && month <= summerMonthTo ? 's' : 'w';
+};
+
+/**
+ * Точное совпадение width/profile/diameter с чипом частых размеров.
+ * R16 и R16C — разные размеры; без нормализации «примерно R16».
+ */
+export const isPopularTireSize = (
+  item,
+  sizes = SHOWCASE_CONFIG.tires.popularSizes
+) => {
+  if (!item || !Array.isArray(sizes)) return false;
+  const width = Number(item.width);
+  const profile = Number(item.profile);
+  if (!Number.isFinite(width) || !Number.isFinite(profile)) return false;
+  const diameter = String(item.diameter ?? '');
+  if (!diameter) return false;
+  return sizes.some(
+    (size) =>
+      Number(size.width) === width &&
+      Number(size.profile) === profile &&
+      String(size.diameter) === diameter
+  );
 };

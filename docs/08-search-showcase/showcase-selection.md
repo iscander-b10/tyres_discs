@@ -183,7 +183,7 @@ flowchart TD
 3. При смене workspace — сброс payload и promise.
 4. Single-flight promise для параллельных вызовов.
 5. Load payload:
-   - **Шины:** `candidateLimit: 480`, `preferItem: isIkonBrand` — Ikon не отрезаются лимитом (фильтр по RAM)
+   - **Шины:** `candidateLimit: 480`, `preferItem: isIkonBrand`, `matchesItem: isPopularTireSize` — Ikon не отрезаются лимитом, редкие размеры не занимают бюджет 480
    - **Диски:** `candidateLimit: null` — все matching из RAM; литые Шинсервиса отбирает `buildDiscShowcase`
 6. `resolveShowcaseSeed(catalogSnapshotVersion, workspace, candidates)`
 7. Delegate to `buildTireShowcase` / `buildDiscShowcase`.
@@ -220,11 +220,13 @@ export const buildTireShowcase = ({
 
 1. `season = getCatalogSeasonFromDate(now)` — мар–авг = `'s'`, иначе `'w'`.
 2. Если `isEmpty` → `{ empty: true, shelves: [], chips }`.
-3. `stocked = candidates.filter(isStocked)` — amount ≥ minAmount (1).
-4. `seasonPool = stocked.filter(item.season === season)`.
-5. `seasonHits = pickMixedSeasonHits({ pool: seasonPool, season, limit: 30, whitelist, seed })`.
+3. `stocked = candidates.filter(isStocked)` — amount ≥ minAmount (4, целый комплект).
+4. `seasonPool` — `item.season === season` **и** `isPopularTireSize` (точное совпадение width/profile/diameter с `tires.popularSizes`; `R16` ≠ `R16C`).
+5. `seasonHits = pickMixedSeasonHits({ pool: seasonPool, season, limit: 25, whitelist, seed })`.
 6. Если hits.length > 0 → shelf `{ id: 'season-hits', title: 'Сейчас в сезоне', items }`.
 7. Return `{ kind: 'tires', chips: popularSizes, shelves }`.
+
+Чипы «Частые размеры» — тот же статический список; полка — живые карточки, но только из этих размеров. Редкий размер не проходит даже у Ikon из whitelist. Если после фильтра пул пуст — полок нет, чипы остаются.
 
 ### Whitelist Ikon
 
@@ -315,7 +317,7 @@ flowchart TD
 
 **Ikon whitelist matching:** `resolveIkonSeasonModelKey` — нормализация текста модели, исключение SUV/Eco C2/C3/Nordman.
 
-**Preferred candidates:** `collectShowcaseCandidatesFromItems` с `preferItem: isIkonBrand` — Ikon попадают в `preferred[]` первыми и **не обрезаются** лимитом 480. Production-путь — RAM после `_ensureReadCache`, не отдельный IDB cursor.
+**Preferred candidates:** `collectShowcaseCandidatesFromItems` с `preferItem: isIkonBrand` и `matchesItem: isPopularTireSize` — Ikon попадают в `preferred[]` первыми и **не обрезаются** лимитом 480, но редкий размер (в том числе Ikon) в пул не входит. Production-путь — RAM после `_ensureReadCache`, не отдельный IDB cursor.
 
 ### Тесты
 
@@ -347,7 +349,9 @@ Fisher–Yates с mulberry32 PRNG. **Один seed → один порядок**
 | Ключ | Значение | Назначение |
 | --- | --- | --- |
 | `showcaseSupplier` | `'Шинсервис'` | фильтр поставщика на полках |
-| `tires.seasonHitsCount` | `{ min: 30, max: 30 }` | размер полки шин |
+| `tires.popularSizes` | chip[] | чипы «Частые размеры» и hard-filter полки шин |
+| `tires.seasonHitsCount` | `{ min: 25, max: 25 }` | размер полки шин |
+| `tires.minAmount` | `4` | hard filter: целый комплект на полке шин |
 | `tires.candidateLimit` | `480` | лимит non-Ikon кандидатов |
 | `discs.popularModelsCount` | `{ min: 15, max: 15 }` | размер полки дисков |
 | `discs.minAmount` | `4` | hard filter на полке дисков |
@@ -411,6 +415,7 @@ Props: `kind`, `emptyText`, `onChipClick`.
 | --- | --- |
 | Привязать seed к `catalogDataVersion` | порядок карточек меняется при каждом local sync |
 | Убрать `preferItem` для Ikon | whitelist модели отрезаются лимитом 480 |
+| Убрать `isPopularTireSize` / `matchesItem` | на полке редкие размеры; лимит 480 съедает «хвост» каталога |
 | Вернуть отдельный IDB cursor витрины с `preferItem` | полный `cursor.continue` по поставщику блокирует кадр «Найти» |
 | Использовать scoring на дисках без явного решения | поведение полки изменится непредсказуемо |
 | Смешать cache showcase с searchResults | лишние перезагрузки или stale UI |

@@ -1,4 +1,8 @@
-import { SHOWCASE_CONFIG, getCatalogSeasonFromDate } from './showcaseConfig';
+import {
+  SHOWCASE_CONFIG,
+  getCatalogSeasonFromDate,
+  isPopularTireSize,
+} from './showcaseConfig';
 import { isStocked } from './scoring';
 import { pickMixedSeasonHits } from './ikonSeasonHits';
 
@@ -9,7 +13,8 @@ const clampCount = ({ min, max }, available) => {
 
 /**
  * Чистые правила витрины шин (без JSX).
- * Полка «Сейчас в сезоне»: уникальные Ikon (whitelist) + остальные (Шинсервис), до 30.
+ * Полка «Сейчас в сезоне»: только частые размеры, уникальные Ikon (whitelist)
+ * + остальные (Шинсервис), до 25.
  * Порядок — seeded shuffle (один seed на snapshot.version).
  * @param {{ candidates: object[], isEmpty: boolean, now?: Date, seed?: string|number }} input
  */
@@ -35,7 +40,9 @@ export const buildTireShowcase = ({
   }
 
   const stocked = candidates.filter((item) => isStocked(item, cfg.minAmount));
-  const seasonPool = stocked.filter((item) => item.season === season);
+  const seasonPool = stocked.filter(
+    (item) => item.season === season && isPopularTireSize(item, cfg.popularSizes)
+  );
 
   const seasonHitsLimit = clampCount(cfg.seasonHitsCount, seasonPool.length);
   const whitelist =

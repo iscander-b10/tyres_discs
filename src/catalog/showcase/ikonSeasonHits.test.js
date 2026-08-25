@@ -10,6 +10,18 @@ import { buildTireShowcase } from './buildTireShowcase';
 const summerWl = SHOWCASE_CONFIG.tires.ikonSeasonModelsSummer;
 const winterWl = SHOWCASE_CONFIG.tires.ikonSeasonModelsWinter;
 
+const popularSizeOf = (index = 0) => {
+  const size =
+    SHOWCASE_CONFIG.tires.popularSizes[
+      index % SHOWCASE_CONFIG.tires.popularSizes.length
+    ];
+  return {
+    width: size.width,
+    profile: size.profile,
+    diameter: size.diameter,
+  };
+};
+
 const mk = (over) => ({
   id: over.id,
   brand: over.brand ?? 'Ikon',
@@ -462,7 +474,7 @@ describe('ikon season shelf', () => {
     expect(mixed).toHaveLength(3);
   });
 
-  test('buildTireShowcase summer/winter target 30 with mix', () => {
+  test('buildTireShowcase summer/winter target 25 with mix', () => {
     const summerPool = Array.from({ length: 40 }, (_, i) => {
       if (i < 6) {
         const titles = [
@@ -477,7 +489,7 @@ describe('ikon season shelf', () => {
           id: i + 1,
           title: titles[i],
           season: 's',
-          diameter: `R${15 + (i % 4)}`,
+          ...popularSizeOf(i),
         });
       }
       return mk({
@@ -499,7 +511,7 @@ describe('ikon season shelf', () => {
     expect(summer.shelves[0].id).toBe('season-hits');
     expect(summer.shelves[0].title).toBe('Сейчас в сезоне');
     const sItems = summer.shelves[0].items;
-    expect(sItems).toHaveLength(30);
+    expect(sItems).toHaveLength(25);
     expect(sItems.filter((i) => i.brand === 'Ikon')).toHaveLength(6);
     expect(sItems.some((i) => i.brand !== 'Ikon')).toBe(true);
 
@@ -509,40 +521,42 @@ describe('ikon season shelf', () => {
         title: 'Ikon Character Ice 8 95T',
         season: 'w',
         spikes: true,
+        ...popularSizeOf(0),
       }),
       mk({
         id: 102,
         title: 'Ikon Character Ice 7 99T',
         season: 'w',
         spikes: true,
-        diameter: 'R15',
+        ...popularSizeOf(3),
       }),
       mk({
         id: 103,
         title: 'Ikon Character Snow 2 94R',
         season: 'w',
         spikes: false,
-        diameter: 'R17',
+        ...popularSizeOf(6),
       }),
       mk({
         id: 104,
         title: 'Ikon Autograph Ice 9 94T',
         season: 'w',
         spikes: true,
+        ...popularSizeOf(8),
       }),
       mk({
         id: 105,
         title: 'Ikon Autograph Ice 10 95T',
         season: 'w',
         spikes: true,
-        diameter: 'R18',
+        ...popularSizeOf(11),
       }),
       mk({
         id: 106,
         title: 'Ikon Autograph Snow 3 94T',
         season: 'w',
         spikes: false,
-        diameter: 'R15',
+        ...popularSizeOf(13),
       }),
       ...Array.from({ length: 28 }, (_, i) =>
         mk({
@@ -565,7 +579,7 @@ describe('ikon season shelf', () => {
     expect(winter.shelves).toHaveLength(1);
     expect(winter.shelves[0].title).toBe('Сейчас в сезоне');
     const wItems = winter.shelves[0].items;
-    expect(wItems).toHaveLength(30);
+    expect(wItems).toHaveLength(25);
     const wIkon = wItems.filter((i) => i.brand === 'Ikon');
     expect(wIkon.length).toBe(6);
     expect(wItems.some((i) => i.brand !== 'Ikon')).toBe(true);

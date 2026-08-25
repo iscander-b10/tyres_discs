@@ -1,6 +1,6 @@
 import indexedDBService from '../../services/indexedDBService';
 import { isIkonBrand } from '../core';
-import { SHOWCASE_CONFIG } from './showcaseConfig';
+import { SHOWCASE_CONFIG, isPopularTireSize } from './showcaseConfig';
 import { buildTireShowcase } from './buildTireShowcase';
 import { buildDiscShowcase } from './buildDiscShowcase';
 import { resolveShowcaseSeed } from './showcaseSeed';
@@ -18,6 +18,8 @@ const loadTirePayload = async () => {
     supplier: SHOWCASE_CONFIG.showcaseSupplier,
     // Ikon первыми в пуле: уникальные модели не отрезаются ранним лимитом 480.
     preferItem: isIkonBrand,
+    // Частые размеры до лимита 480, иначе бюджет съедают редкие SKU.
+    matchesItem: isPopularTireSize,
   });
 };
 

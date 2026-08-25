@@ -64,7 +64,7 @@ Pure/domain логика без React: `src/catalog/` и domain-часть `src/
 
 ### `buildTireShowcase({ candidates, isEmpty, now, seed })`
 
-Чистая синхронная сборка. При пустом каталоге возвращает chips без полок. Иначе определяет сезон по `now`, оставляет товары с достаточным остатком, выбирает сезонный пул и формирует единственную полку `season-hits` через `pickMixedSeasonHits`: уникальные модели Ikon из сезонного whitelist смешиваются с остальными кандидатами и получают стабильный порядок от `seed`. Лимиты и тексты берутся из `SHOWCASE_CONFIG`. **Тесты:** `buildTireShowcase.test.js`.
+Чистая синхронная сборка. При пустом каталоге возвращает chips без полок. Иначе определяет сезон по `now`, оставляет товары с достаточным остатком **и частым размером** (`isPopularTireSize` ↔ `tires.popularSizes`), выбирает сезонный пул и формирует единственную полку `season-hits` через `pickMixedSeasonHits`: уникальные модели Ikon из сезонного whitelist смешиваются с остальными кандидатами и получают стабильный порядок от `seed`. Лимиты и тексты берутся из `SHOWCASE_CONFIG`. **Тесты:** `buildTireShowcase.test.js`.
 
 ### `buildDiscShowcase({ candidates, isEmpty, seed })`
 
@@ -77,7 +77,7 @@ Pure/domain логика без React: `src/catalog/` и domain-часть `src/
 | `scoring.js` | `scoreCatalogItem`, `pickTopDiverse`, `isStocked` | Rank + diversity |
 | `showcaseSeed.js` | `resolveShowcaseSeed`, `shuffleItems`, `createSeededRandom` | Deterministic order per snapshot version |
 | `ikonSeasonHits.js` | `pickMixedSeasonHits`, `pickUniqueIkonHits`, … | Ikon season logic |
-| `showcaseConfig.js` | `SHOWCASE_CONFIG`, `getCatalogSeasonFromDate` | Limits и season window |
+| `showcaseConfig.js` | `SHOWCASE_CONFIG`, `getCatalogSeasonFromDate`, `isPopularTireSize` | Limits, season window и hard-filter частых размеров полки шин |
 
 **Страница:** [Showcase](/08-search-showcase/showcase-selection), [контракты](/11-testing/contract-catalog).
 

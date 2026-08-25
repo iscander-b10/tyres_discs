@@ -222,20 +222,22 @@ sequenceDiagram
 ### `collectShowcaseCandidatesFromItems(items, options)`
 
 **Параметры:** `{ candidateLimit = 480, minAmount = 1, supplier = null,
-preferItem = null }`.
+preferItem = null, matchesItem = null }`.
 
 `480` — default helper'а для шин. `getCatalogShowcase` передаёт его вместе с
-`preferItem: isIkonBrand`. Для дисков caller передаёт `candidateLimit: null`
-(без ранней отсечки): все matching из RAM, литые Шинсервиса отбирает
-`buildDiscShowcase`.
+`preferItem: isIkonBrand` и `matchesItem: isPopularTireSize`. Для дисков caller
+передаёт `candidateLimit: null` (без ранней отсечки, без `matchesItem`): все
+matching из RAM, литые Шинсервиса отбирает `buildDiscShowcase`.
 
 **Результат:** `{ isEmpty, candidates }` (sync):
 
 - `isEmpty: true` — массив пуст (каталог не загружен);
 - непустой массив без подходящих строк даёт `{ isEmpty: false, candidates: [] }`.
 
-**Алгоритм.** Тот же, что у cursor-helper: фильтр supplier / minAmount, preferred
-пул не режется лимитом, без `preferItem` цикл обрывается на limit.
+**Алгоритм.** Тот же, что у cursor-helper: фильтр supplier / minAmount /
+опциональный `matchesItem`, preferred пул не режется лимитом, без `preferItem`
+цикл обрывается на limit. `matchesItem` срабатывает до учёта в лимите, чтобы
+бюджет 480 не съедали редкие размеры.
 
 Session wrappers (`collectTireShowcaseCandidates` / `collectDiscShowcaseCandidates`)
 делают `_ensureReadCache` и вызывают этот helper. Callers — `getCatalogShowcase`.

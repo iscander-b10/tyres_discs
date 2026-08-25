@@ -8,6 +8,18 @@ jest.mock('../../services/indexedDBService', () => ({
 
 import { SHOWCASE_CONFIG } from './showcaseConfig';
 
+const popularSizeOf = (index = 0) => {
+  const size =
+    SHOWCASE_CONFIG.tires.popularSizes[
+      index % SHOWCASE_CONFIG.tires.popularSizes.length
+    ];
+  return {
+    width: size.width,
+    profile: size.profile,
+    diameter: size.diameter,
+  };
+};
+
 const summerShelfCandidates = () =>
   Array.from({ length: 40 }, (_, i) => {
     if (i < 6) {
@@ -27,8 +39,8 @@ const summerShelfCandidates = () =>
         photoUrl: 'x',
         sellingPrice: 7000,
         season: 's',
-        diameter: `R${15 + (i % 4)}`,
         supplier: 'Шинсервис',
+        ...popularSizeOf(i),
       };
     }
     return {
@@ -40,8 +52,8 @@ const summerShelfCandidates = () =>
       photoUrl: 'x',
       sellingPrice: 7000,
       season: 's',
-      diameter: 'R16',
       supplier: 'Шинсервис',
+      ...popularSizeOf(i),
     };
   });
 
@@ -155,12 +167,28 @@ describe('getCatalogShowcase stale-while-revalidate', () => {
     const first = await getCatalogShowcase(opts);
     const second = await getCatalogShowcase(opts);
     expect(indexedDBService.collectTireShowcaseCandidates).toHaveBeenCalled();
+    const collectOpts =
+      indexedDBService.collectTireShowcaseCandidates.mock.calls[0][0];
+    expect(collectOpts).toEqual(
+      expect.objectContaining({
+        candidateLimit: SHOWCASE_CONFIG.tires.candidateLimit,
+        minAmount: SHOWCASE_CONFIG.tires.minAmount,
+        supplier: SHOWCASE_CONFIG.showcaseSupplier,
+      })
+    );
+    expect(typeof collectOpts.matchesItem).toBe('function');
+    expect(
+      collectOpts.matchesItem({ width: 205, profile: 55, diameter: 'R16' })
+    ).toBe(true);
+    expect(
+      collectOpts.matchesItem({ width: 245, profile: 45, diameter: 'R18' })
+    ).toBe(false);
     expect(first.empty).toBe(false);
     expect(first.shelves).toHaveLength(1);
     expect(first.shelves[0].items.map((i) => i.id)).toEqual(
       second.shelves[0].items.map((i) => i.id)
     );
-    expect(first.shelves[0].items).toHaveLength(30);
+    expect(first.shelves[0].items).toHaveLength(25);
   });
 
   test('диски: collect без раннего лимита 480 (RAM, candidateLimit null)', async () => {

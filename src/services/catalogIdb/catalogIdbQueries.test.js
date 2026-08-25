@@ -185,4 +185,35 @@ describe('collectShowcaseCandidatesFromItems', () => {
       { isEmpty: true, candidates: [] }
     );
   });
+
+  test('matchesItem отсекает до лимита; Ikon редкого размера не preferred', () => {
+    const items = [
+      {
+        id: 'rare-ikon',
+        supplier: 'Шинсервис',
+        brand: 'Ikon',
+        amount: 8,
+        keep: false,
+      },
+      ...Array.from({ length: 8 }, (_, i) => ({
+        id: `o-${i}`,
+        supplier: 'Шинсервис',
+        brand: 'Nokian',
+        amount: 4,
+        keep: i < 3,
+      })),
+    ];
+    const payload = collectShowcaseCandidatesFromItems(items, {
+      candidateLimit: 5,
+      minAmount: 1,
+      supplier: 'Шинсервис',
+      preferItem: (item) => item.brand === 'Ikon',
+      matchesItem: (item) => item.keep === true,
+    });
+    expect(payload.candidates.map((item) => item.id)).toEqual([
+      'o-0',
+      'o-1',
+      'o-2',
+    ]);
+  });
 });
