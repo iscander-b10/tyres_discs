@@ -579,7 +579,7 @@ $catalog-text: $color-text;
   }
 }
 
-// Column stack: filter form above full-width catalog.
+// Column stack: sticky filter strip above full-width catalog.
 @mixin catalog-search-parameters-layout() {
   display: flex;
   flex-direction: column;
@@ -615,12 +615,15 @@ $catalog-text: $color-text;
   }
 }
 
-// Filter form shell in normal document flow (header → form → catalog).
+// Sticky filter strip — top matches content gap above the form (header is not sticky).
 // Theme tokens stay here (before nested rules) so later controls mixins don't trigger
 // Sass mixed-decls when shell is included first.
 @mixin catalog-search-form-shell() {
   @include catalog-search-form-theme-tokens();
 
+  position: sticky;
+  top: var(--catalog-filter-sticky-top, 12px);
+  z-index: $z-filter-bar;
   width: 100%;
   max-width: 100%;
   margin: 0;
