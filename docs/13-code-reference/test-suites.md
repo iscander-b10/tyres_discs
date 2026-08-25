@@ -1,7 +1,7 @@
 # Тестовые наборы
 
 ::: tip Статус: проверено по коду
-49 test-файлов под `src/` входят в корневой `npm test`. Ещё один тестовый файл `yandex/catalog-sync` запускается отдельной cloud-командой. Карта трассировки контрактов — [contract-catalog](/11-testing/contract-catalog).
+52 test-файлов под `src/` входят в корневой `npm test`. Ещё один тестовый файл `yandex/catalog-sync` запускается отдельной cloud-командой. Карта трассировки контрактов — [contract-catalog](/11-testing/contract-catalog).
 :::
 
 ## Инструменты
@@ -48,11 +48,12 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 
 ---
 
-## App / Routing (3 файла)
+## App / Routing (4 файла)
 
 | Файл | Инварианты |
 | --- | --- |
 | `app/paths.test.js` | login redirect safety |
+| `app/AppShellContext.test.jsx` | catalogBootstrap, шторка, сброс workspace, retry |
 | `App.routing.test.jsx` | guards, login modal |
 | `App.catalogDualMount.test.jsx` | hidden/inert panels |
 
@@ -73,7 +74,7 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 
 ---
 
-## Components (4 файла)
+## Components (6 файлов)
 
 | Файл | Инварианты |
 | --- | --- |
@@ -81,6 +82,8 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 | `TiresSearchParameters.searchRace.test.jsx` | stale request discard, spinner, skip facets, reset during pending, pending не blank, timeout, StrictMode settle |
 | `DiscsSearchParameters.searchRace.test.jsx` | stale request discard, spinner, skip facets, reset during pending, pending не blank, timeout, StrictMode settle |
 | `CatalogShowcase.appLog.test.jsx` | error logging on showcase fail |
+| `CatalogShowcase.bootstrap.test.jsx` | пустой store / loading → skeleton; Empty «Каталог ещё загружается» отсутствует |
+| `CatalogBootstrapOverlay.test.jsx` | шторка на blocking/error, нет на idle/ready, Escape не закрывает, МБ вместо % файла, waiting lock без 0% |
 
 **Страница:** [Async race guards](/08-search-showcase/async-race-guards).
 
@@ -96,15 +99,15 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 | `catalogIdb/catalogFacetOptions.test.js` | facet aggregation |
 | `catalogIdb/catalogIdbQueries.test.js` | index hint selection |
 | `catalogIdb/catalogIdbMemory.test.js` | RAM buckets, compact facet rows |
-| `catalogIdb/catalogReadCache.fakeIndexedDB.test.js` | один getAll, width vs season, workspace isolation |
+| `catalogIdb/catalogReadCache.fakeIndexedDB.test.js` | один getAll, width vs season, workspace isolation, warmup обеих категорий, switch во время warmup |
 | `catalogIdb/catalogIdbSession.readStoreAll.test.js` | abort hydrate без onsuccess отклоняет Promise; timeout getAll |
 | `catalogSync/catalogSnapshotValidation.test.js` | wire validation |
-| `catalogSync/catalogSyncService.test.js` | version gate |
+| `catalogSync/catalogSyncService.test.js` | version gate, stream progress, abort, gzip mismatch |
 | `catalogSync/catalogSyncService.commitBoundary.test.js` | atomic commit |
 | `catalogSync/catalogSyncChannel.test.js` | broadcast |
-| `catalogSync/catalogSyncLock.test.js` | lock lease |
+| `catalogSync/catalogSyncLock.test.js` | lock lease, onWaiting у второго waiter |
 | `catalogSync/catalogSyncLock.integration.test.js` | multi-tab writer |
-| `catalogSync/CatalogSyncHost.test.jsx` | triggers |
+| `catalogSync/CatalogSyncHost.test.jsx` | triggers, empty vs non-empty bootstrap, onProgress → label, warmup до notify, waiting lock |
 
 **Страницы:** [IndexedDB](/05-catalog-storage/indexeddb-schema), [Autosync](/06-catalog-sync/frontend-autosync), [Locks](/06-catalog-sync/locks-and-channels).
 

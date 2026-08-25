@@ -9,6 +9,7 @@
 `AppShellProvider` — владелец состояния, которое относится ко всей оболочке, но не является ни авторизацией, ни содержимым корзины, ни локальным состоянием поисковой формы:
 
 - режим клиента/менеджера;
+- cold-start bootstrap каталога (`catalogBootstrap`) и полноэкранная шторка;
 - монотонный сигнал изменения каталога;
 - версия последнего применённого snapshot;
 - ключи принудительного remount;
@@ -21,6 +22,8 @@
 ## Исходники и зависимости
 
 - [`src/app/AppShellContext.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/app/AppShellContext.jsx)
+- [`src/app/catalogBootstrap.js`](https://github.com/iscander-b10/tyres_discs/blob/main/src/app/catalogBootstrap.js)
+- [`src/components/CatalogBootstrapOverlay/CatalogBootstrapOverlay.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/components/CatalogBootstrapOverlay/CatalogBootstrapOverlay.jsx)
 - [`src/app/appMode.js`](https://github.com/iscander-b10/tyres_discs/blob/main/src/app/appMode.js)
 - [`src/app/paths.js`](https://github.com/iscander-b10/tyres_discs/blob/main/src/app/paths.js)
 - [`src/services/catalogSync/catalogSyncChannel.js`](https://github.com/iscander-b10/tyres_discs/blob/main/src/services/catalogSync/catalogSyncChannel.js)
@@ -90,6 +93,7 @@ flowchart LR
     Client
     DataVer[catalogDataVersion]
     SnapVer[catalogSnapshotVersion]
+    Bootstrap[catalogBootstrap]
     SessionKey[sessionResetKey]
     LastCatalog[lastCatalogPath]
     LastBg[lastBackgroundPath]
@@ -108,6 +112,10 @@ flowchart LR
 | `catalogSnapshotVersion` | string, `''` | applied notification/channel | reconciliation/showcase | RAM |
 | `bumpCatalogDataVersion` | callback | hosts/consumers | sync bridge | нет |
 | `notifyCatalogApplied` | callback | `CatalogSyncHost` | sync host | нет |
+| `catalogBootstrap` | `{ phase, progress, label, error? }`; `phase`: `'idle' \| 'blocking' \| 'ready' \| 'error'`; старт `{ phase: 'idle', progress: 0, label: '' }` | `setCatalogBootstrap`, workspace layout reset | `CatalogBootstrapOverlay`, `CatalogShowcase`, `CatalogSyncHost` | RAM |
+| `setCatalogBootstrap` | callback | `CatalogSyncHost` | sync host | нет |
+| `registerCatalogBootstrapRetry` | `(fn) => unsubscribe` | `CatalogSyncHost` | sync host | нет |
+| `retryCatalogBootstrap` | callback | overlay «Повторить» | overlay | нет |
 | `sessionResetKey` | number, `0` | brand click | `AppFrame` keys | RAM |
 | `workspaceResetKey` | string | производное от Auth | `AppFrame`, search | RAM |
 | `lastBackgroundPath` | path, `/tyres` | pathname effect | сейчас production-consumer отсутствует | RAM |
@@ -148,7 +156,7 @@ flowchart LR
 
 1. Вычислить `currentWorkspace`: готовый workspace либо `null`.
 2. Записать его в `activeWorkspaceRef`.
-3. Очистить dedup ref и `catalogSnapshotVersion`.
+3. Очистить dedup ref, `catalogSnapshotVersion` и `catalogBootstrap` (вернув idle).
 4. Увеличить `catalogDataVersion`, чтобы consumers не использовали старые данные.
 5. Если есть `storeId`, вызвать `indexedDBService.setActiveStore(storeId)`.
 6. Иначе вызвать `invalidateActiveStore()`.
@@ -257,6 +265,25 @@ Cleanup возвращает unsubscribe из `subscribeCatalogApplied`.
 
 **Тест:** [`src/services/catalogSync/CatalogSyncHost.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/services/catalogSync/CatalogSyncHost.test.jsx) проверяет, что stale store не уведомляется, а текущий commit вызывает notify.
 
+### Cold-start bootstrap
+
+`catalogBootstrap` — единственный источник, должен ли пользователь видеть рабочий сайт. Владелец — AppShell, не витрина.
+
+| `phase` | Шторка | Когда |
+| --- | --- | --- |
+| `idle` | нет | нет готового workspace или сброс при смене магазина |
+| `blocking` | да | workspace готов, `isCatalogEmpty()` ещё не доказал «не пусто», либо каталог пуст и snapshot ещё не в IDB |
+| `ready` | нет | локальный каталог не пуст, либо cold-start snapshot уже применён |
+| `error` | да, с текстом и «Повторить» | cold start не удался (offline, HTTP, validation, disabled) |
+
+`CatalogSyncHost` в `useLayoutEffect` ставит `blocking` до paint витрины. Затем читает `indexedDBService.isCatalogEmpty()`: пустой каталог остаётся в `blocking` и качает **один** snapshot шин и дисков, затем прогревает RAM обеих категорий; непустой сразу переходит в `ready` и дальше синхронизируется тихо (слот, visibility, online — без шторки и без overlay warmup). Stale store и abort не переводят phase в `error`. Ожидание lock на пустой базе — всё ещё `blocking`, не `error`.
+
+Прогресс монотонный 0–99, пока phase не `ready`. Числа и подпись приходят из `catalogBootstrap.progress` / `label` (новые поля в AppShell не заводятся): meta ≈ 0–3%, download — основная доля, затем parse, apply и `warmup` («Готовим витрину», шины затем диски). Если `Content-Length` виден и согласован со stream, бар следует байтам; если нет — крупно показываются мегабайты, а бар идёт коридором ≈ 5–80%, без «N% от файла». Вторая вкладка с пустой IDB ждёт writer: label «Каталог загружается в другой вкладке», progress 0, не error. `setInterval` и откат процента запрещены; 100 появляется только на `ready` после commit и прогрева RAM.
+
+`CatalogBootstrapOverlay` рендерится из `AppShellProvider` порталом на `document.body`. Это не Ant Design Modal: клик по маске и Escape не закрывают шторку. z-index (`--z-catalog-bootstrap`: 1300) выше хедера и ModeToggle. Фон `--color-overlay-gate` темнее `--color-overlay-strong`. Бар и крупный процент используют `--color-accent`, не `--color-cta`. Ошибка cold start показывается в шторке, кнопка «Повторить» вызывает `retryCatalogBootstrap`.
+
+**Тесты:** [`src/app/AppShellContext.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/app/AppShellContext.test.jsx), [`src/components/CatalogBootstrapOverlay/CatalogBootstrapOverlay.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/components/CatalogBootstrapOverlay/CatalogBootstrapOverlay.test.jsx), [`src/services/catalogSync/CatalogSyncHost.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/services/catalogSync/CatalogSyncHost.test.jsx).
+
 ## `useAppShell()`
 
 **Сигнатура:** `export function useAppShell()`  
@@ -309,7 +336,8 @@ React Context передаёт новое `value` всем consumers. `useMemo` 
 
 - **localStorage недоступен:** mode получает fallback; приложение продолжает работать без persistence.
 - **Guest до readiness:** forced mode не применяется преждевременно, чтобы restore auth user не затирал его сохранённый выбор.
-- **Смена store во время async sync:** `storeId` и workspace identity отбрасывают stale event.
+- **Смена store во время async sync:** `storeId` и workspace identity отбрасывают stale event; bootstrap сбрасывается в idle, новый host снова ставит blocking, пока не проверит пустоту.
+- **Cold start без сети или с HTTP/validation error:** phase `error`, текст и «Повторить» в шторке, не только в console. «Обновите страницу» не является основным выходом.
 - **Повтор одной version из channel:** subscription callback делает dedup и не вызывает лишний bump. Прямой повторный `notifyCatalogApplied` всё равно bump-ит data version.
 - **Два разных события без version:** `notifyCatalogApplied` отклоняет их; channel callback без version может сделать bump, если подписка его передаст.
 - **Cleanup старого layout effect:** identity guard не инвалидирует новый active store.
@@ -323,11 +351,12 @@ React Context передаёт новое `value` всем consumers. `useMemo` 
 | --- | --- |
 | Guest/auth guards косвенно используют `canUseApp` | [`src/App.routing.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/App.routing.test.jsx) |
 | Inactive panel не читает IDB; catch-up; keep-alive; reset keys | [`src/App.catalogDualMount.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/App.catalogDualMount.test.jsx) |
-| Sync host уведомляет только актуальный store/version | [`src/services/catalogSync/CatalogSyncHost.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/services/catalogSync/CatalogSyncHost.test.jsx) |
+| Bootstrap: idle, шторка, сброс при смене workspace, retry | [`src/app/AppShellContext.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/app/AppShellContext.test.jsx) |
+| Sync host уведомляет только актуальный store/version; empty vs non-empty bootstrap | [`src/services/catalogSync/CatalogSyncHost.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/services/catalogSync/CatalogSyncHost.test.jsx) |
 | Catalog channel фильтрует store и сообщения | [`src/services/catalogSync/catalogSyncChannel.test.js`](https://github.com/iscander-b10/tyres_discs/blob/main/src/services/catalogSync/catalogSyncChannel.test.js) |
 | Search не коммитит stale async result | [`src/components/TiresSearchParameters/TiresSearchParameters.searchRace.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/components/TiresSearchParameters/TiresSearchParameters.searchRace.test.jsx), [`src/components/DiscsSearchParameters/DiscsSearchParameters.searchRace.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/components/DiscsSearchParameters/DiscsSearchParameters.searchRace.test.jsx) |
 
-Прямого unit/integration теста самого `AppShellProvider` сейчас нет. Не зафиксированы отдельно: storage fallback, forced guest mode, active store cleanup, direct-notify semantics, `continueSelection`, brand click и hook guard. Это реальный пробел, а не доказательство отсутствия контракта.
+Прямого покрытия всех веток `continueSelection` / brand click / hook guard по-прежнему нет. Storage fallback и forced guest mode не выделены в отдельные тесты.
 
 ## Типичные ошибки при изменении
 
@@ -339,6 +368,8 @@ React Context передаёт новое `value` всем consumers. `useMemo` 
 6. Делать `setClientMode` доступным guest без forced value.
 7. Добавить в Context всё состояние поисковых форм и создать чрезмерно широкий Provider.
 8. Не возвращать unsubscribe/cleanup и получить дублированные channel callbacks в StrictMode.
+9. Считать витрину владельцем cold-start и показать Empty «Каталог ещё загружается» вместо шторки AppShell.
+10. Показать шторку на warm start (непустой IDB) или toast на фоновый autosync.
 
 ## Связанные страницы
 

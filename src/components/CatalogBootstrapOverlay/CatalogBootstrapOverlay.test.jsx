@@ -1,0 +1,120 @@
+import { fireEvent, render, screen } from '@testing-library/react';
+import React from 'react';
+import CatalogBootstrapOverlay from './CatalogBootstrapOverlay';
+
+describe('CatalogBootstrapOverlay', () => {
+  test('не рендерится на idle и ready (warm start)', () => {
+    const { rerender } = render(
+      <CatalogBootstrapOverlay
+        catalogBootstrap={{ phase: 'idle', progress: 0, label: '' }}
+      />
+    );
+    expect(
+      screen.queryByTestId('catalog-bootstrap-overlay')
+    ).not.toBeInTheDocument();
+
+    rerender(
+      <CatalogBootstrapOverlay
+        catalogBootstrap={{ phase: 'ready', progress: 100, label: '' }}
+      />
+    );
+    expect(
+      screen.queryByTestId('catalog-bootstrap-overlay')
+    ).not.toBeInTheDocument();
+  });
+
+  test('blocking показывает процент и не закрывается по маске и Escape', () => {
+    const retry = jest.fn();
+    render(
+      <CatalogBootstrapOverlay
+        catalogBootstrap={{
+          phase: 'blocking',
+          progress: 42,
+          label: 'Загружаем каталог шин и дисков',
+        }}
+        retryCatalogBootstrap={retry}
+      />
+    );
+
+    const overlay = screen.getByTestId('catalog-bootstrap-overlay');
+    expect(screen.getByText('42%')).toBeInTheDocument();
+    expect(
+      screen.getByText('Загружаем каталог шин и дисков')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toHaveAttribute(
+      'aria-valuenow',
+      '42'
+    );
+
+    fireEvent.mouseDown(overlay);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(overlay).toBeInTheDocument();
+    expect(retry).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Повторить' })).toBeNull();
+  });
+
+  test('без известного total крупно показывает МБ, а не процент файла', () => {
+    render(
+      <CatalogBootstrapOverlay
+        catalogBootstrap={{
+          phase: 'blocking',
+          progress: 47,
+          label: 'Загружено 2,4 МБ',
+        }}
+      />
+    );
+
+    expect(screen.getByText('2,4 МБ')).toBeInTheDocument();
+    expect(screen.queryByText('47%')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Загружаем каталог шин и дисков')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toHaveAttribute(
+      'aria-valuetext',
+      'Загружено 2,4 МБ'
+    );
+  });
+
+  test('ожидание lock не показывает фейковый download %', () => {
+    render(
+      <CatalogBootstrapOverlay
+        catalogBootstrap={{
+          phase: 'blocking',
+          progress: 0,
+          label: 'Каталог загружается в другой вкладке',
+        }}
+      />
+    );
+
+    expect(
+      screen.getByText('Каталог загружается в другой вкладке')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('0%')).not.toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toHaveAttribute(
+      'aria-valuetext',
+      'Каталог загружается в другой вкладке'
+    );
+    expect(screen.queryByRole('button', { name: 'Повторить' })).toBeNull();
+  });
+
+  test('error показывает текст и кнопку Повторить', () => {
+    const retry = jest.fn();
+    render(
+      <CatalogBootstrapOverlay
+        catalogBootstrap={{
+          phase: 'error',
+          progress: 18,
+          label: '',
+          error: 'Нет сети. Проверьте подключение.',
+        }}
+        retryCatalogBootstrap={retry}
+      />
+    );
+
+    expect(
+      screen.getByText('Нет сети. Проверьте подключение.')
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Повторить' }));
+    expect(retry).toHaveBeenCalledTimes(1);
+  });
+});

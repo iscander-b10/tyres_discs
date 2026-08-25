@@ -67,7 +67,7 @@ stateDiagram-v2
 **Путь:** [`src/components/TiresSearchParameters/TiresSearchParameters.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/components/TiresSearchParameters/TiresSearchParameters.jsx)  
 **Сигнатура:** `memo(({ isActive = true }) => ReactNode)`  
 **Prop:** `isActive: boolean`, default `true`; источник — `AppFrame`.  
-**Context:** `clientMode`, `catalogDataVersion`, `workspaceResetKey` из AppShell.  
+**Context:** `clientMode`, `catalogDataVersion`, `workspaceResetKey` из AppShell. Cold-start шторка читает `catalogBootstrap` в `CatalogShowcase`, но не меняет `isActive` скрытой панели.  
 **Возвращает:** Ant Design Form, showcase либо paginated search results.
 
 ### Локальное состояние
@@ -215,6 +215,7 @@ Prop сам по себе не очищает все `useState`, Form instance �
 - **Version bump при active search:** active panel перечитывает данные; stale Promise не должен победить.
 - **Смена workspace:** key гарантирует полный remount, а workspace guard защищает незавершённые Promise.
 - **Login поверх каталога:** background panel остаётся mounted, но layout/panel inert; URL page не теряется.
+- **Cold-start шторка:** `CatalogBootstrapOverlay` глобальна (portal на `document.body`, z-index выше ModeToggle). Она не делает скрытую панель дисков `isActive=true` и не заставляет её ходить в IndexedDB. RAM обеих категорий прогревает `warmupCatalogReadCache` из `CatalogSyncHost` после apply, пока шторка ещё висит. Catch-up скрытой панели после `catalogDataVersion` bump жив: первый переход на `/wheels` по-прежнему один раз читает facets из уже тёплого RAM-кэша, без второго `getAll`.
 - **Полный reload:** keep-alive local state теряется; это session UI state, не persisted filter model.
 - **Browser без поддержки inert:** visual hidden всё равно работает; полноценная focus-блокировка зависит от целевой browser support/polyfill policy.
 
@@ -230,6 +231,7 @@ Prop сам по себе не очищает все `useState`, Form instance �
 8. Сбросить basket по session key, непреднамеренно изменив cart UX.
 9. Исправить алгоритм только для шин или только для дисков.
 10. Cleanup `mountedRef=false` без `true` в setup — «Найти» на `npm start` крутится вечно.
+11. Тащить приватный `_ensureReadCache` в React или включать скрытую панель ради дисков: прогрев RAM — служебный API session, не `isActive=true`.
 
 ## Связанные страницы
 

@@ -1,0 +1,81 @@
+@use '../../styles/tokens' as *;
+
+.catalog-bootstrap-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: $z-catalog-bootstrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $space-5;
+  background: $color-overlay-gate;
+  cursor: default;
+}
+
+.catalog-bootstrap-overlay__panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(360px, 100%);
+  outline: none;
+}
+
+.catalog-bootstrap-overlay__percent {
+  margin: 0 0 $space-4;
+  color: $color-accent;
+  font-family: $font-sans;
+  font-size: 64px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  text-align: center;
+}
+
+.catalog-bootstrap-overlay__bar {
+  width: 100%;
+
+  :global(.ant-progress-inner) {
+    background: rgba(255, 255, 255, 0.16);
+  }
+
+  :global(.ant-progress-bg) {
+    background: $color-accent;
+  }
+}
+
+.catalog-bootstrap-overlay__label,
+.catalog-bootstrap-overlay__error {
+  margin: $space-4 0 0;
+  color: #eef0f1;
+  font-family: $font-sans;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.catalog-bootstrap-overlay__error {
+  margin-bottom: $space-5;
+}
+
+.catalog-bootstrap-overlay__retry.ant-btn-primary {
+  min-width: 140px;
+  min-height: 40px;
+  background: $color-accent;
+  border-color: $color-accent;
+  color: $color-on-accent;
+}
+
+.catalog-bootstrap-overlay__retry.ant-btn-primary:hover,
+.catalog-bootstrap-overlay__retry.ant-btn-primary:focus-visible {
+  background: $color-accent-hover;
+  border-color: $color-accent-hover;
+  color: $color-on-accent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .catalog-bootstrap-overlay__bar :global(.ant-progress-bg) {
+    transition: none;
+  }
+}

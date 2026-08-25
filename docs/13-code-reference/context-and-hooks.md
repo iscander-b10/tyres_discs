@@ -159,6 +159,9 @@ Sync; сначала ищет mapping по accountId, затем по normalized
 | `clientMode` / `setClientMode` | Режим клиента (скрытие B2B) |
 | `catalogDataVersion` | Bump → поиск/showcase перечитывают IDB |
 | `catalogSnapshotVersion` | Версия последнего apply |
+| `catalogBootstrap` | `{ phase: 'idle' \| 'blocking' \| 'ready' \| 'error', progress, label, error? }` — cold-start шторка |
+| `setCatalogBootstrap` | Host выставляет blocking/ready/error |
+| `registerCatalogBootstrapRetry` / `retryCatalogBootstrap` | «Повторить» на шторке |
 | `bumpCatalogDataVersion` | После snapshot commit |
 | `notifyCatalogApplied(version)` | От channel / sync host |
 | `sessionResetKey` | Увеличивается при клике по бренду; `App.js` использует его в React key поисковых панелей |
@@ -166,7 +169,7 @@ Sync; сначала ищет mapping по accountId, затем по normalized
 | `continueSelection` / `handleBrandClick` | Nav helpers для landing |
 | `lastBackgroundPath` | Return path для dual-mount |
 
-**Side effects:** `clientMode` в localStorage; `useLayoutEffect` вызывает `setActiveStore`/`invalidateActiveStore` при смене workspace; подписка на catalog channel обновляет версии. **Страница:** [AppShell state](/03-routing-shell/app-shell-state).
+**Side effects:** `clientMode` в localStorage; `useLayoutEffect` вызывает `setActiveStore`/`invalidateActiveStore` и сбрасывает `catalogBootstrap` при смене workspace; подписка на catalog channel обновляет версии; `CatalogBootstrapOverlay` порталится на `document.body` при `blocking`/`error`. **Страница:** [AppShell state](/03-routing-shell/app-shell-state).
 
 ---
 

@@ -193,12 +193,17 @@ async function getPersistedCatalogVersion() {
   }
 }
 
-async function fetchJson(url, signal) {
-  const res = await fetch(url, { cache: 'no-store', signal });
-  if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
-}
+const SYNC_PROGRESS = {
+  metaStart: 1,
+  metaEnd: 3,
+  downloadStart: 5,
+  downloadEnd: 80,
+  parse: 86,
+  applyStart: 91,
+  applyEnd: 96,
+};
+
+const UNKNOWN_DOWNLOAD_SCALE_BYTES = 2 * 1024 * 1024;
 
 function isAbortError(err) {
   return (
@@ -209,19 +214,180 @@ function isAbortError(err) {
   );
 }
 
+function createAbortError() {
+  if (typeof DOMException === 'function') {
+    return new DOMException('The operation was aborted.', 'AbortError');
+  }
+  const error = new Error('The operation was aborted.');
+  error.name = 'AbortError';
+  return error;
+}
+
+function clampSyncProgress(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric < 0) return 0;
+  return Math.min(99, numeric);
+}
+
+function parseDeclaredByteTotal(headers) {
+  if (!headers || typeof headers.get !== 'function') return null;
+  const encoding = String(headers.get('content-encoding') || '')
+    .toLowerCase()
+    .trim();
+  if (encoding && encoding !== 'identity') return null;
+  const length = Number.parseInt(headers.get('content-length'), 10);
+  if (!Number.isFinite(length) || length <= 0) return null;
+  return length;
+}
+
+function isTrustedByteTotal(totalBytes, receivedBytes) {
+  return (
+    Number.isFinite(totalBytes) &&
+    totalBytes > 0 &&
+    receivedBytes <= totalBytes
+  );
+}
+
+function downloadProgressPercent(receivedBytes, totalBytes) {
+  const start = SYNC_PROGRESS.downloadStart;
+  const span = SYNC_PROGRESS.downloadEnd - start;
+  if (isTrustedByteTotal(totalBytes, receivedBytes)) {
+    return start + span * (receivedBytes / totalBytes);
+  }
+  const ratio =
+    1 - Math.exp(-(receivedBytes || 0) / UNKNOWN_DOWNLOAD_SCALE_BYTES);
+  return start + span * ratio;
+}
+
+function concatUint8Chunks(chunks) {
+  const total = chunks.reduce((sum, chunk) => sum + chunk.byteLength, 0);
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
+}
+
+async function fetchJson(url, signal) {
+  const res = await fetch(url, { cache: 'no-store', signal });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+async function readSnapshotFromResponse(
+  res,
+  { signal, onDownloadProgress, onParseStart } = {}
+) {
+  const reader = res.body?.getReader?.();
+  if (!reader) {
+    onDownloadProgress?.({
+      receivedBytes: 0,
+      totalBytes: parseDeclaredByteTotal(res.headers),
+      complete: true,
+    });
+    onParseStart?.();
+    return res.json();
+  }
+
+  let totalBytes = parseDeclaredByteTotal(res.headers);
+  const chunks = [];
+  let receivedBytes = 0;
+
+  const emitDownload = (complete = false) => {
+    if (totalBytes != null && receivedBytes > totalBytes) {
+      totalBytes = null;
+    }
+    onDownloadProgress?.({ receivedBytes, totalBytes, complete });
+  };
+
+  try {
+    while (true) {
+      if (signal?.aborted) {
+        await reader.cancel().catch(() => {});
+        throw createAbortError();
+      }
+      const { done, value } = await reader.read();
+      if (signal?.aborted) {
+        await reader.cancel().catch(() => {});
+        throw createAbortError();
+      }
+      if (done) break;
+      if (value && value.byteLength) {
+        chunks.push(value);
+        receivedBytes += value.byteLength;
+        emitDownload(false);
+      }
+    }
+  } catch (err) {
+    await reader.cancel().catch(() => {});
+    if (isAbortError(err) || signal?.aborted) {
+      throw isAbortError(err) ? err : createAbortError();
+    }
+    throw err;
+  }
+
+  emitDownload(true);
+  onParseStart?.();
+  const text = new TextDecoder('utf-8').decode(concatUint8Chunks(chunks));
+  if (!text) return null;
+  return JSON.parse(text);
+}
+
+async function fetchSnapshot(url, options = {}) {
+  const res = await fetch(url, { cache: 'no-store', signal: options.signal });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return readSnapshotFromResponse(res, options);
+}
+
 /**
  * Сверка meta → при новой version скачать snapshot → IndexedDB.
  * Один writer на origin+storeId через withCatalogSyncLock.
+ * @param {object} [options]
+ * @param {boolean} [options.force]
+ * @param {string} [options.storeId]
+ * @param {AbortSignal} [options.signal]
+ * @param {(event: { phase: 'meta'|'download'|'parse'|'apply', receivedBytes: number, totalBytes: number|null, progress: number }) => void} [options.onProgress]
+ * @param {() => void} [options.onLockWaiting]
  * @returns {Promise<{ status: 'skipped'|'up-to-date'|'applied'|'offline'|'disabled'|'error', version?: string, error?: string }>}
  */
 export async function checkAndSyncCatalog({
   force = false,
   storeId: requestedStoreId,
   signal,
+  onProgress,
+  onLockWaiting,
 } = {}) {
   const storeId = resolveCatalogStoreId(requestedStoreId);
+  let lastProgress = 0;
+  const reportProgress = ({
+    phase,
+    receivedBytes = 0,
+    totalBytes = null,
+    progress,
+  }) => {
+    const nextProgress = clampSyncProgress(
+      Math.max(lastProgress, progress ?? 0)
+    );
+    lastProgress = nextProgress;
+    try {
+      onProgress?.({
+        phase,
+        receivedBytes,
+        totalBytes,
+        progress: nextProgress,
+      });
+    } catch {
+      /* UI progress must not fail the sync */
+    }
+  };
 
-  return withCatalogSyncLock(storeId, async () => {
+  return withCatalogSyncLock(
+    storeId,
+    async () => {
     const generation = activateCatalogStore(storeId);
     if (!isCatalogSyncConfigured(storeId)) {
       return { status: 'disabled' };
@@ -236,11 +402,19 @@ export async function checkAndSyncCatalog({
     }
 
     try {
+      reportProgress({
+        phase: 'meta',
+        progress: SYNC_PROGRESS.metaStart,
+      });
       const meta = await fetchJson(metaUrl(storeId), signal);
       assertCatalogStoreActive(storeId, generation);
       if (!meta?.version) {
         return { status: 'skipped', error: 'meta empty' };
       }
+      reportProgress({
+        phase: 'meta',
+        progress: SYNC_PROGRESS.metaEnd,
+      });
 
       const local = await getPersistedCatalogVersion();
       assertCatalogStoreActive(storeId, generation);
@@ -250,7 +424,29 @@ export async function checkAndSyncCatalog({
         return { status: 'up-to-date', version: meta.version };
       }
 
-      const snapshot = await fetchJson(snapshotUrl(storeId), signal);
+      reportProgress({
+        phase: 'download',
+        progress: SYNC_PROGRESS.downloadStart,
+      });
+      const snapshot = await fetchSnapshot(snapshotUrl(storeId), {
+        signal,
+        onDownloadProgress: ({ receivedBytes, totalBytes, complete }) => {
+          reportProgress({
+            phase: 'download',
+            receivedBytes,
+            totalBytes,
+            progress: complete
+              ? SYNC_PROGRESS.downloadEnd
+              : downloadProgressPercent(receivedBytes, totalBytes),
+          });
+        },
+        onParseStart: () => {
+          reportProgress({
+            phase: 'parse',
+            progress: SYNC_PROGRESS.parse,
+          });
+        },
+      });
       assertCatalogStoreActive(storeId, generation);
       if (!snapshot?.version) {
         return { status: 'skipped', error: 'snapshot empty' };
@@ -260,7 +456,15 @@ export async function checkAndSyncCatalog({
         return { status: 'up-to-date', version: snapshot.version };
       }
 
+      reportProgress({
+        phase: 'apply',
+        progress: SYNC_PROGRESS.applyStart,
+      });
       await applyCatalogSnapshot(snapshot, { storeId, generation });
+      reportProgress({
+        phase: 'apply',
+        progress: SYNC_PROGRESS.applyEnd,
+      });
 
       console.info('catalog sync applied', {
         storeId,
@@ -306,5 +510,15 @@ export async function checkAndSyncCatalog({
 
       return { status: 'error', error: err?.message || String(err) };
     }
-  });
+    },
+    {
+      onWaiting: () => {
+        try {
+          onLockWaiting?.();
+        } catch {
+          /* UI status must not fail the sync */
+        }
+      },
+    }
+  );
 }

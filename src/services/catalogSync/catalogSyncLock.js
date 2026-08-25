@@ -6,6 +6,7 @@ export const CATALOG_SYNC_LS_LOCK_PREFIX = 'ivanor.catalog.sync.lock.';
 const DEFAULT_LS_TTL_MS = 8_000;
 const DEFAULT_LS_POLL_MS = 50;
 const DEFAULT_LS_HEARTBEAT_MS = 2_500;
+const LOCK_UNAVAILABLE = Symbol('catalog-sync-lock-unavailable');
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -54,6 +55,7 @@ async function withLocalStorageLease(storeId, fn, options = {}) {
     heartbeatMs = DEFAULT_LS_HEARTBEAT_MS,
     storage = typeof window !== 'undefined' ? window.localStorage : null,
     now = () => Date.now(),
+    onWaiting,
   } = options;
 
   if (!storage) {
@@ -62,6 +64,7 @@ async function withLocalStorageLease(storeId, fn, options = {}) {
 
   const key = getLsLockKey(storeId);
   const owner = `${now()}-${Math.random().toString(36).slice(2, 10)}`;
+  let waitingNotified = false;
 
   for (;;) {
     const ts = now();
@@ -70,6 +73,14 @@ async function withLocalStorageLease(storeId, fn, options = {}) {
       writeLease(storage, key, { owner, expiresAt: ts + ttlMs });
       const verified = readLease(storage, key);
       if (verified?.owner === owner) break;
+    }
+    if (!waitingNotified) {
+      waitingNotified = true;
+      try {
+        onWaiting?.();
+      } catch {
+        /* UI status must not fail the lock */
+      }
     }
     await sleep(pollMs);
   }
@@ -106,18 +117,38 @@ function hasWebLocks() {
  * @template T
  * @param {string} storeId
  * @param {() => Promise<T>|T} fn
- * @param {{ ttlMs?: number, pollMs?: number, heartbeatMs?: number, storage?: Storage, now?: () => number }} [options]
+ * @param {{ ttlMs?: number, pollMs?: number, heartbeatMs?: number, storage?: Storage, now?: () => number, onWaiting?: () => void }} [options]
  * @returns {Promise<T>}
  */
 export async function withCatalogSyncLock(storeId, fn, options = {}) {
   const resolvedStoreId = resolveCatalogStoreId(storeId);
   const lockName = getCatalogSyncLockName(resolvedStoreId);
+  const { onWaiting, ...leaseOptions } = options;
 
   if (hasWebLocks()) {
+    const acquired = await navigator.locks.request(
+      lockName,
+      { mode: 'exclusive', ifAvailable: true },
+      (lock) => {
+        if (!lock) return LOCK_UNAVAILABLE;
+        return Promise.resolve().then(fn);
+      }
+    );
+    if (acquired !== LOCK_UNAVAILABLE) {
+      return acquired;
+    }
+    try {
+      onWaiting?.();
+    } catch {
+      /* UI status must not fail the lock */
+    }
     return navigator.locks.request(lockName, { mode: 'exclusive' }, () =>
       Promise.resolve().then(fn)
     );
   }
 
-  return withLocalStorageLease(resolvedStoreId, fn, options);
+  return withLocalStorageLease(resolvedStoreId, fn, {
+    ...leaseOptions,
+    onWaiting,
+  });
 }

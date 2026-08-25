@@ -11,13 +11,14 @@ Production runtime каталога: **sync → validation → IDB**. Legacy sup
 | | |
 | --- | --- |
 | **Путь** | `catalogSyncService.js` |
-| **Сигнатура** | `async function checkAndSyncCatalog({ force = false, storeId, signal } = {})` |
+| **Сигнатура** | `async function checkAndSyncCatalog({ force = false, storeId, signal, onProgress, onLockWaiting } = {})` |
 | **Назначение** | Version gate: meta → snapshot → apply если версия новее |
 | **Async** | fetch meta/snapshot, lock, IDB transaction |
 | **Side effects** | localStorage version key, IndexedDB, `postCatalogApplied` |
 | **Состояние** | `getLocalCatalogVersion` / `setLocalCatalogVersion` per storeId |
 | **Внутренние вызовы** | `withCatalogSyncLock`, `validateAndNormalizeCatalogSnapshot`, `applyCatalogSnapshot`, indexedDBService |
 | **Ошибки** | `404`/пустой ответ → `skipped`; network, JSON, validation или IDB failure → log + `error`; abort/stale store → `skipped` |
+| **Прогресс** | опциональный `onProgress({ phase, receivedBytes, totalBytes, progress })` на meta / download / parse / apply; `onLockWaiting` когда writer занят; snapshot читается stream-ом; исключение callback не валит sync |
 | **Кто вызывает** | `CatalogSyncHost`, tests |
 | **Тесты** | `catalogSyncService.test.js`, `catalogSyncService.commitBoundary.test.js` |
 | **Страница** | [Frontend autosync](/06-catalog-sync/frontend-autosync) |
@@ -41,9 +42,9 @@ Wire JSON → normalized snapshot + validation report. Re-export из `catalogSn
 `validateAndNormalizeCatalogSnapshot`, а не собирает validation pipeline
 вручную.
 
-### `withCatalogSyncLock(storeId, fn)`
+### `withCatalogSyncLock(storeId, fn, options?)`
 
-Web Locks API + localStorage lease fallback. **Страница:** [Locks and channels](/06-catalog-sync/locks-and-channels).
+Web Locks API + localStorage lease fallback. `options.onWaiting` — lock занят другой вкладкой. **Страница:** [Locks and channels](/06-catalog-sync/locks-and-channels).
 
 ### `postCatalogApplied` / `subscribeCatalogApplied`
 
@@ -76,6 +77,7 @@ Re-export schema, filters, validation + **default** `catalogIdbSession`.
 | `invalidateActiveStore(storeId?)` | sync | Close + clear active; optional id не даёт отсоединить другой store |
 | `ensureCatalogReady()` | async | Open + migration |
 | `applyCatalogSnapshot(commands, version)` | async | Atomic apply нормализованных команд + metadata version |
+| `warmupCatalogReadCache({ tires, discs, onStep })` | async | Служебный sequential hydrate RAM после cold apply; не для React |
 | `searchTires(filters)` | async | RAM bucket + post-filter |
 | `searchDiscs(filters)` | async | RAM bucket + post-filter |
 | `getAvailableParameterOptions` | async | Facets шин из RAM facet-rows |

@@ -340,4 +340,89 @@ describe('RAM read cache поиска и facets (fake-indexeddb)', () => {
     expect(afterBump.some((item) => item.id === 'only-b')).toBe(false);
     expect(afterBump.some((item) => item.id === 'only-b2')).toBe(true);
   });
+
+  test('warmupCatalogReadCache гидрирует шины и диски; повторный search без нового getAll', async () => {
+    await seedCatalog(TIRE_COUNT, DISC_COUNT);
+    expect(indexedDBService._readStoreGetAllCount).toBe(0);
+
+    const steps = [];
+    const result = await indexedDBService.warmupCatalogReadCache({
+      tires: true,
+      discs: true,
+      onStep: ({ category }) => {
+        steps.push({
+          category,
+          getAll: indexedDBService._readStoreGetAllCount,
+        });
+      },
+    });
+
+    expect(result.warmed).toEqual(['tires', 'discs']);
+    expect(steps.map((step) => step.category)).toEqual(['tires', 'discs']);
+    expect(steps[0].getAll).toBe(0);
+    expect(steps[1].getAll).toBe(1);
+    expect(indexedDBService._readStoreGetAllCount).toBe(2);
+
+    await indexedDBService.searchTires({ season: 's' });
+    await indexedDBService.getAvailableDiscParameterOptions({
+      diameter: 'R16',
+    });
+    await indexedDBService.collectDiscShowcaseCandidates({ minAmount: 1 });
+    expect(indexedDBService._readStoreGetAllCount).toBe(2);
+  }, 60000);
+
+  test('смена workspace во время warmup не пишет stale cache', async () => {
+    const storeA = `warmup-a-${Math.random()}`;
+    resetService(storeA);
+    await indexedDBService.applyCatalogSnapshot(
+      [
+        {
+          supplier: supplierA,
+          category: CATALOG_STORES.tires,
+          action: 'replace',
+          items: [{ ...makeTire(1), id: 'stale-a', season: 's' }],
+        },
+      ],
+      versionV1
+    );
+
+    const originalRead = indexedDBService._readStoreAll.bind(indexedDBService);
+    let releaseRead;
+    const holdRead = new Promise((resolve) => {
+      releaseRead = resolve;
+    });
+    indexedDBService._readStoreAll = async (...args) => {
+      await holdRead;
+      return originalRead(...args);
+    };
+
+    try {
+      const warmup = indexedDBService.warmupCatalogReadCache({
+        tires: true,
+        discs: true,
+      });
+      const storeB = `warmup-b-${Math.random()}`;
+      resetService(storeB);
+      releaseRead();
+
+      await expect(warmup).rejects.toBeDefined();
+    } finally {
+      indexedDBService._readStoreAll = originalRead;
+    }
+
+    await indexedDBService.applyCatalogSnapshot(
+      [
+        {
+          supplier: supplierA,
+          category: CATALOG_STORES.tires,
+          action: 'replace',
+          items: [{ ...makeTire(2), id: 'only-b', season: 's' }],
+        },
+      ],
+      versionV1
+    );
+    const fromB = await indexedDBService.searchTires({ season: 's' });
+    expect(fromB.some((item) => item.id === 'stale-a')).toBe(false);
+    expect(fromB.some((item) => item.id === 'only-b')).toBe(true);
+  });
 });

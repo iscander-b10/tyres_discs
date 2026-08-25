@@ -60,13 +60,15 @@ sequenceDiagram
 
 - `storeId: string` — namespace магазина;
 - `fn: () => T | Promise<T>` — критическая секция;
-- `options` — инъекции только для localStorage fallback: `ttlMs`, `pollMs`, `heartbeatMs`, `storage`, `now`.
+- `options` — инъекции только для localStorage fallback: `ttlMs`, `pollMs`, `heartbeatMs`, `storage`, `now`; плюс `onWaiting` для обоих путей.
 
 **Результат и async.** Всегда `Promise<T>`. Результат callback возвращается без преобразования, rejection пробрасывается. Для sync callback используется `Promise.resolve().then(fn)`, поэтому выполнение всё равно асинхронное.
 
 **Caller/callee.** Активный caller — `checkAndSyncCatalog`; callee — `navigator.locks.request`, либо приватный `withLocalStorageLease`.
 
-**Side effects.** Занятие Web Lock или чтение/запись/удаление localStorage lease; fallback также создаёт interval heartbeat и polling timeouts.
+**Side effects.** Занятие Web Lock или чтение/запись/удаление localStorage lease; fallback также создаёт interval heartbeat и polling timeouts. `onWaiting` вызывается один раз, если exclusive lock уже занят (`ifAvailable: true` вернул `null`, либо LS-lease занята). Исключение callback глотается.
+
+**Waiting vs error.** Ожидание writer — не ошибка sync. На cold start host показывает «Каталог загружается в другой вкладке» без фейкового download %. Когда lock отпущен, waiter входит, обычно получает `up-to-date` (снимок уже в общей IDB) и channel/`bumpIfIdbAhead` догоняет UI.
 
 **Transaction boundary.** Lock шире IDB-транзакции: внутри находятся конфигурационные проверки, оба HTTP GET, version checks, validation и commit. Это намеренно предотвращает несколько snapshot download в параллельных вкладках. Сам lock не обеспечивает атомарность данных — её обеспечивает отдельная IDB `readwrite`-транзакция.
 
@@ -91,7 +93,13 @@ const result = await withCatalogSyncLock('store-a', async () => {
 
 ### Основной путь: Web Locks API
 
-Если существует `navigator.locks.request`, вызывается:
+Если существует `navigator.locks.request`, сначала вызывается:
+
+```js
+navigator.locks.request(lockName, { mode: 'exclusive', ifAvailable: true }, callback)
+```
+
+Если lock сразу не достался, срабатывает `onWaiting`, затем обычный
 
 ```js
 navigator.locks.request(lockName, { mode: 'exclusive' }, callback)
@@ -264,7 +272,7 @@ Channel доставляет его, но AppShell подавляет exact dupl
 
 ## Что подтверждают тесты
 
-- `catalogSyncLock.test.js`: последовательность двух Web Lock holders, освобождение после simulated crash, steal LS lease после TTL.
+- `catalogSyncLock.test.js`: последовательность двух Web Lock holders, освобождение после simulated crash, steal LS lease после TTL, `onWaiting` только у второго waiter.
 - `catalogSyncLock.integration.test.js`: два `checkAndSyncCatalog` для одного store дают один snapshot request.
 - `catalogSyncChannel.test.js`: BroadcastChannel roundtrip, storage fallback, store filtering и ping при неизменившейся version.
 - `CatalogSyncHost.test.jsx` и AppShell-код подтверждают, что stale workspace не получает UI update.

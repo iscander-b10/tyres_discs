@@ -1,3 +1,12 @@
+const { TextDecoder, TextEncoder } = require('util');
+
+if (typeof global.TextEncoder === 'undefined') {
+  global.TextEncoder = TextEncoder;
+}
+if (typeof global.TextDecoder === 'undefined') {
+  global.TextDecoder = TextDecoder;
+}
+
 const API_BASE_ENV = 'REACT_APP_CATALOG_API_BASE';
 const STORE_ID_ENV = 'REACT_APP_STORE_ID';
 const VERSION_KEY = 'ivanor.catalog.cloudVersion.test-store';
@@ -8,6 +17,62 @@ const jsonResponse = (body) => ({
   status: 200,
   json: async () => body,
 });
+
+function headerMap(headers = {}) {
+  const map = new Map(
+    Object.entries(headers).map(([key, value]) => [
+      key.toLowerCase(),
+      String(value),
+    ])
+  );
+  return {
+    get(name) {
+      return map.get(String(name).toLowerCase()) ?? null;
+    },
+  };
+}
+
+function encodeJsonChunks(value, parts = 2) {
+  const bytes = new TextEncoder().encode(JSON.stringify(value));
+  if (parts <= 1) return [bytes];
+  const size = Math.max(1, Math.ceil(bytes.length / parts));
+  const chunks = [];
+  for (let offset = 0; offset < bytes.length; offset += size) {
+    chunks.push(bytes.slice(offset, offset + size));
+  }
+  return chunks;
+}
+
+function streamResponse(chunks, { status = 200, headers = {}, onRead } = {}) {
+  let index = 0;
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    headers: headerMap(headers),
+    body: {
+      getReader() {
+        return {
+          async read() {
+            onRead?.();
+            if (index >= chunks.length) {
+              return { done: true, value: undefined };
+            }
+            const value = chunks[index];
+            index += 1;
+            return { done: false, value };
+          },
+          async cancel() {},
+        };
+      },
+    },
+    json: async () => {
+      throw new Error('stream response should not call json()');
+    },
+  };
+}
+
+const progressEvents = (onProgress) =>
+  onProgress.mock.calls.map((call) => call[0]);
 
 const replace = (items = []) => ({ action: 'replace', status: 'ok', items });
 const keepPrevious = (status = 'failed') => ({
@@ -386,5 +451,207 @@ describe('безопасное применение snapshot каталога', 
     });
     expect(indexedDBService.applyCatalogSnapshot).not.toHaveBeenCalled();
     expect(postCatalogApplied).not.toHaveBeenCalled();
+  });
+
+  test('stream progress с известным Content-Length считает долю байтов', async () => {
+    const { service, indexedDBService } = loadService();
+    const snapshot = snapshotWith({
+      schemaVersion: 1,
+      tyres: replace([tire()]),
+      discs: purge(),
+    });
+    const chunks = encodeJsonChunks(snapshot, 2);
+    const total = chunks.reduce((sum, chunk) => sum + chunk.byteLength, 0);
+    global.fetch
+      .mockResolvedValueOnce(jsonResponse({ version: VERSION }))
+      .mockResolvedValueOnce(
+        streamResponse(chunks, {
+          headers: { 'Content-Length': String(total) },
+        })
+      );
+    const onProgress = jest.fn();
+
+    await expect(
+      service.checkAndSyncCatalog({ force: true, onProgress })
+    ).resolves.toEqual({ status: 'applied', version: VERSION });
+
+    const download = progressEvents(onProgress).filter(
+      (event) => event.phase === 'download'
+    );
+    expect(download.length).toBeGreaterThan(0);
+    expect(download.some((event) => event.totalBytes === total)).toBe(true);
+    expect(download.every((event) => event.progress <= 80)).toBe(true);
+    expect(download[download.length - 1]).toEqual(
+      expect.objectContaining({
+        receivedBytes: total,
+        totalBytes: total,
+        progress: 80,
+      })
+    );
+    const firstChunk = download.find(
+      (event) => event.receivedBytes === chunks[0].byteLength
+    );
+    expect(firstChunk.progress).toBeCloseTo(
+      5 + 75 * (chunks[0].byteLength / total),
+      5
+    );
+    expect(progressEvents(onProgress).some((event) => event.phase === 'parse')).toBe(
+      true
+    );
+    expect(progressEvents(onProgress).some((event) => event.phase === 'apply')).toBe(
+      true
+    );
+    expect(indexedDBService.applyCatalogSnapshot).toHaveBeenCalledTimes(1);
+  });
+
+  test('stream progress без Content-Length идёт коридором и не врёт percent файла', async () => {
+    const { service } = loadService();
+    const snapshot = snapshotWith({
+      schemaVersion: 1,
+      tyres: replace([tire()]),
+      discs: purge(),
+    });
+    const chunks = encodeJsonChunks(snapshot, 3);
+    global.fetch
+      .mockResolvedValueOnce(jsonResponse({ version: VERSION }))
+      .mockResolvedValueOnce(streamResponse(chunks));
+    const onProgress = jest.fn();
+
+    await expect(
+      service.checkAndSyncCatalog({ force: true, onProgress })
+    ).resolves.toEqual({ status: 'applied', version: VERSION });
+
+    const download = progressEvents(onProgress).filter(
+      (event) => event.phase === 'download' && event.receivedBytes > 0
+    );
+    expect(download.every((event) => event.totalBytes == null)).toBe(true);
+    const percents = download.map((event) => event.progress);
+    for (let index = 1; index < percents.length; index += 1) {
+      expect(percents[index]).toBeGreaterThanOrEqual(percents[index - 1]);
+    }
+    expect(Math.max(...percents)).toBeLessThanOrEqual(80);
+    expect(
+      Math.max(...progressEvents(onProgress).map((event) => event.progress))
+    ).toBeLessThan(100);
+  });
+
+  test('abort посреди stream даёт skipped aborted', async () => {
+    const { service, indexedDBService } = loadService();
+    const controller = new AbortController();
+    const snapshot = snapshotWith({
+      schemaVersion: 1,
+      tyres: replace([tire()]),
+      discs: purge(),
+    });
+    const chunks = encodeJsonChunks(snapshot, 4);
+    let reads = 0;
+    global.fetch
+      .mockResolvedValueOnce(jsonResponse({ version: VERSION }))
+      .mockResolvedValueOnce(
+        streamResponse(chunks, {
+          headers: { 'Content-Length': String(chunks.reduce((sum, chunk) => sum + chunk.byteLength, 0)) },
+          onRead: () => {
+            reads += 1;
+            if (reads === 2) controller.abort();
+          },
+        })
+      );
+    const onProgress = jest.fn();
+
+    await expect(
+      service.checkAndSyncCatalog({
+        force: true,
+        signal: controller.signal,
+        onProgress,
+      })
+    ).resolves.toEqual({ status: 'skipped', error: 'aborted' });
+
+    expect(indexedDBService.applyCatalogSnapshot).not.toHaveBeenCalled();
+    expect(
+      progressEvents(onProgress).some((event) => event.phase === 'download')
+    ).toBe(true);
+    expect(
+      progressEvents(onProgress).some((event) => event.phase === 'apply')
+    ).toBe(false);
+  });
+
+  test('gzip и разъезд total/stream не дают progress > 100', async () => {
+    const { service } = loadService();
+    const snapshot = snapshotWith({
+      schemaVersion: 1,
+      tyres: replace([tire()]),
+      discs: purge(),
+    });
+    const chunks = encodeJsonChunks(snapshot, 2);
+    const received = chunks.reduce((sum, chunk) => sum + chunk.byteLength, 0);
+    expect(received).toBeGreaterThan(10);
+
+    const gzipProgress = jest.fn();
+    global.fetch
+      .mockResolvedValueOnce(jsonResponse({ version: VERSION }))
+      .mockResolvedValueOnce(
+        streamResponse(chunks, {
+          headers: {
+            'Content-Length': '10',
+            'Content-Encoding': 'gzip',
+          },
+        })
+      );
+    await service.checkAndSyncCatalog({ force: true, onProgress: gzipProgress });
+    const gzipDownload = progressEvents(gzipProgress).filter(
+      (event) => event.phase === 'download'
+    );
+    expect(gzipDownload.every((event) => event.totalBytes == null)).toBe(true);
+    expect(
+      Math.max(...progressEvents(gzipProgress).map((event) => event.progress))
+    ).toBeLessThan(100);
+
+    const mismatchProgress = jest.fn();
+    global.fetch
+      .mockResolvedValueOnce(jsonResponse({ version: VERSION }))
+      .mockResolvedValueOnce(
+        streamResponse(chunks, {
+          headers: { 'Content-Length': '10' },
+        })
+      );
+    await service.checkAndSyncCatalog({
+      force: true,
+      onProgress: mismatchProgress,
+    });
+    const mismatchDownload = progressEvents(mismatchProgress).filter(
+      (event) => event.phase === 'download' && event.receivedBytes > 10
+    );
+    expect(mismatchDownload.every((event) => event.totalBytes == null)).toBe(
+      true
+    );
+    expect(
+      Math.max(
+        ...progressEvents(mismatchProgress).map((event) => event.progress)
+      )
+    ).toBeLessThan(100);
+  });
+
+  test('onProgress не ломает up-to-date путь', async () => {
+    const { service, indexedDBService } = loadService({
+      getPersistedCatalogVersion: jest.fn().mockResolvedValue(VERSION),
+      isCatalogEmpty: jest.fn().mockResolvedValue(false),
+    });
+    global.fetch.mockResolvedValueOnce(jsonResponse({ version: VERSION }));
+    const onProgress = jest.fn(() => {
+      throw new Error('ui progress failed');
+    });
+
+    await expect(
+      service.checkAndSyncCatalog({ onProgress })
+    ).resolves.toEqual({
+      status: 'up-to-date',
+      version: VERSION,
+    });
+    expect(indexedDBService.applyCatalogSnapshot).not.toHaveBeenCalled();
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(onProgress).toHaveBeenCalled();
+    expect(
+      progressEvents(onProgress).every((event) => event.phase === 'meta')
+    ).toBe(true);
   });
 });

@@ -32,10 +32,22 @@ const createFakeWebLocks = () => {
   return {
     request(name, options, callback) {
       const cb = typeof options === 'function' ? options : callback;
+      const opts = typeof options === 'function' ? {} : options || {};
       return new Promise((resolve, reject) => {
         const queue = queues.get(name) || [];
+        if (opts.ifAvailable && queue.length > 0) {
+          Promise.resolve()
+            .then(() => cb(null))
+            .then(resolve, reject);
+          return;
+        }
         queues.set(name, queue);
-        queue.push({ resolve, reject, cb, started: false });
+        queue.push({
+          resolve,
+          reject,
+          cb: () => cb({ name }),
+          started: false,
+        });
         pump(name);
       });
     },

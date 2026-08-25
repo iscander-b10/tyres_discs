@@ -42,6 +42,7 @@
   --color-danger: #e43141;
   --color-overlay: rgba(39, 48, 54, 0.55);
   --color-overlay-strong: rgba(39, 48, 54, 0.72);
+  --color-overlay-gate: rgba(8, 10, 12, 0.96);
   --color-on-accent: #ffffff;
   --color-switch-track: #d4d7da;
   --color-switch-track-hover: #9ca0a4;
@@ -84,6 +85,7 @@
   --z-filter-bar: 90;
   --z-mode-toggle: 1200;
   --z-modal: 1000;
+  --z-catalog-bootstrap: 1300;
   --catalog-filter-sticky-top: 12px;
   color-scheme: light;
 }
@@ -123,6 +125,7 @@
   --color-danger: #e54552;
   --color-overlay: rgba(8, 10, 12, 0.72);
   --color-overlay-strong: rgba(8, 10, 12, 0.82);
+  --color-overlay-gate: rgba(8, 10, 12, 0.96);
   --color-on-accent: #ffffff;
   --color-switch-track: #454c54;
   --color-switch-track-hover: #5a626a;

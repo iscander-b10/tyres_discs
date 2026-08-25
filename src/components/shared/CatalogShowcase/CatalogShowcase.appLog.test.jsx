@@ -18,8 +18,6 @@ jest.mock('../../../catalog/showcase', () => ({
     copy: {
       popularModels: 'Популярные',
       seasonHits: 'Хиты',
-      catalogEmptyTitle: 'Пусто',
-      catalogEmptyHint: 'Подсказка',
     },
   },
 }));

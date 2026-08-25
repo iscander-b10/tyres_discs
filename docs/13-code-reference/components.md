@@ -13,6 +13,7 @@
 | `LandingPage` | `src/components/LandingPage/LandingPage.jsx` | Маркетинговая главная | — | [Продукт](/00-overview/product-and-users) |
 | `ScrollToTop` | `src/components/ScrollToTop/ScrollToTop.jsx` | Сброс scroll при route change | `useLocation` | [Маршруты](/03-routing-shell/routes-and-login-modal) |
 | `ModeToggle` | `src/components/ModeToggle/ModeToggle.jsx` | Переключатель менеджер/клиент | `useAppShell` | [Режим клиента](/10-ui/basket-and-client-mode) |
+| `CatalogBootstrapOverlay` | `src/components/CatalogBootstrapOverlay/CatalogBootstrapOverlay.jsx` | Полноэкранная шторка cold start | props из AppShell | [AppShell](/03-routing-shell/app-shell-state) |
 | `ThemeSwitch` | `src/components/shared/ThemeSwitch/ThemeSwitch.jsx` | Светлая/тёмная тема | props `appearance`, `onAppearanceChange` | [Тема](/10-ui/theme-and-shell-components) |
 
 ### `SiteHeader`
@@ -85,7 +86,7 @@ singleton `catalogIdbSession`). При `searchResults === null` панель р�
 
 | Компонент | Путь | Основные props | Страница |
 | --- | --- | --- | --- |
-| `CatalogShowcase` | `shared/CatalogShowcase/CatalogShowcase.jsx` | `kind`, `renderCard`, `onChipClick` | [Showcase](/08-search-showcase/showcase-selection) |
+| `CatalogShowcase` | `shared/CatalogShowcase/CatalogShowcase.jsx` | `kind`, `renderCard`, `onChipClick`; пустой store → skeleton, без Empty catalog-empty | [Showcase](/08-search-showcase/showcase-selection) |
 | `ShowcaseShelf` | `shared/CatalogShowcase/ShowcaseShelf.jsx` | `title`, `items`, `renderCard`, `skeleton` | [UI каталога](/10-ui/catalog-components) |
 | `ShowcaseSizeChips` | `shared/CatalogShowcase/ShowcaseSizeChips.jsx` | `chips`, `onChipClick` | [Showcase](/08-search-showcase/showcase-selection) |
 | `CatalogSearchEmpty` | `shared/CatalogShowcase/CatalogSearchEmpty.jsx` | `title`, `description`, `onResetFilters`, `actionIcon` | [UI каталога](/10-ui/catalog-components) |
@@ -137,7 +138,7 @@ export default function AddToCartControl({
 
 | Компонент | Путь | Назначение | Страница |
 | --- | --- | --- | --- |
-| `CatalogSyncHost` | `src/services/catalogSync/CatalogSyncHost.jsx` | Таймеры autosync | [Frontend autosync](/06-catalog-sync/frontend-autosync) |
+| `CatalogSyncHost` | `src/services/catalogSync/CatalogSyncHost.jsx` | Таймеры autosync и cold-start bootstrap | [Frontend autosync](/06-catalog-sync/frontend-autosync) |
 | `CartReconciliationHost` | `src/cart/CartReconciliationHost.jsx` | Reconcile после snapshot | [Reconciliation](/09-cart/catalog-reconciliation) |
 
 Внутри `CartReconciliationHost` две небольшие функции обеспечивают корректный

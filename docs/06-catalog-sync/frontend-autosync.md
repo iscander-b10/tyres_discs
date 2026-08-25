@@ -6,7 +6,7 @@
 
 | Участник | Ответственность | Не делает |
 | --- | --- | --- |
-| `CatalogSyncHost` | Выбирает момент запуска, привязывает работу к workspace, отменяет старый запуск, догоняет UI до версии в IDB | Не скачивает и не валидирует snapshot |
+| `CatalogSyncHost` | Выбирает момент запуска, привязывает работу к workspace, отменяет старый запуск, догоняет UI до версии в IDB, выставляет cold-start `catalogBootstrap` | Не скачивает и не валидирует snapshot |
 | `checkAndSyncCatalog` | Выполняет сетевой сценарий под writer lock, сравнивает версии, классифицирует результат | Не владеет React-состоянием |
 | `applyCatalogSnapshot` | Валидирует весь snapshot, вызывает единственный атомарный IDB commit, затем публикует версию | Не решает, когда запускать sync |
 | `CatalogIdbSession.applyCatalogSnapshot` | В одной `readwrite`-транзакции меняет товары и metadata version | Не принимает wire-format без предварительной нормализации |
@@ -16,7 +16,7 @@
 
 ## Где путь подключён
 
-`CatalogSyncHost` монтируется в `App.js` внутри дерева приложения и требует `AppShellProvider`. Из `AuthContext` он получает готовность workspace и `workspace.storeId`; из `AppShellContext` — `notifyCatalogApplied`.
+`CatalogSyncHost` монтируется в `App.js` внутри дерева приложения и требует `AppShellProvider`. Из `AuthContext` он получает готовность workspace и `workspace.storeId`; из `AppShellContext` — `notifyCatalogApplied`, `setCatalogBootstrap` и `registerCatalogBootstrapRetry`. Шторку рисует `AppShellProvider` (`CatalogBootstrapOverlay`), а не сам host.
 
 Эффект не запускается, пока:
 
@@ -92,7 +92,9 @@ sequenceDiagram
 
 - `force = false` — обходит оба предварительных сравнения версий, но не нижний атомарный version gate в IDB;
 - `storeId` — магазин; пустое значение разрешается через env/default namespace;
-- `signal` — опциональный `AbortSignal` для `fetch`.
+- `signal` — опциональный `AbortSignal` для `fetch`;
+- `onProgress` — опциональный callback `{ phase: 'meta' \| 'download' \| 'parse' \| 'apply', receivedBytes, totalBytes, progress }`. React в сервис не импортируется. Host подписывается только на cold start и кладёт `progress`/`label` в уже существующий `catalogBootstrap`; исключение в callback глотается и не превращает sync в `error`. `progress` монотонен и не достигает 100 до commit. Фаза `warmup` («Готовим витрину») не из сервиса: её ставит host после IDB;
+- `onLockWaiting` — опциональный callback, когда writer lock занят другой вкладкой. Host на blocking ставит подпись «Каталог загружается в другой вкладке» и не рисует фейковый download %. Warm start / background apply callback не передают.
 
 **Результат.** `Promise` с одним из объектов:
 
@@ -116,13 +118,14 @@ sequenceDiagram
 5. После каждого `await` проверить, что store/generation всё ещё активны.
 6. Прочитать persisted IDB version и проверить, пуст ли каталог.
 7. Если каталог не пуст и `meta.version <= local`, вернуть `up-to-date`.
-8. Скачать `/snapshot`, повторить version gate уже по версии snapshot.
-9. Валидировать и применить snapshot.
-10. Вернуть классифицированный результат; залогировать ошибку.
+8. Скачать `/snapshot` через `ReadableStream`: копить `Uint8Array` чанки, затем один `TextDecoder` + `JSON.parse`. AbortSignal сохраняется. `Content-Length` не считается истиной, если его нет, стоит `Content-Encoding` кроме `identity`, или принятые байты превысили заявленный total.
+9. Повторить version gate уже по версии snapshot.
+10. Валидировать и применить snapshot; `onProgress` переходит `parse` → `apply`.
+11. Вернуть классифицированный результат; залогировать ошибку.
 
 **Side effects.** Сеть, переключение IDB namespace, IDB commit через callee, `console.info` после успешного пути, `appLog.error` при ошибке.
 
-**Callers/callees.** Caller — `CatalogSyncHost`; в тестах функция вызывается напрямую. Callees — `withCatalogSyncLock`, `fetch`, IDB service, `applyCatalogSnapshot`.
+**Callers/callees.** Caller — `CatalogSyncHost`; в тестах функция вызывается напрямую. Callees — `withCatalogSyncLock`, `fetch`, IDB service, `applyCatalogSnapshot`. `warmupCatalogReadCache` вызывает host после возврата из sync, не сам `checkAndSyncCatalog`.
 
 **Гарантии.**
 
@@ -192,17 +195,25 @@ await checkAndSyncCatalog({
 
 ### `CatalogSyncHost`
 
-**Роль и результат.** Headless React-компонент, возвращает `null`; управляет жизненным циклом синхронизации.
+**Роль и результат.** React-компонент без собственной разметки, возвращает `null`. Управляет жизненным циклом синхронизации и cold-start bootstrap в AppShell.
+
+**Cold start vs warm start.** В `useLayoutEffect` host ставит `catalogBootstrap.phase = 'blocking'`, чтобы до commit snapshot пользователь видел только шторку, а не рабочий сайт. Затем `isCatalogEmpty()`:
+
+- `true` — шторка остаётся, скачивается один snapshot шин и дисков. `onProgress` обновляет `catalogBootstrap.progress` и `label`: meta ≈ 0–3%, download — основная доля, затем parse и apply. После успешного apply (или `up-to-date`, если снимок уже положила другая вкладка) host вызывает `warmupCatalogReadCache({ tires: true, discs: true })` — фаза «Готовим витрину», два шага. Только потом `notifyCatalogApplied` и `phase: 'ready'`. Если writer lock занят, шторка остаётся, label «Каталог загружается в другой вкладке», download % не имитируется. Когда lock отпущен, tab догоняет persisted version/channel и снимает шторку; waiting ≠ error;
+- `false` — phase сразу `ready`, overlay нет, warmup не вызывается, дальше тихий autosync без обязательного UI-прогресса (слот, visibility, online);
+- ошибка чтения IDB трактуется как пустой каталог (нельзя доказать, что он не пуст).
+
+`offline`, HTTP, validation и `disabled` на пустом каталоге ставят `phase: 'error'` с текстом в шторке и кнопкой «Повторить». Progress не маскирует эту ошибку. `{status:'skipped', error:'aborted'|'stale store'}` общую ошибку не показывают. Фоновый sync после `ready` шторку и toast не открывает.
 
 **Async и side effects.** Его effect создаёт timer, listeners и `AbortController`. `run` ждёт sync, затем независимо от статуса читает persisted version через `bumpIfIdbAhead`.
 
 `lastNotifiedVersion` локален конкретному effect. Он подавляет повторный bump для версии, которая не новее уже сообщённой. `notifyRef` позволяет использовать свежий callback без перезапуска эффекта.
 
-**Гарантии.** Старый workspace не уведомляет новый; cleanup отменяет fetch и расписание; два события в одном host не запускают две работы одновременно.
+**Гарантии.** Старый workspace не уведомляет новый; cleanup отменяет fetch и расписание; два события в одном host не запускают две работы одновременно; blocking выставляется до commit витрины с данными.
 
-**Ограничения.** `syncing` не ставит событие в очередь: триггер во время работы теряется. Следующий slot/visible/online восстановит проверку.
+**Ограничения.** `syncing` не ставит событие в очередь: триггер во время работы теряется. Следующий slot/visible/online восстановит проверку. `Content-Length` используется для процента download только если заголовок виден JS и согласован со stream; иначе бар идёт коридором ≈ 5–80%, а крупно показываются мегабайты, не «N% от файла».
 
-**Риск изменения.** Добавление `notifyCatalogApplied` в dependency array без ref может лишний раз перезапускать effect; удаление `isCurrent()` создаст race при logout/store switch; уведомление по network result вместо persisted version обойдёт реальный commit marker.
+**Риск изменения.** Добавление `notifyCatalogApplied` в dependency array без ref может лишний раз перезапускать effect; удаление `isCurrent()` создаст race при logout/store switch; уведомление по network result вместо persisted version обойдёт реальный commit marker; ставить `ready` до `isCatalogEmpty()` даст вспышку рабочего сайта на cold start.
 
 ### `AppShellContext.notifyCatalogApplied(version, storeId)`
 
@@ -218,11 +229,11 @@ await checkAndSyncCatalog({
 
 ### Первая загрузка
 
-IDB version пустая, каталог пуст. Даже если localStorage содержит старую cloudVersion, она не участвует в решении. Host получает meta, скачивает snapshot, валидирует его и коммитит. После commit UI получает persisted version и перечитывает каталог.
+IDB version пустая, каталог пуст. Даже если localStorage содержит старую cloudVersion, она не участвует в решении. Пользователь видит полноэкранную шторку (`phase: 'blocking'`), а не рабочий сайт. Host получает meta, скачивает snapshot, валидирует его и коммитит. Затем прогревает RAM шин и дисков, UI получает persisted version, bootstrap становится `ready`, шторка снимается, витрина читает уже тёплый кэш. Empty «Каталог ещё загружается» в витрине нет.
 
 ### Повторный запуск
 
-Если IDB не пуст и `meta.version <= persistedVersion`, snapshot не скачивается. Результат — `up-to-date`. Host всё равно вызывает `bumpIfIdbAhead`, поэтому только что открытая вкладка узнаёт уже применённую другой вкладкой версию.
+Если IDB не пуст и `meta.version <= persistedVersion`, snapshot не скачивается. Результат — `up-to-date`. Bootstrap сразу `ready`, шторки нет. Host всё равно вызывает `bumpIfIdbAhead`, поэтому только что открытая вкладка узнаёт уже применённую другой вкладкой версию.
 
 ### Stale snapshot
 
@@ -234,7 +245,7 @@ Meta могла измениться между двумя GET или API мог
 
 ### Offline или network error
 
-При `navigator.onLine === false` запросов нет, результат `offline`. Реальная сетевая ошибка, HTTP 5xx или invalid JSON дают `error` и `catalog.sync_failed`. Старый каталог остаётся доступен. Событие `online` создаёт новую попытку, но отдельного backoff нет.
+При `navigator.onLine === false` запросов нет, результат `offline`. Реальная сетевая ошибка, HTTP 5xx или invalid JSON дают `error` и `catalog.sync_failed`. Если каталог уже не пуст, старые товары остаются, шторки нет. Если это cold start, AppShell ставит `phase: 'error'` в шторке с кнопкой «Повторить». Событие `online` создаёт новую попытку, но отдельного backoff нет.
 
 ### Invalid snapshot
 
@@ -266,7 +277,7 @@ Fatal validation report блокирует вызов IDB. Service пишет `c
 
 ### Helpers
 
-- `catalogApiBase`, `metaUrl`, `snapshotUrl`, `fetchJson` — конфигурация и HTTP;
+- `catalogApiBase`, `metaUrl`, `snapshotUrl`, `fetchJson` (meta) и stream-чтение snapshot — конфигурация и HTTP;
 - `getMoscowParts`, `msUntilNextSyncCheck` — расписание;
 - `isAbortError` — нормализация abort;
 - `isLocalCatalogEmpty`, `getPersistedCatalogVersion` — fail-safe wrappers: при ошибке считают каталог пустым/version неизвестной, после чего основной путь попробует snapshot;
@@ -274,9 +285,9 @@ Fatal validation report блокирует вызов IDB. Service пишет `c
 
 ## Что подтверждают тесты
 
-- `catalogSyncService.test.js`: validation до IDB, нормализация, localStorage/broadcast только после commit, persisted version как gate, пустой каталог, store isolation и stale store.
+- `catalogSyncService.test.js`: validation до IDB, нормализация, localStorage/broadcast только после commit, persisted version как gate, пустой каталог, store isolation, stale store, stream progress с/без Content-Length, abort посреди stream, gzip/total mismatch и onProgress на up-to-date.
 - `catalogSyncService.commitBoundary.test.js`: реальные транзакции через `fake-indexeddb`, rollback при abort, отсутствие side effects при invalid snapshot, supplier-scoped purge.
-- `CatalogSyncHost.test.jsx`: ожидание готового workspace, abort/изоляция старого магазина, UI bump по persisted version, подавление slot в hidden-вкладке.
+- `CatalogSyncHost.test.jsx`: ожидание готового workspace, abort/изоляция старого магазина, UI bump по persisted version, подавление slot в hidden-вкладке, empty → blocking затем ready, non-empty → ready без шторки, onProgress → progress/label, warmup до notify, waiting lock без download %, offline на пустом каталоге → error, stale/abort без общей ошибки.
 - `catalogSyncLock.integration.test.js`: два параллельных запуска скачивают snapshot один раз.
 
 Тесты не доказывают доступность реального API, поведение браузера при длительном suspend вкладки или восстановление после исчерпания quota.

@@ -298,6 +298,38 @@ class CatalogIdbSession {
     });
   }
 
+  /**
+   * Служебный прогрев RAM-кэша после cold-start apply.
+   * Не для React: скрытая dual-mount панель по-прежнему не ходит в IDB.
+   * Hydrate CPU тяжёлый (`idb.hydrate` ≥ 20 ms) — категории последовательно,
+   * чтобы не сложить два getAll+index build в один кадр и дать шторке шаг.
+   *
+   * @param {{ tires?: boolean, discs?: boolean, onStep?: (event: { category: 'tires'|'discs' }) => void }} [options]
+   * @returns {Promise<{ warmed: Array<'tires'|'discs'> }>}
+   */
+  async warmupCatalogReadCache({
+    tires = false,
+    discs = false,
+    onStep,
+  } = {}) {
+    const steps = [];
+    if (tires) steps.push(CATALOG_STORES.tires);
+    if (discs) steps.push(CATALOG_STORES.discs);
+
+    const warmed = [];
+    for (let i = 0; i < steps.length; i += 1) {
+      const storeName = steps[i];
+      try {
+        onStep?.({ category: storeName });
+      } catch {
+        /* UI progress must not fail warmup */
+      }
+      await this._ensureReadCache(storeName);
+      warmed.push(storeName);
+    }
+    return { warmed };
+  }
+
   async _ensureReadCache(storeName) {
     const { database, generation } = await this._getReadyContext();
     if (!database) return null;

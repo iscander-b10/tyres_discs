@@ -47,10 +47,23 @@ const createFakeWebLocks = () => {
   return {
     request(name, options, callback) {
       const cb = typeof options === 'function' ? options : callback;
+      const opts = typeof options === 'function' ? {} : options || {};
       return new Promise((resolve, reject) => {
         const queue = queues.get(name) || [];
+        if (opts.ifAvailable && queue.some((item) => !item.abandoned)) {
+          Promise.resolve()
+            .then(() => cb(null))
+            .then(resolve, reject);
+          return;
+        }
         queues.set(name, queue);
-        queue.push({ resolve, reject, cb, started: false, abandoned: false });
+        queue.push({
+          resolve,
+          reject,
+          cb: () => cb({ name }),
+          started: false,
+          abandoned: false,
+        });
         pump(name);
       });
     },
@@ -116,6 +129,42 @@ describe('withCatalogSyncLock', () => {
     await expect(p2).resolves.toBe('two');
     expect(order).toEqual(['enter-1', 'leave-1', 'enter-2']);
     expect(getCatalogSyncLockName('store-a')).toBe('ivanor.catalog.sync.store-a');
+  });
+
+  test('Web Locks: onWaiting только у второго waiter, не у holder', async () => {
+    const locks = createFakeWebLocks();
+    Object.defineProperty(navigator, 'locks', {
+      configurable: true,
+      value: locks,
+    });
+
+    const firstWaiting = jest.fn();
+    const secondWaiting = jest.fn();
+    const first = deferred();
+
+    const p1 = withCatalogSyncLock(
+      'store-a',
+      async () => {
+        await first.promise;
+        return 'one';
+      },
+      { onWaiting: firstWaiting }
+    );
+    await flushMicrotasks();
+    expect(firstWaiting).not.toHaveBeenCalled();
+
+    const p2 = withCatalogSyncLock(
+      'store-a',
+      async () => 'two',
+      { onWaiting: secondWaiting }
+    );
+    await flushMicrotasks();
+    expect(secondWaiting).toHaveBeenCalledTimes(1);
+    expect(firstWaiting).not.toHaveBeenCalled();
+
+    first.resolve();
+    await expect(p1).resolves.toBe('one');
+    await expect(p2).resolves.toBe('two');
   });
 
   test('Web Locks: после crash первого второй входит', async () => {

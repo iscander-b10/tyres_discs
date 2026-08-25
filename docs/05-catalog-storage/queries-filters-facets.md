@@ -23,6 +23,8 @@ cart-read по-прежнему ходит в IDB. `indexedDBService.js` — fac
   `getAvailableDiscParameterOptions(filters)`;
 - `collectTireShowcaseCandidates(options)`,
   `collectDiscShowcaseCandidates(options)`;
+- `warmupCatalogReadCache({ tires, discs, onStep })` — служебный прогрев RAM
+  после cold-start apply; React и скрытая dual-mount панель его не вызывают;
 - `readCartCatalogItems(references)`, `getPersistedCatalogVersion()`,
   `isCatalogEmpty()`.
 
@@ -239,6 +241,16 @@ Session wrappers (`collectTireShowcaseCandidates` / `collectDiscShowcaseCandidat
 делают `_ensureReadCache` и вызывают этот helper. Callers — `getCatalogShowcase`.
 `isCatalogEmpty` считает `store.count()`, не гидрирует оба store ради витрины.
 
+**Cold-start прогрев.** `warmupCatalogReadCache({ tires: true, discs: true })`
+на `CatalogIdbSession` / facade последовательно вызывает `_ensureReadCache` для
+шин, затем дисков. Это не активация скрытой панели: dual-mount по-прежнему не
+ходит в IDB, пока `isActive=false`. Caller — только `CatalogSyncHost` при
+`phase === 'blocking'` после успешного apply/`up-to-date`, до
+`notifyCatalogApplied` и снятия шторки. Hydrate CPU логируется как `idb.hydrate`
+при ≥ 20 ms, поэтому категории не стартуют через `Promise.all`: два тяжёлых
+index build в одном кадре бьют main thread, а шторка должна показать шаг
+«Готовим витрину». `onStep({ category })` — опциональный прогресс.
+
 Cursor-helper `collectShowcaseCandidatesFromStore` сохранён для тестов совместимости
 алгоритма; production-поиск и витрина его не вызывают.
 
@@ -276,7 +288,8 @@ abort-ит всю операцию; тест проверяет как един�
   а не оставляет pending. Молчание `getAll`/`open` — `TimeoutError`.
 - Hydrate, чей generation/revision устарел, не записывает кэш; повторный
   `_hydrateReadCache` читает уже новый store. `StaleCatalogStoreError` после
-  смены магазина.
+  смены магазина. `warmupCatalogReadCache`, начатый до invalidate, тоже не
+  оставляет stale RAM: in-flight `getAll` отклоняется, кэш остаётся сброшенным.
 - Недоступный IndexedDB намеренно выглядит как пустой каталог для read API.
 - Порядок результатов — порядок items в RAM-кэше (порядок `getAll` при hydrate),
   контракт сортировки отсутствует.
@@ -290,7 +303,8 @@ abort-ит всю операцию; тест проверяет как един�
   Ikon в конце массива не теряются; диски `candidateLimit: null`.
 - `catalogIdbMemory.test.js`: RAM-bucket ширины меньше сезонного.
 - `catalogReadCache.fakeIndexedDB.test.js`: тысячи SKU, один `getAll` на каскад+search+витрину,
-  изоляция workspace, invalidate после snapshot.
+  изоляция workspace, invalidate после snapshot, `warmupCatalogReadCache` обеих
+  категорий без лишнего `getAll`, смена workspace во время warmup.
 - `catalogIdbSession.readStoreAll.test.js`: abort hydrate без `onsuccess` отклоняет Promise;
   timeout `getAll`.
 - `indexedDBService.searchFilters.test.js`: `minAmount`, spikes, runflat,

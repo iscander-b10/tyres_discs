@@ -62,7 +62,8 @@
 useEffect(() => {
   const requestId = ++requestIdRef.current;
   const hasStaleShowcase = showcaseRef.current !== null;
-  if (!hasStaleShowcase) setStatus('loading');
+  const keepStaleShowcase = hasStaleShowcase && !showcaseRef.current?.empty;
+  if (!keepStaleShowcase) setStatus('loading');
 
   getCatalogShowcase({ kind, catalogDataVersion, catalogSnapshotVersion, workspaceResetKey })
     .then(result => { if (requestId === requestIdRef.current) { setShowcase(result); setStatus('ready'); }})
@@ -75,13 +76,14 @@ useEffect(() => {
 | Условие | UI |
 | --- | --- |
 | `status === 'error'` && нет stale | `Empty` «Не удалось собрать полки» |
-| `status === 'ready' && showcase.empty` | `Empty` «Каталог ещё загружается» |
-| `status === 'loading'` | `ShowcaseShelf skeleton` |
-| `status === 'ready'` | shelves + `ShowcaseSizeChips` |
+| `status === 'loading'` или `status === 'ready' && showcase.empty` | `ShowcaseShelf skeleton` + чипы (Empty catalog-empty нет) |
+| `status === 'ready'` и полки есть | shelves + `ShowcaseSizeChips` |
+
+Cold-start пустого IndexedDB закрывает полноэкранная шторка AppShell (`CatalogBootstrapOverlay`), не Empty витрины.
 
 ### Ant Design
 
-`Empty` для error/empty catalog states.
+`Empty` только для error state загрузки витрины.
 
 ### Async
 
@@ -89,7 +91,7 @@ useEffect(() => {
 
 ### Тесты
 
-`CatalogShowcase.appLog.test.jsx` — логирование ошибок загрузки.
+`CatalogShowcase.appLog.test.jsx` — логирование ошибок загрузки. `CatalogShowcase.bootstrap.test.jsx` — пустой store и `status === 'loading'` показывают skeleton, без текста «Каталог ещё загружается».
 
 ---
 

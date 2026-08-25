@@ -300,14 +300,15 @@ Fallback целиком загружает и повторно сериализ�
 
 ## Получение браузером
 
-### `checkAndSyncCatalog({ force, storeId, signal })`
+### `checkAndSyncCatalog({ force, storeId, signal, onProgress })`
 
 **Роль.** Проверить meta, при необходимости получить snapshot и передать его на
 валидацию/commit.
 
 **Async и callers/callees.** Async; вызывается frontend autosync-host. Внутри
-использует cross-tab lock, `fetchJson`, version getters,
-`applyCatalogSnapshot`.
+использует cross-tab lock, `fetchJson` для meta, `ReadableStream` для snapshot,
+version getters, `applyCatalogSnapshot`. Опциональный `onProgress` не содержит
+React: `{ phase, receivedBytes, totalBytes, progress }`.
 
 **Пошагово.**
 
@@ -316,7 +317,14 @@ Fallback целиком загружает и повторно сериализ�
 3. Скачать meta.
 4. Сравнить `meta.version` с persisted local version и проверить пустоту
    каталога.
-5. Если обновление нужно — скачать snapshot.
+5. Если обновление нужно — скачать snapshot чанками (`Uint8Array`), затем один
+   decode + `JSON.parse`. `Content-Length` не считается истиной без проверки.
+   На текущем API Gateway `GET /snapshot` отдаёт `gzip` + `transfer-encoding:
+   chunked` без `Content-Length`. Из JS на origin приложения
+   `res.headers.get('content-length')` возвращает `null`; CORS открывает
+   только `content-type` и `last-modified`, `content-encoding` браузеру тоже
+   не виден. Даже если заголовок появится, gzip может описывать сжатый размер
+   при распакованном stream.
 6. Повторить version gate уже по `snapshot.version`.
 7. Полностью валидировать и применить snapshot.
 
@@ -390,7 +398,7 @@ API Gateway/Object Storage в репозитории нет.
 
 - `snapshotCommands.test.js` — snapshot сохраняет previous payload при сбоях;
 - `catalogSnapshotValidation.test.js` — wire validation и normalization;
-- `catalogSyncService.test.js` — URL, version gates и статусы browser sync;
+- `catalogSyncService.test.js` — URL, version gates, статусы browser sync и stream progress;
 - `catalogSyncService.commitBoundary.test.js` — validation/IDB commit boundary;
 - `catalogSyncLock.integration.test.js` — координация browser writers.
 

@@ -13,6 +13,11 @@ import { useAuth } from '../auth/AuthContext';
 import { DEFAULT_APP_HOME, PATHS } from './paths';
 import { subscribeCatalogApplied } from '../services/catalogSync/catalogSyncChannel';
 import indexedDBService from '../services/indexedDBService';
+import CatalogBootstrapOverlay from '../components/CatalogBootstrapOverlay/CatalogBootstrapOverlay';
+import {
+  CATALOG_BOOTSTRAP_IDLE,
+  normalizeCatalogBootstrap,
+} from './catalogBootstrap';
 
 const CLIENT_MODE_STORAGE_KEY = 'ivanor-client-mode';
 
@@ -41,10 +46,14 @@ export function AppShellProvider({ children }) {
   const [lastCatalogPath, setLastCatalogPath] = useState(DEFAULT_APP_HOME);
   const [lastBackgroundPath, setLastBackgroundPath] = useState(DEFAULT_APP_HOME);
   const lastAppliedVersionRef = useRef('');
+  const catalogBootstrapRetryRef = useRef(null);
   const workspaceResetKey = isWorkspaceReady
     ? `${workspace.accountId}:${workspace.storeId}`
     : 'guest';
   const activeWorkspaceRef = useRef(null);
+  const [catalogBootstrap, setCatalogBootstrapState] = useState(
+    CATALOG_BOOTSTRAP_IDLE
+  );
 
   useLayoutEffect(() => {
     const currentWorkspace = isWorkspaceReady ? workspace : null;
@@ -52,6 +61,7 @@ export function AppShellProvider({ children }) {
     lastAppliedVersionRef.current = '';
     setCatalogSnapshotVersion('');
     setCatalogDataVersion((version) => version + 1);
+    setCatalogBootstrapState({ ...CATALOG_BOOTSTRAP_IDLE });
 
     if (currentWorkspace?.storeId) {
       indexedDBService.setActiveStore(currentWorkspace.storeId);
@@ -126,6 +136,25 @@ export function AppShellProvider({ children }) {
     setCatalogDataVersion((version) => version + 1);
   }, []);
 
+  const setCatalogBootstrap = useCallback((update) => {
+    setCatalogBootstrapState((current) =>
+      normalizeCatalogBootstrap(update, current)
+    );
+  }, []);
+
+  const registerCatalogBootstrapRetry = useCallback((fn) => {
+    catalogBootstrapRetryRef.current = typeof fn === 'function' ? fn : null;
+    return () => {
+      if (catalogBootstrapRetryRef.current === fn) {
+        catalogBootstrapRetryRef.current = null;
+      }
+    };
+  }, []);
+
+  const retryCatalogBootstrap = useCallback(() => {
+    catalogBootstrapRetryRef.current?.();
+  }, []);
+
   const notifyCatalogApplied = useCallback(
     (version, storeId = activeWorkspaceRef.current?.storeId) => {
       if (
@@ -177,6 +206,10 @@ export function AppShellProvider({ children }) {
       catalogSnapshotVersion,
       bumpCatalogDataVersion,
       notifyCatalogApplied,
+      catalogBootstrap,
+      setCatalogBootstrap,
+      registerCatalogBootstrapRetry,
+      retryCatalogBootstrap,
       sessionResetKey,
       workspaceResetKey,
       lastBackgroundPath,
@@ -190,6 +223,10 @@ export function AppShellProvider({ children }) {
       catalogSnapshotVersion,
       bumpCatalogDataVersion,
       notifyCatalogApplied,
+      catalogBootstrap,
+      setCatalogBootstrap,
+      registerCatalogBootstrapRetry,
+      retryCatalogBootstrap,
       sessionResetKey,
       workspaceResetKey,
       lastBackgroundPath,
@@ -197,7 +234,13 @@ export function AppShellProvider({ children }) {
   );
 
   return (
-    <AppShellContext.Provider value={value}>{children}</AppShellContext.Provider>
+    <AppShellContext.Provider value={value}>
+      {children}
+      <CatalogBootstrapOverlay
+        catalogBootstrap={catalogBootstrap}
+        retryCatalogBootstrap={retryCatalogBootstrap}
+      />
+    </AppShellContext.Provider>
   );
 }
 
