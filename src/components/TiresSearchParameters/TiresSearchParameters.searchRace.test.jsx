@@ -210,7 +210,6 @@ describe('TiresSearchParameters search races', () => {
       'ant-btn-loading'
     );
     expect(screen.getByTestId('tires-showcase')).toBeInTheDocument();
-    expect(screen.getByTestId('catalog-search-status')).toBeInTheDocument();
     expect(indexedDBService.searchTires).toHaveBeenCalledTimes(1);
 
     await act(async () => {
@@ -261,10 +260,9 @@ describe('TiresSearchParameters search races', () => {
     expect(screen.getByRole('button', { name: 'Найти' })).not.toHaveClass(
       'ant-btn-loading'
     );
-    expect(screen.queryByTestId('catalog-search-status')).not.toBeInTheDocument();
   });
 
-  test('пока «Найти» pending, витрина и статус остаются; после resolve — список без spinner', async () => {
+  test('пока «Найти» pending, витрина остаётся; после resolve — список без spinner', async () => {
     const pending = deferred();
     indexedDBService.searchTires.mockReturnValueOnce(pending.promise);
 
@@ -282,7 +280,6 @@ describe('TiresSearchParameters search races', () => {
       fireEvent.submit(form);
     });
     expect(screen.getByTestId('tires-showcase')).toBeInTheDocument();
-    expect(screen.getByTestId('catalog-search-status')).toBeInTheDocument();
     expect(screen.queryByTestId('search-results')).not.toBeInTheDocument();
 
     await act(async () => {
@@ -292,7 +289,6 @@ describe('TiresSearchParameters search races', () => {
 
     expect(screen.getByText('Найденная шина')).toBeInTheDocument();
     expect(screen.queryByTestId('tires-showcase')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('catalog-search-status')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Найти' })).not.toHaveClass(
       'ant-btn-loading'
     );

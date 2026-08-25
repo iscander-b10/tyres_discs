@@ -50,7 +50,7 @@ Steps:
 | --- | --- |
 | Результат «мигает» | stale race — см. race tests |
 | «Найти» крутит spinner, сброс не гасит | in-flight поиск не инвалидирован — `handleResetFilters` должен вызвать `invalidateCatalogSearchRequest` |
-| Пустой экран при spinner | не должно: foreground не обнуляет `searchResults`; под формой `CatalogSearchStatus` «Ищем…». Если всё же blank — регрессия `showShowcase` |
+| Пустой экран при spinner | не должно: foreground не обнуляет `searchResults`; витрина / прошлый список остаются, кнопка «Найти» в `loading`. Если всё же blank — регрессия `showShowcase` |
 | «Найти» крутит spinner без конца | IDB open/`getAll` без settle — должны сработать timeout 15/30 с и `errorSearch` «Каталог не отвечает». Смотреть `idb.timeout` / `idb.blocked` / `idb.hydrate` в console |
 | На `npm start` вечный spinner «Найти», на `preview:prod` / Pages список/empty/ошибка появляются | Проверить `mountedRef` + StrictMode: cleanup ставит `false`, setup обязан вернуть `true`. Иначе `settleCatalogSearchLoading` делает early return и не гасит кнопку. Не отключать StrictMode «чтобы заработало» |
 | На `npm start` spinner **долго**, на Pages «Найти» быстро | Ожидаемо, если кнопка всё же гаснет: другой origin → другая IndexedDB; холодный hydrate / очередь за `applyCatalogSnapshot`. IDB с github.io **не** шарится |

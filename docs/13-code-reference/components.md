@@ -73,8 +73,7 @@ export default function LoginPage()
 `mapDiscFormValuesToSearchFilters` → facade
 `indexedDBService.searchTires` / `searchDiscs` (реализация делегируется
 singleton `catalogIdbSession`). При `searchResults === null` панель рендерит
-`CatalogShowcase` (и во время foreground «Найти» — плюс `CatalogSearchStatus`).
-Витрина читает тот же RAM-кэш, что поиск.
+`CatalogShowcase`. Витрина читает тот же RAM-кэш, что поиск.
 
 **Тесты:** `TiresSearchParameters.searchRace.test.jsx`, `DiscsSearchParameters.searchRace.test.jsx`.
 
@@ -89,7 +88,6 @@ singleton `catalogIdbSession`). При `searchResults === null` панель р�
 | `CatalogShowcase` | `shared/CatalogShowcase/CatalogShowcase.jsx` | `kind`, `renderCard`, `onChipClick` | [Showcase](/08-search-showcase/showcase-selection) |
 | `ShowcaseShelf` | `shared/CatalogShowcase/ShowcaseShelf.jsx` | `title`, `items`, `renderCard`, `skeleton` | [UI каталога](/10-ui/catalog-components) |
 | `ShowcaseSizeChips` | `shared/CatalogShowcase/ShowcaseSizeChips.jsx` | `chips`, `onChipClick` | [Showcase](/08-search-showcase/showcase-selection) |
-| `CatalogSearchStatus` | `shared/CatalogShowcase/CatalogSearchStatus.jsx` | `loading` | [Поиск](/08-search-showcase/tire-and-disc-search) |
 | `CatalogSearchEmptyHint` | `shared/CatalogShowcase/CatalogSearchEmptyHint.jsx` | `kind`, `emptyText` | [UI каталога](/10-ui/catalog-components) |
 | `CatalogItemCard` | `shared/CatalogItemCard/CatalogItemCard.jsx` | `item`, `category`, `isClientMode` | [UI каталога](/10-ui/catalog-components) |
 | `CatalogItemModalWindow` | `shared/CatalogItemModalWindow/...` | `isOpen`, `item`, `category` | [UI каталога](/10-ui/catalog-components) |

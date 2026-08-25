@@ -36,14 +36,20 @@ const PAGE_SIZE_MENU_ITEMS = PAGE_SIZE_OPTIONS.map((size) => ({
 
 const isValidPageSize = (value) => PAGE_SIZE_OPTIONS.includes(value);
 
-/** Russian plural: 1 позиция, 2 позиции, 5 позиций. */
-const positionsWord = (count) => {
+/** Russian plural forms for «позиция» and agreeing «найдена/найдено». */
+const positionsStatusParts = (count) => {
   const n = Math.abs(Number(count)) % 100;
   const last = n % 10;
-  if (n > 10 && n < 20) return 'позиций';
-  if (last === 1) return 'позиция';
-  if (last >= 2 && last <= 4) return 'позиции';
-  return 'позиций';
+  if (n > 10 && n < 20) {
+    return { verb: 'Найдено', word: 'позиций' };
+  }
+  if (last === 1) {
+    return { verb: 'Найдена', word: 'позиция' };
+  }
+  if (last >= 2 && last <= 4) {
+    return { verb: 'Найдено', word: 'позиции' };
+  }
+  return { verb: 'Найдено', word: 'позиций' };
 };
 
 const StatusCount = ({ value }) => (
@@ -51,27 +57,29 @@ const StatusCount = ({ value }) => (
 );
 
 const buildListStatus = (matchedCount, sourceCount, hasQuery) => {
+  const { verb, word } = positionsStatusParts(matchedCount);
+
   if (hasQuery) {
+    const sourceWord = positionsStatusParts(sourceCount).word;
     return {
       content: (
         <>
-          Найдено <StatusCount value={matchedCount} /> из <StatusCount value={sourceCount} />
+          {verb} <StatusCount value={matchedCount} /> из <StatusCount value={sourceCount} />
         </>
       ),
-      ariaLabel: `Найдено ${matchedCount} из ${sourceCount} ${positionsWord(sourceCount)}`,
+      ariaLabel: `${verb} ${matchedCount} из ${sourceCount} ${sourceWord}`,
     };
   }
 
-  const word = positionsWord(matchedCount);
   return {
     content: (
       <>
-        Найдено <StatusCount value={matchedCount} />
+        {verb} <StatusCount value={matchedCount} />
         {'\u00A0'}
         {word}
       </>
     ),
-    ariaLabel: `Найдено ${matchedCount} ${word}`,
+    ariaLabel: `${verb} ${matchedCount} ${word}`,
   };
 };
 

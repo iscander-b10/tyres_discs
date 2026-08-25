@@ -92,7 +92,7 @@ showSpikesFilter = selectedSeason === 'w'
 
 | Handler | Триггер | Действие |
 | --- | --- | --- |
-| `handleSearch(values, { background })` | submit / chip / catch-up | map → IDB → setSearchResults. Foreground **не** обнуляет `searchResults` до await: витрина или прошлые результаты остаются, плюс `CatalogSearchStatus` «Ищем…». Таймаут 30 с → `errorSearch`
+| `handleSearch(values, { background })` | submit / chip / catch-up | map → IDB → setSearchResults. Foreground **не** обнуляет `searchResults` до await: витрина или прошлые результаты остаются. Таймаут 30 с → `errorSearch`
 | `handleFormChange(changed, all)` | onValuesChange | season/spikes sync; debounce каскада; skip brand/supplier/чекбоксы/spikes (они не меняют size options); auto-resubmit чекбоксов |
 | `handleResetFilters` | кнопка сброса | reset form, `searchResults=null`, `loadingSearch=false`, bump `searchRequestIdRef` (in-flight поиск stale), reload facets. **Не** вызывает `searchTires` |
 | `handleShowcaseChipClick(chip)` | чип витрины | set width/profile/diameter + search |
@@ -102,7 +102,6 @@ showSpikesFilter = selectedSeason === 'w'
 
 ```
 Form (всегда)
-├─ CatalogSearchStatus, если loadingSearch
 ├─ Alert errorSearch, если есть
 ├─ showShowcase && isActive → CatalogShowcase kind="tires"
 ├─ showSearchEmpty → CatalogSearchEmptyHint
@@ -117,7 +116,7 @@ Form (всегда)
 
 | Состояние | UI |
 | --- | --- |
-| Loading search | Button `loading`; под формой `CatalogSearchStatus` «Ищем…». Гасится в `settleCatalogSearchLoading` (success / error / stale / смена workspace / timeout). `StaleCatalogStoreError` не пишет `errorSearch`. `TimeoutError` пишет `errorSearch` («Каталог не отвечает…») |
+| Loading search | Button `loading`. Гасится в `settleCatalogSearchLoading` (success / error / stale / смена workspace / timeout). `StaleCatalogStoreError` не пишет `errorSearch`. `TimeoutError` пишет `errorSearch` («Каталог не отвечает…») |
 | Loading options | Select `loading={loadingOptions}` только до первой успешной загрузки options |
 | Empty search | CatalogSearchEmptyHint + чипы «попробуйте» |
 | Error | Alert в PaginatedCardsList |
@@ -130,12 +129,12 @@ Form (всегда)
 
 ### Связанные тесты
 
-- `TiresSearchParameters.searchRace.test.jsx` — stale searchRequestId; сброс во время in-flight гасит spinner и игнорирует поздний ответ; pending «Найти» не blank (витрина + статус); timeout гасит spinner; рендер в `React.StrictMode` settle’ит «Найти»
+- `TiresSearchParameters.searchRace.test.jsx` — stale searchRequestId; сброс во время in-flight гасит spinner и игнорирует поздний ответ; pending «Найти» не blank (витрина остаётся); timeout гасит spinner; рендер в `React.StrictMode` settle’ит «Найти»
 - `App.catalogDualMount.test.jsx` — discs не вызывается на вкладке шин
 
 ### Пример взаимодействия
 
-Пользователь выбирает «Зимние» → появляется Select шипов → выбирает 205/55/R16 → жмёт «Найти» → статус «Ищем…», витрина на месте → `searchResults` становится массивом → витрина скрывается → PaginatedCardsList.
+Пользователь выбирает «Зимние» → появляется Select шипов → выбирает 205/55/R16 → жмёт «Найти» → витрина на месте (кнопка `loading`) → `searchResults` становится массивом → витрина скрывается → PaginatedCardsList.
 
 ### Типичные ошибки при изменении
 

@@ -114,7 +114,6 @@ handleSearch(form.getFieldsValue(), { background: true });
 | --- | --- | --- |
 | `setSearchResults(null)` | **нет** (витрина / прошлый список до settle) | **нет** |
 | `setLoadingSearch(true)` | да | **нет** |
-| `CatalogSearchStatus` «Ищем…» | да | **нет** |
 | `searchResetKey++` | да | **нет** |
 | Обновление results при success | да | да |
 | `setErrorSearch` при failure | да (включая TimeoutError) | **нет** |

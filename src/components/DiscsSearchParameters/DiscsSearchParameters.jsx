@@ -8,7 +8,6 @@ import CatalogItemCard from '../shared/CatalogItemCard/CatalogItemCard';
 import PaginatedCardsList from '../shared/PaginatedCardsList/PaginatedCardsList';
 import CatalogShowcase from '../shared/CatalogShowcase';
 import CatalogSearchEmptyHint from '../shared/CatalogShowcase/CatalogSearchEmptyHint';
-import CatalogSearchStatus from '../shared/CatalogShowcase/CatalogSearchStatus';
 import HoverTooltip from '../shared/HoverTooltip';
 import SupplierFilterSelect from '../shared/SupplierFilterSelect';
 import {
@@ -660,8 +659,6 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
           </div>
         </div>
       </Form>
-
-      <CatalogSearchStatus loading={loadingSearch} />
 
       {errorSearch ? (
         <Alert
