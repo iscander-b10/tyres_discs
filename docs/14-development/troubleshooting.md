@@ -50,7 +50,8 @@ Steps:
 | --- | --- |
 | Результат «мигает» | stale race — см. race tests |
 | «Найти» крутит spinner, сброс не гасит | in-flight поиск не инвалидирован — `handleResetFilters` должен вызвать `invalidateCatalogSearchRequest` |
-| Пустой экран при spinner | `showShowcase` скрыт пока `loadingSearch`; после settle — список / empty / ошибка |
+| Пустой экран при spinner | не должно: foreground не обнуляет `searchResults`; под формой `CatalogSearchStatus` «Ищем…». Если всё же blank — регрессия `showShowcase` |
+| «Найти» крутит spinner без конца | IDB open/`getAll` без settle — должны сработать timeout 15/30 с и `errorSearch` «Каталог не отвечает». Смотреть `idb.timeout` / `idb.blocked` / `idb.hydrate` в console |
 | Пустой showcase | IDB empty или `getCatalogShowcase` error |
 | Facets пустые | filters слишком строгие / no index match |
 

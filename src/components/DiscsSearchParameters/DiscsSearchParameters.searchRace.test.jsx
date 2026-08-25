@@ -67,6 +67,10 @@ describe('DiscsSearchParameters search races', () => {
     workspaceResetKey: 'store-a',
   });
 
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   beforeEach(() => {
     indexedDBService.getAvailableDiscParameterOptions.mockResolvedValue({
       brands: [],
@@ -212,7 +216,8 @@ describe('DiscsSearchParameters search races', () => {
     expect(screen.getByRole('button', { name: 'Найти' })).toHaveClass(
       'ant-btn-loading'
     );
-    expect(screen.queryByTestId('discs-showcase')).not.toBeInTheDocument();
+    expect(screen.getByTestId('discs-showcase')).toBeInTheDocument();
+    expect(screen.getByTestId('catalog-search-status')).toBeInTheDocument();
     expect(indexedDBService.searchDiscs).toHaveBeenCalledTimes(1);
 
     await act(async () => {
@@ -236,5 +241,77 @@ describe('DiscsSearchParameters search races', () => {
       'ant-btn-loading'
     );
     expect(indexedDBService.searchDiscs).toHaveBeenCalledTimes(1);
+  });
+
+  test('пока «Найти» pending, витрина и статус остаются; после resolve — список без spinner', async () => {
+    const pending = deferred();
+    indexedDBService.searchDiscs.mockReturnValueOnce(pending.promise);
+
+    render(
+      <AppShellProvider value={shellValue(0)}>
+        <DiscsSearchParameters isActive />
+      </AppShellProvider>
+    );
+    const form = await screen.findByRole('form', {
+      name: 'Параметры поиска дисков',
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      fireEvent.submit(form);
+    });
+    expect(screen.getByTestId('discs-showcase')).toBeInTheDocument();
+    expect(screen.getByTestId('catalog-search-status')).toBeInTheDocument();
+    expect(screen.queryByTestId('search-results')).not.toBeInTheDocument();
+
+    await act(async () => {
+      pending.resolve([{ id: 'hit-disc', title: 'Найденный диск' }]);
+      await pending.promise;
+    });
+
+    expect(screen.getByText('Найденный диск')).toBeInTheDocument();
+    expect(screen.queryByTestId('discs-showcase')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('catalog-search-status')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Найти' })).not.toHaveClass(
+      'ant-btn-loading'
+    );
+  });
+
+  test('зависший searchDiscs: timeout гасит spinner и показывает ошибку', async () => {
+    render(
+      <AppShellProvider value={shellValue(0)}>
+        <DiscsSearchParameters isActive />
+      </AppShellProvider>
+    );
+    const form = await screen.findByRole('form', {
+      name: 'Параметры поиска дисков',
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    indexedDBService.searchDiscs.mockReturnValueOnce(new Promise(() => {}));
+    jest.useFakeTimers();
+    await act(async () => {
+      fireEvent.submit(form);
+    });
+    expect(screen.getByRole('button', { name: 'Найти' })).toHaveClass(
+      'ant-btn-loading'
+    );
+
+    await act(async () => {
+      jest.advanceTimersByTime(30_000);
+    });
+
+    expect(screen.getByTestId('search-error')).toHaveTextContent(
+      'Каталог не отвечает'
+    );
+    expect(screen.getByRole('button', { name: 'Найти' })).not.toHaveClass(
+      'ant-btn-loading'
+    );
+    expect(screen.getByTestId('discs-showcase')).toBeInTheDocument();
+    jest.useRealTimers();
   });
 });

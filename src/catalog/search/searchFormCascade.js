@@ -1,3 +1,10 @@
+import {
+  CATALOG_SEARCH_TIMEOUT_MS,
+  withTimeout,
+} from '../../services/catalogIdb/catalogIdbTimeout';
+
+export { CATALOG_SEARCH_TIMEOUT_MS };
+
 export const TIRE_FACET_IRRELEVANT_FIELDS = [
   'brand',
   'supplier',
@@ -35,6 +42,13 @@ export function clearDebounced(timerRef) {
     clearTimeout(timerRef.current);
     timerRef.current = null;
   }
+}
+
+export function withCatalogSearchTimeout(
+  promise,
+  timeoutMs = CATALOG_SEARCH_TIMEOUT_MS
+) {
+  return withTimeout(promise, timeoutMs);
 }
 
 export function beginCatalogSearchRequest({

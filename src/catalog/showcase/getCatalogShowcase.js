@@ -24,15 +24,15 @@ const loadTirePayload = async () => {
 const loadDiscPayload = async () => {
   const cfg = SHOWCASE_CONFIG.discs;
   return indexedDBService.collectDiscShowcaseCandidates({
-    // Все in-stock Шинсервиса: лимит 480 отрезал бы пул «все литые».
-    candidateLimit: Number.POSITIVE_INFINITY,
+    // RAM: все matching (литые Шинсервиса отбирает buildDiscShowcase).
+    candidateLimit: null,
     minAmount: cfg.minAmount,
     supplier: SHOWCASE_CONFIG.showcaseSupplier,
   });
 };
 
 /**
- * Загружает кандидатов из IDB (с cache по catalogDataVersion) и строит витрину.
+ * Загружает кандидатов из RAM-кэша категории (с cache по catalogDataVersion) и строит витрину.
  * Кубик — от catalogSnapshotVersion (+ workspace), не от catalogDataVersion.
  * Showcase state отдельно от searchResults.
  */

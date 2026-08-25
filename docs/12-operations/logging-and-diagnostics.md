@@ -75,11 +75,16 @@ cookie/wrapped без учёта регистра.
 | --- | --- | --- |
 | `auth.infra_failed` | AuthContext/session | Ошибка restore/sign-in/persist, не неверный пароль |
 | `idb.unavailable` | catalogIdbSession | БД не удалось открыть/мигрировать |
+| `idb.blocked` | catalogIdbSession | `indexedDB.open` onblocked (другая вкладка держит соединение) |
+| `idb.timeout` | catalogIdbSession | open / getAll / count / legacy open не settle за hang-guard |
+| `idb.hydrate` | catalogIdbSession | RAM-кэш построен (durationMs ≥ 20) |
 | `catalog.snapshot_invalid` | catalogSyncService | Fatal validation до commit |
 | `catalog.sync_failed` | catalogSyncService | Network, JSON или IDB failure |
 | `search.options_failed` | SearchParameters | Facets/options не загрузились (`warn`) |
-| `search.failed` | SearchParameters | Поиск завершился ошибкой |
+| `search.failed` | SearchParameters | Поиск завершился ошибкой (включая TimeoutError) |
+| `search.timing` | catalogIdbSession | Поиск дольше 50 мс (`warn`) |
 | `showcase.load_failed` | CatalogShowcase | Нет usable current/stale showcase |
+| `showcase.timing` | catalogIdbSession | Сбор кандидатов витрины дольше 50 мс (`warn`) |
 | `cart.catalog_read_failed` | AddToCartControl | Fresh read провалился, строка не добавлена |
 | `storage.quota_exceeded` | CartContext | Storage quota |
 | `cart.persist_failed` | CartContext | Другая ошибка записи корзины |

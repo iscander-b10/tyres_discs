@@ -84,6 +84,63 @@ export const replaceSupplierItemsInStore = (
 };
 
 /**
+ * Сбор кандидатов витрины из RAM-массива (тот же контракт, что у cursor helper).
+ *
+ * `candidateLimit: null` / non-finite — без ранней отсечки (полка дисков).
+ * `preferItem` — preferred не режутся лимитом; без него цикл обрывается на limit.
+ */
+export const collectShowcaseCandidatesFromItems = (
+  items,
+  {
+    candidateLimit = 480,
+    minAmount = 1,
+    supplier = null,
+    preferItem = null,
+  } = {}
+) => {
+  if (!Array.isArray(items) || items.length === 0) {
+    return { isEmpty: true, candidates: [] };
+  }
+
+  const hasPrefer = typeof preferItem === 'function';
+  const unlimited =
+    candidateLimit == null || !Number.isFinite(Number(candidateLimit));
+  const limit = unlimited ? Number.POSITIVE_INFINITY : Math.max(0, Number(candidateLimit));
+  const preferred = [];
+  const others = [];
+
+  for (let i = 0; i < items.length; i += 1) {
+    const item = items[i];
+    if (supplier && item?.supplier !== supplier) continue;
+
+    const amount = Number(item?.amount);
+    if (Number.isNaN(amount) || amount < minAmount) continue;
+
+    if (hasPrefer && preferItem(item)) {
+      preferred.push(item);
+      continue;
+    }
+
+    if (others.length < limit) {
+      others.push(item);
+    } else if (!hasPrefer) {
+      break;
+    }
+  }
+
+  const mergeLimit = unlimited ? preferred.length + others.length : limit;
+
+  return {
+    isEmpty: false,
+    candidates: hasPrefer
+      ? mergePreferredShowcaseCandidates(preferred, others, mergeLimit)
+      : unlimited
+        ? others
+        : others.slice(0, limit),
+  };
+};
+
+/**
  * Общий сбор кандидатов витрины из object store (ранний лимит).
  *
  * `isEmpty: true` — весь store пуст (каталог не загружен).

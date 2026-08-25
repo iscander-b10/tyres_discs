@@ -9,12 +9,17 @@ import {
   createEmptyTireFacetOptions,
 } from './catalogFacetOptions';
 import {
-  collectShowcaseCandidatesFromStore,
+  collectShowcaseCandidatesFromItems,
   DISC_SEARCH_INDEX_HINTS,
   replaceSupplierItemsInStore,
   TIRE_SEARCH_INDEX_HINTS,
 } from './catalogIdbQueries';
 import { createCategoryMemory, filterIndexedItems } from './catalogIdbMemory';
+import {
+  IDB_OPEN_TIMEOUT_MS,
+  IDB_READ_TIMEOUT_MS,
+  createCatalogTimeoutError,
+} from './catalogIdbTimeout';
 import {
   prepareCatalogItems,
   validateCatalogItemsForSupplier,
@@ -51,24 +56,56 @@ const compareCatalogVersions = (left, right) => {
 
 const readLegacyStore = (dbName, storeName) =>
   new Promise((resolve, reject) => {
-    const request = indexedDB.open(dbName);
-    request.onerror = () => resolve([]);
+    let settled = false;
+    const finish = (fn, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      fn(value);
+    };
+
+    const timeoutId = setTimeout(() => {
+      appLog.error({
+        code: 'idb.timeout',
+        domain: 'idb',
+        message: 'Legacy IndexedDB open timed out',
+        context: { op: 'legacy-open' },
+      });
+      finish(reject, createCatalogTimeoutError());
+    }, IDB_OPEN_TIMEOUT_MS);
+
+    let request;
+    try {
+      request = indexedDB.open(dbName);
+    } catch {
+      finish(resolve, []);
+      return;
+    }
+    request.onerror = () => finish(resolve, []);
+    request.onblocked = () => {
+      appLog.warn({
+        code: 'idb.blocked',
+        domain: 'idb',
+        message: 'Legacy IndexedDB open blocked',
+        context: { op: 'legacy-open' },
+      });
+    };
     request.onsuccess = () => {
       const db = request.result;
       if (!db.objectStoreNames.contains(storeName)) {
         db.close();
-        resolve([]);
+        finish(resolve, []);
         return;
       }
       const tx = db.transaction([storeName], 'readonly');
       const getAllRequest = tx.objectStore(storeName).getAll();
       getAllRequest.onsuccess = () => {
         db.close();
-        resolve(getAllRequest.result || []);
+        finish(resolve, getAllRequest.result || []);
       };
       getAllRequest.onerror = () => {
         db.close();
-        reject(getAllRequest.error);
+        finish(reject, getAllRequest.error);
       };
     };
   });
@@ -203,10 +240,21 @@ class CatalogIdbSession {
       const settle = (fn, value) => {
         if (settled) return;
         settled = true;
+        clearTimeout(timeoutId);
         fn(value);
       };
       const settleResolve = (value) => settle(resolve, value);
       const settleReject = (error) => settle(reject, error);
+
+      const timeoutId = setTimeout(() => {
+        appLog.error({
+          code: 'idb.timeout',
+          domain: 'idb',
+          message: 'IndexedDB getAll timed out',
+          context: { op: 'getAll', storeName },
+        });
+        settleReject(createCatalogTimeoutError());
+      }, IDB_READ_TIMEOUT_MS);
 
       let request;
       let transaction;
@@ -284,7 +332,9 @@ class CatalogIdbSession {
   async _hydrateReadCache(database, generation, storeName, attempt = 0) {
     const revision = this._dataRevision;
     const storeId = this.activeStoreId;
+    const readStarted = performance.now();
     const items = await this._readStoreAll(database, storeName, generation);
+    const readMs = Math.round(performance.now() - readStarted);
     this._assertActiveGeneration(generation);
 
     if (revision !== this._dataRevision || storeId !== this.activeStoreId) {
@@ -303,7 +353,24 @@ class CatalogIdbSession {
     }
 
     const kind = storeName === CATALOG_STORES.discs ? 'discs' : 'tires';
+    const cpuStarted = performance.now();
     const categoryMemory = createCategoryMemory(items, kind);
+    const cpuMs = Math.round(performance.now() - cpuStarted);
+    const durationMs = readMs + cpuMs;
+    if (durationMs >= 20) {
+      appLog.warn({
+        code: 'idb.hydrate',
+        domain: 'idb',
+        message: 'Catalog RAM cache hydrated',
+        context: {
+          storeName,
+          itemCount: items.length,
+          readMs,
+          cpuMs,
+          durationMs,
+        },
+      });
+    }
     if (
       !this._readCache ||
       this._readCache.generation !== generation ||
@@ -411,8 +478,26 @@ class CatalogIdbSession {
           message: 'IndexedDB open returned null',
           context: { op: 'open', storeId: this.activeStoreId },
         });
-        resolve(null);
+        finish(resolve, null);
       };
+
+      let settled = false;
+      const finish = (fn, value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        fn(value);
+      };
+
+      const timeoutId = setTimeout(() => {
+        appLog.error({
+          code: 'idb.timeout',
+          domain: 'idb',
+          message: 'IndexedDB open timed out',
+          context: { op: 'open' },
+        });
+        finish(reject, createCatalogTimeoutError());
+      }, IDB_OPEN_TIMEOUT_MS);
 
       if (typeof indexedDB === 'undefined' || typeof indexedDB.open !== 'function') {
         resolveUnavailable();
@@ -433,22 +518,34 @@ class CatalogIdbSession {
           error,
           context: { op: 'open', storeId: this.activeStoreId },
         });
-        resolve(null);
+        finish(resolve, null);
         return;
       }
 
       request.onerror = () => resolveUnavailable();
+      request.onblocked = () => {
+        appLog.warn({
+          code: 'idb.blocked',
+          domain: 'idb',
+          message: 'IndexedDB open blocked by another connection',
+          context: { op: 'open' },
+        });
+      };
 
       request.onsuccess = () => {
+        if (settled) {
+          request.result?.close?.();
+          return;
+        }
         if (expectedGeneration !== this._generation) {
           request.result?.close?.();
-          reject(this._createStaleStoreError());
+          finish(reject, this._createStaleStoreError());
           return;
         }
         this.catalogDb = request.result;
         this.db = this.catalogDb;
         this.discDb = this.catalogDb;
-        resolve(this.catalogDb);
+        finish(resolve, this.catalogDb);
       };
 
       request.onupgradeneeded = (event) => {
@@ -496,6 +593,23 @@ class CatalogIdbSession {
     this._assertActiveGeneration(generation);
     if (!database) return true;
     return new Promise((resolve, reject) => {
+      let settled = false;
+      const finish = (fn, value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        fn(value);
+      };
+      const timeoutId = setTimeout(() => {
+        appLog.error({
+          code: 'idb.timeout',
+          domain: 'idb',
+          message: 'IndexedDB migration marker read timed out',
+          context: { op: 'migration-marker' },
+        });
+        finish(reject, createCatalogTimeoutError());
+      }, IDB_READ_TIMEOUT_MS);
+
       const transaction = database.transaction(
         [CATALOG_STORES.metadata],
         'readonly'
@@ -506,12 +620,17 @@ class CatalogIdbSession {
       request.onsuccess = () => {
         try {
           this._assertActiveGeneration(generation);
-          resolve(request.result?.value === LEGACY_MIGRATION_MARKER);
+          finish(resolve, request.result?.value === LEGACY_MIGRATION_MARKER);
         } catch (error) {
-          reject(error);
+          finish(reject, error);
         }
       };
-      request.onerror = () => reject(request.error);
+      request.onerror = () => finish(reject, request.error);
+      transaction.onabort = () => {
+        const error = transaction.error || new Error('IndexedDB transaction aborted');
+        if (!transaction.error) error.name = 'AbortError';
+        finish(reject, error);
+      };
     });
   }
 
@@ -716,10 +835,48 @@ class CatalogIdbSession {
     const { database } = await this._getReadyContext();
     if (!database) return true;
     const [tires, discs] = await Promise.all([
-      this.collectTireShowcaseCandidates({ candidateLimit: 1 }),
-      this.collectDiscShowcaseCandidates({ candidateLimit: 1 }),
+      this._countStore(database, CATALOG_STORES.tires),
+      this._countStore(database, CATALOG_STORES.discs),
     ]);
-    return Boolean(tires?.isEmpty && discs?.isEmpty);
+    return tires === 0 && discs === 0;
+  }
+
+  _countStore(database, storeName) {
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const finish = (fn, value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        fn(value);
+      };
+      const timeoutId = setTimeout(() => {
+        appLog.error({
+          code: 'idb.timeout',
+          domain: 'idb',
+          message: 'IndexedDB count timed out',
+          context: { op: 'count', storeName },
+        });
+        finish(reject, createCatalogTimeoutError());
+      }, IDB_READ_TIMEOUT_MS);
+
+      let request;
+      let transaction;
+      try {
+        transaction = database.transaction([storeName], 'readonly');
+        request = transaction.objectStore(storeName).count();
+      } catch (error) {
+        finish(reject, error);
+        return;
+      }
+      request.onsuccess = () => finish(resolve, request.result || 0);
+      request.onerror = () => finish(reject, request.error);
+      transaction.onabort = () => {
+        const error = transaction.error || new Error('IndexedDB transaction aborted');
+        if (!transaction.error) error.name = 'AbortError';
+        finish(reject, error);
+      };
+    });
   }
 
   /**
@@ -932,15 +1089,26 @@ class CatalogIdbSession {
   }
 
   async searchTires(filters = {}) {
+    const started = performance.now();
     const memory = await this._ensureReadCache(CATALOG_STORES.tires);
     if (!memory) return [];
-    return filterIndexedItems(
+    const results = filterIndexedItems(
       memory.items,
       memory.indexMaps,
       filters,
       TIRE_SEARCH_INDEX_HINTS,
       matchesTireSearchFilters
     );
+    const durationMs = Math.round(performance.now() - started);
+    if (durationMs >= 50) {
+      appLog.warn({
+        code: 'search.timing',
+        domain: 'search',
+        message: 'Tire search finished',
+        context: { durationMs, resultCount: results.length },
+      });
+    }
+    return results;
   }
 
   async getAvailableParameterOptions(filters = {}) {
@@ -952,45 +1120,60 @@ class CatalogIdbSession {
   }
 
   async searchDiscs(filters = {}) {
+    const started = performance.now();
     const memory = await this._ensureReadCache(CATALOG_STORES.discs);
     if (!memory) return [];
-    return filterIndexedItems(
+    const results = filterIndexedItems(
       memory.items,
       memory.indexMaps,
       filters,
       DISC_SEARCH_INDEX_HINTS,
       matchesDiscSearchFilters
     );
+    const durationMs = Math.round(performance.now() - started);
+    if (durationMs >= 50) {
+      appLog.warn({
+        code: 'search.timing',
+        domain: 'search',
+        message: 'Disc search finished',
+        context: { durationMs, resultCount: results.length },
+      });
+    }
+    return results;
   }
 
   async collectTireShowcaseCandidates(options = {}) {
-    const { database, generation } = await this._getReadyContext();
-    if (!database) return { isEmpty: true, candidates: [] };
-    const transaction = database.transaction(
-      [CATALOG_STORES.tires],
-      'readonly'
-    );
-    const result = await collectShowcaseCandidatesFromStore(
-      transaction.objectStore(CATALOG_STORES.tires),
-      options
-    );
-    this._assertActiveGeneration(generation);
-    return result;
+    const started = performance.now();
+    const memory = await this._ensureReadCache(CATALOG_STORES.tires);
+    if (!memory) return { isEmpty: true, candidates: [] };
+    const payload = collectShowcaseCandidatesFromItems(memory.items, options);
+    const durationMs = Math.round(performance.now() - started);
+    if (durationMs >= 50) {
+      appLog.warn({
+        code: 'showcase.timing',
+        domain: 'showcase',
+        message: 'Tire showcase candidates from RAM',
+        context: { durationMs, candidateCount: payload.candidates.length },
+      });
+    }
+    return payload;
   }
 
   async collectDiscShowcaseCandidates(options = {}) {
-    const { database, generation } = await this._getReadyContext();
-    if (!database) return { isEmpty: true, candidates: [] };
-    const transaction = database.transaction(
-      [CATALOG_STORES.discs],
-      'readonly'
-    );
-    const result = await collectShowcaseCandidatesFromStore(
-      transaction.objectStore(CATALOG_STORES.discs),
-      options
-    );
-    this._assertActiveGeneration(generation);
-    return result;
+    const started = performance.now();
+    const memory = await this._ensureReadCache(CATALOG_STORES.discs);
+    if (!memory) return { isEmpty: true, candidates: [] };
+    const payload = collectShowcaseCandidatesFromItems(memory.items, options);
+    const durationMs = Math.round(performance.now() - started);
+    if (durationMs >= 50) {
+      appLog.warn({
+        code: 'showcase.timing',
+        domain: 'showcase',
+        message: 'Disc showcase candidates from RAM',
+        context: { durationMs, candidateCount: payload.candidates.length },
+      });
+    }
+    return payload;
   }
 
   async getAvailableDiscParameterOptions(filters = {}) {

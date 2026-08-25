@@ -105,11 +105,12 @@ handleSearch(form.getFieldsValue(), { background: true });
 
 | | Foreground | Background |
 | --- | --- | --- |
-| `setSearchResults(null)` | да | **нет** |
+| `setSearchResults(null)` | **нет** (витрина / прошлый список до settle) | **нет** |
 | `setLoadingSearch(true)` | да | **нет** |
+| `CatalogSearchStatus` «Ищем…» | да | **нет** |
 | `searchResetKey++` | да | **нет** |
 | Обновление results при success | да | да |
-| `setErrorSearch` при failure | да | **нет** |
+| `setErrorSearch` при failure | да (включая TimeoutError) | **нет** |
 
 Пользователь не видит flash loading, но данные обновляются.
 
@@ -163,8 +164,12 @@ if (!hasStaleShowcase) {
 гасится, `errorSearch` не пишется.
 
 Холодный hydrate (`_readStoreAll`) слушает `request.onsuccess/onerror` и
-`transaction.onabort/oncomplete`, чтобы Promise не остался pending, если
-транзакция оборвалась без `request.onerror` (закрытие соединения).
+`transaction.onabort/oncomplete`, плюс timeout 30 с (`TimeoutError`), чтобы
+Promise не остался pending. `openCatalogDatabase` обрабатывает `onblocked`
+(лог `idb.blocked`) и timeout 15 с. Legacy open — тот же hang-guard.
+
+UI оборачивает `searchTires` / `searchDiscs` в `withCatalogSearchTimeout` (30 с):
+зависший мок или IDB всё равно гасит spinner и пишет `errorSearch`.
 
 ---
 
@@ -216,10 +221,10 @@ sequenceDiagram
 
 | Тест | Инвариант |
 | --- | --- |
-| `TiresSearchParameters.searchRace.test.jsx` | поздний stale id не перетирает latest; spinner гаснет на StaleCatalogStoreError; чекбоксы не бьют facets; сброс во время pending гасит spinner и не применяет поздний результат |
+| `TiresSearchParameters.searchRace.test.jsx` | поздний stale id не перетирает latest; spinner гаснет на StaleCatalogStoreError; чекбоксы не бьют facets; сброс во время pending гасит spinner; pending не blank; timeout гасит spinner |
 | `DiscsSearchParameters.searchRace.test.jsx` | то же для дисков |
-| `searchFormCascade.test.js` | `invalidateCatalogSearchRequest` делает поиск stale; late settle не трогает spinner |
-| `catalogIdbSession.readStoreAll.test.js` | abort hydrate без `request.onsuccess` отклоняет Promise |
+| `searchFormCascade.test.js` | `invalidateCatalogSearchRequest` делает поиск stale; late settle не трогает spinner; `withCatalogSearchTimeout` отклоняет hanging Promise |
+| `catalogIdbSession.readStoreAll.test.js` | abort hydrate без `request.onsuccess` отклоняет Promise; timeout `getAll` |
 | `App.catalogDualMount.test.jsx` | неактивная панель не вызывает search |
 
 ### Пример из теста (шины)
@@ -253,6 +258,8 @@ addItem(currentItem, category);
 | Забыть инкремент id при reset workspace или «Сбросить фильтры» | ghost results / вечный spinner «Найти» |
 | setState без mounted check | React warning после unmount |
 | Background search с `setSearchResults(null)` | flash empty / showcase |
+| Foreground search с `setSearchResults(null)` до await | blank UI со spinner, пока hydrate/cursor заняты |
+| Убрать timeout у open/`getAll`/handleSearch | вечный pending, если IndexedDB молчит |
 | Единый id для load и search | facets completion блокирует search spinner |
 | Убрать generation guard в IDB | results после destructive IDB reset |
 

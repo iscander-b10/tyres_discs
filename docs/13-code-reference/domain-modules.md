@@ -28,7 +28,7 @@ Pure/domain логика без React: `src/catalog/` и domain-часть `src/
 | --- | --- |
 | `didOnlyIrrelevantSearchFieldsChange` | brand/чекбоксы/шипы не пересчитывают facets |
 | `scheduleDebounced` / `SEARCH_FACET_DEBOUNCE_MS` | 16 ms coalesce каскада |
-| `beginCatalogSearchRequest` / `settleCatalogSearchLoading` / `invalidateCatalogSearchRequest` | spinner «Найти», overlap foreground/background, сброс in-flight поиска |
+| `beginCatalogSearchRequest` / `settleCatalogSearchLoading` / `invalidateCatalogSearchRequest` / `withCatalogSearchTimeout` | spinner «Найти», overlap foreground/background, сброс in-flight поиска, hang-guard 30 с |
 
 **Тесты:** `searchFormCascade.test.js`. **Страница:** [Поиск](/08-search-showcase/tire-and-disc-search), [гонки](/08-search-showcase/async-race-guards).
 
@@ -55,7 +55,7 @@ Pure/domain логика без React: `src/catalog/` и domain-часть `src/
 | **Сигнатура** | `async function getCatalogShowcase({ kind, catalogDataVersion = 0, catalogSnapshotVersion = '', workspaceResetKey = 'guest', now = new Date() } = {})` |
 | **kind** | `'discs'` выбирает диски; остальные значения используют ветку `tires` |
 | **Возврат** | Результат `buildTireShowcase` или `buildDiscShowcase`: `{ kind, empty, chips, chipsTitle, shelves, ... }` |
-| **Async** | IDB collect candidates → cache/SWR fallback → resolve seed → build showcase |
+| **Async** | RAM `_ensureReadCache` + collect candidates → cache/SWR fallback → resolve seed → build showcase |
 | **Side effects** | IDB read и обновление module-level cache по kind/workspace/data version |
 | **Внутренние вызовы** | `collectTire/DiscShowcaseCandidates`, `buildTireShowcase`, `buildDiscShowcase`, `resolveShowcaseSeed` |
 | **Кто вызывает** | `CatalogShowcase` в effect; SearchParameters только монтируют его при `searchResults === null` |

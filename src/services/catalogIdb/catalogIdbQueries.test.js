@@ -1,4 +1,5 @@
 import {
+  collectShowcaseCandidatesFromItems,
   DISC_SEARCH_INDEX_HINTS,
   pickEqualityFilterKey,
   pickEqualityIndex,
@@ -130,6 +131,58 @@ describe('pickEqualityIndex', () => {
     ).toEqual({ key: 'width', value: 205 });
     expect(pickEqualityFilterKey({ season: 's' }, TIRE_SEARCH_INDEX_HINTS)).toEqual(
       { key: 'season', value: 's' }
+    );
+  });
+});
+
+describe('collectShowcaseCandidatesFromItems', () => {
+  test('Ikon в конце массива не отрезаются лимитом чужих', () => {
+    const items = [
+      ...Array.from({ length: 20 }, (_, i) => ({
+        id: `o-${i}`,
+        supplier: 'Шинсервис',
+        brand: 'Nokian',
+        amount: 4,
+      })),
+      {
+        id: 'ikon-late',
+        supplier: 'Шинсервис',
+        brand: 'Ikon',
+        amount: 8,
+      },
+    ];
+    const payload = collectShowcaseCandidatesFromItems(items, {
+      candidateLimit: 5,
+      minAmount: 1,
+      supplier: 'Шинсервис',
+      preferItem: (item) => item.brand === 'Ikon',
+    });
+    expect(payload.isEmpty).toBe(false);
+    expect(payload.candidates.some((item) => item.id === 'ikon-late')).toBe(
+      true
+    );
+    expect(payload.candidates[0].id).toBe('ikon-late');
+    expect(payload.candidates).toHaveLength(5);
+  });
+
+  test('диски: candidateLimit null возвращает все matching', () => {
+    const items = Array.from({ length: 40 }, (_, i) => ({
+      id: `d-${i}`,
+      supplier: 'Шинсервис',
+      diskType: 'Литой',
+      amount: 4,
+    }));
+    const payload = collectShowcaseCandidatesFromItems(items, {
+      candidateLimit: null,
+      minAmount: 4,
+      supplier: 'Шинсервис',
+    });
+    expect(payload.candidates).toHaveLength(40);
+  });
+
+  test('пустой массив → isEmpty', () => {
+    expect(collectShowcaseCandidatesFromItems([], { candidateLimit: 10 })).toEqual(
+      { isEmpty: true, candidates: [] }
     );
   });
 });

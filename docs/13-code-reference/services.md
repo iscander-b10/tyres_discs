@@ -80,8 +80,8 @@ Re-export schema, filters, validation + **default** `catalogIdbSession`.
 | `searchDiscs(filters)` | async | RAM bucket + post-filter |
 | `getAvailableParameterOptions` | async | Facets шин из RAM facet-rows |
 | `getAvailableDiscParameterOptions` | async | Facets для дисков |
-| `collectTireShowcaseCandidates` | async | Pool для витрины |
-| `collectDiscShowcaseCandidates` | async | Pool для витрины |
+| `collectTireShowcaseCandidates` | async | RAM pool для витрины (`collectShowcaseCandidatesFromItems`) |
+| `collectDiscShowcaseCandidates` | async | RAM pool; `candidateLimit: null` = без ранней отсечки |
 | `readCartCatalogItems(keys)` | async | Read-before-add |
 
 **Legacy public API (не основной writer):** `saveTires`, `replaceTiresForSupplier`, `saveDiscs`, …
@@ -103,7 +103,8 @@ Re-export schema, filters, validation + **default** `catalogIdbSession`.
 | --- | --- | --- |
 | `catalogSchema.js` | `CATALOG_DB_*`, indexes | Имена stores и версия |
 | `catalogIdbMemory.js` | `createCategoryMemory`, `filterIndexedItems` | RAM-индексы активного generation |
-| `catalogIdbQueries.js` | `pickEqualityFilterKey`, `pickEqualityIndex`, hints | Выбор equality-ключа |
+| `catalogIdbQueries.js` | `pickEqualityFilterKey`, `collectShowcaseCandidatesFromItems`, hints | Equality-ключ и RAM-витрина |
+| `catalogIdbTimeout.js` | `withTimeout`, `TimeoutError` | Hang-guard open/getAll/поиска |
 | `catalogSearchFilters.js` | `matchesTireSearchFilters`, … | JS post-filter |
 | `catalogFacetOptions.js` | `collectTireFacetOptions`, … | Агрегация options |
 | `catalogItemValidation.js` | `prepareCatalogItems`, … | Pre-write validation |

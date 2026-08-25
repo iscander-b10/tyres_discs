@@ -69,6 +69,10 @@ describe('TiresSearchParameters search races', () => {
     workspaceResetKey: 'store-a',
   });
 
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   beforeEach(() => {
     indexedDBService.getAvailableParameterOptions.mockResolvedValue({
       widths: [],
@@ -205,7 +209,8 @@ describe('TiresSearchParameters search races', () => {
     expect(screen.getByRole('button', { name: 'Найти' })).toHaveClass(
       'ant-btn-loading'
     );
-    expect(screen.queryByTestId('tires-showcase')).not.toBeInTheDocument();
+    expect(screen.getByTestId('tires-showcase')).toBeInTheDocument();
+    expect(screen.getByTestId('catalog-search-status')).toBeInTheDocument();
     expect(indexedDBService.searchTires).toHaveBeenCalledTimes(1);
 
     await act(async () => {
@@ -229,5 +234,73 @@ describe('TiresSearchParameters search races', () => {
       'ant-btn-loading'
     );
     expect(indexedDBService.searchTires).toHaveBeenCalledTimes(1);
+  });
+
+  test('пока «Найти» pending, витрина и статус остаются; после resolve — список без spinner', async () => {
+    const pending = deferred();
+    indexedDBService.searchTires.mockReturnValueOnce(pending.promise);
+
+    render(
+      <AppShellProvider value={shellValue(0)}>
+        <TiresSearchParameters isActive />
+      </AppShellProvider>
+    );
+    const form = await screen.findByRole('form', { name: 'Параметры поиска шин' });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      fireEvent.submit(form);
+    });
+    expect(screen.getByTestId('tires-showcase')).toBeInTheDocument();
+    expect(screen.getByTestId('catalog-search-status')).toBeInTheDocument();
+    expect(screen.queryByTestId('search-results')).not.toBeInTheDocument();
+
+    await act(async () => {
+      pending.resolve([{ id: 'hit', title: 'Найденная шина' }]);
+      await pending.promise;
+    });
+
+    expect(screen.getByText('Найденная шина')).toBeInTheDocument();
+    expect(screen.queryByTestId('tires-showcase')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('catalog-search-status')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Найти' })).not.toHaveClass(
+      'ant-btn-loading'
+    );
+  });
+
+  test('зависший searchTires: timeout гасит spinner и показывает ошибку', async () => {
+    render(
+      <AppShellProvider value={shellValue(0)}>
+        <TiresSearchParameters isActive />
+      </AppShellProvider>
+    );
+    const form = await screen.findByRole('form', { name: 'Параметры поиска шин' });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    indexedDBService.searchTires.mockReturnValueOnce(new Promise(() => {}));
+    jest.useFakeTimers();
+    await act(async () => {
+      fireEvent.submit(form);
+    });
+    expect(screen.getByRole('button', { name: 'Найти' })).toHaveClass(
+      'ant-btn-loading'
+    );
+
+    await act(async () => {
+      jest.advanceTimersByTime(30_000);
+    });
+
+    expect(screen.getByTestId('search-error')).toHaveTextContent(
+      'Каталог не отвечает'
+    );
+    expect(screen.getByRole('button', { name: 'Найти' })).not.toHaveClass(
+      'ant-btn-loading'
+    );
+    expect(screen.getByTestId('tires-showcase')).toBeInTheDocument();
+    jest.useRealTimers();
   });
 });

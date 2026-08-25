@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, memo } from 'react';
-import { Form, Select, Button, Radio, Checkbox } from 'antd';
+import { Form, Select, Button, Radio, Checkbox, Alert } from 'antd';
 import { ReactComponent as SunIcon } from '../../icons/Sun.svg';
 import { ReactComponent as SnowIcon } from '../../icons/Snow.svg';
 import { ReactComponent as ResetIcon } from '../../icons/Reset.svg';
@@ -10,6 +10,7 @@ import CatalogItemCard from '../shared/CatalogItemCard/CatalogItemCard';
 import PaginatedCardsList from '../shared/PaginatedCardsList/PaginatedCardsList';
 import CatalogShowcase from '../shared/CatalogShowcase';
 import CatalogSearchEmptyHint from '../shared/CatalogShowcase/CatalogSearchEmptyHint';
+import CatalogSearchStatus from '../shared/CatalogShowcase/CatalogSearchStatus';
 import HoverTooltip from '../shared/HoverTooltip';
 import SupplierFilterSelect from '../shared/SupplierFilterSelect';
 import {
@@ -27,6 +28,7 @@ import {
   invalidateCatalogSearchRequest,
   scheduleDebounced,
   settleCatalogSearchLoading,
+  withCatalogSearchTimeout,
 } from '../../catalog/search/searchFormCascade';
 import {
   appLog,
@@ -253,12 +255,13 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
       setSearchResetKey((key) => key + 1);
       setSearchLoading(true);
       setErrorSearch(null);
-      setSearchResults(null);
     }
 
     try {
       const searchParams = mapTireFormValuesToSearchFilters(values);
-      const dbResults = await indexedDBService.searchTires(searchParams);
+      const dbResults = await withCatalogSearchTimeout(
+        indexedDBService.searchTires(searchParams)
+      );
       if (!isCurrentRequest()) {
         return;
       }
@@ -374,7 +377,7 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
     handleSearch(nextValues);
   };
 
-  const showShowcase = searchResults === null && !loadingSearch;
+  const showShowcase = searchResults === null;
   const showSearchEmpty =
     Array.isArray(searchResults) && searchResults.length === 0 && !loadingSearch;
   const showSearchResults =
@@ -570,6 +573,19 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
         </div>
       </Form>
 
+      <CatalogSearchStatus loading={loadingSearch} />
+
+      {errorSearch ? (
+        <Alert
+          data-testid="search-error"
+          message="Ошибка поиска"
+          description={errorSearch}
+          type="error"
+          showIcon
+          className="error-alert"
+        />
+      ) : null}
+
       {showShowcase && isActive ? (
         <CatalogShowcase
           kind="tires"
@@ -586,10 +602,9 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
         />
       ) : null}
 
-      {showSearchResults || errorSearch ? (
+      {showSearchResults ? (
         <PaginatedCardsList
           items={searchResults}
-          error={errorSearch}
           isClientMode={isClientMode}
           searchResetKey={searchResetKey}
           containerClassName="items-list-container"

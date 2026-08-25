@@ -7,6 +7,9 @@ import indexedDBService from '../indexedDBService';
  */
 
 describe('CatalogIdbSession._readStoreAll', () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
   test('abort без request.onsuccess отклоняет Promise (AbortError)', async () => {
     let onAbort = null;
     const request = {};
@@ -34,5 +37,28 @@ describe('CatalogIdbSession._readStoreAll', () => {
     onAbort();
 
     await expect(promise).rejects.toMatchObject({ name: 'AbortError' });
+  });
+
+  test('getAll без onsuccess отклоняет Promise по timeout', async () => {
+    jest.useFakeTimers();
+    const request = {};
+    const transaction = {
+      objectStore: () => ({ getAll: () => request }),
+      error: null,
+      onabort: null,
+      oncomplete: null,
+    };
+    const database = {
+      transaction: () => transaction,
+    };
+
+    const promise = indexedDBService._readStoreAll(
+      database,
+      'tires',
+      indexedDBService._generation
+    );
+    jest.advanceTimersByTime(30_000);
+    await expect(promise).rejects.toMatchObject({ name: 'TimeoutError' });
+    jest.useRealTimers();
   });
 });

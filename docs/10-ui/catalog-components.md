@@ -337,6 +337,8 @@ else → Empty(emptyText)
 
 Empty state **после поиска** с чипами альтернативных размеров. Props: `kind`, `emptyText`, `onChipClick`.
 
+Пока foreground-поиск идёт, под формой рендерится `CatalogSearchStatus` (`Ищем…`); витрина или прошлый список не размонтируются в blank.
+
 Ant Design: `Empty`.
 
 ---

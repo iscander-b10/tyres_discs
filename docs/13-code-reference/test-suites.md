@@ -64,7 +64,7 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 
 | Группа | Файлы | Фокус |
 | --- | --- | --- |
-| search | `searchFormFilters.test.js`, `searchFormCascade.test.js` | form → filters; skip/debounce/spinner; invalidate reset |
+| search | `searchFormFilters.test.js`, `searchFormCascade.test.js` | form → filters; skip/debounce/spinner; invalidate reset; search timeout |
 | core | `isIkonBrand`, `resolveCatalogModel`, `mergePreferred*` | pure domain |
 | showcase | `getCatalogShowcase`, `buildTire/Disc`, `scoring`, `showcaseSeed`, `ikonSeasonHits`, `preferredCandidates` | vitrine algorithms |
 | misc | `catalogRevalidation.test.js` | **test-local algorithm copy** — не production contract |
@@ -78,8 +78,8 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 | Файл | Инварианты |
 | --- | --- |
 | `SiteHeader.test.jsx` | cart badge, auth links |
-| `TiresSearchParameters.searchRace.test.jsx` | stale request discard, spinner, skip facets, reset during pending |
-| `DiscsSearchParameters.searchRace.test.jsx` | stale request discard, spinner, skip facets, reset during pending |
+| `TiresSearchParameters.searchRace.test.jsx` | stale request discard, spinner, skip facets, reset during pending, pending не blank, timeout |
+| `DiscsSearchParameters.searchRace.test.jsx` | stale request discard, spinner, skip facets, reset during pending, pending не blank, timeout |
 | `CatalogShowcase.appLog.test.jsx` | error logging on showcase fail |
 
 **Страница:** [Async race guards](/08-search-showcase/async-race-guards).
@@ -97,7 +97,7 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 | `catalogIdb/catalogIdbQueries.test.js` | index hint selection |
 | `catalogIdb/catalogIdbMemory.test.js` | RAM buckets, compact facet rows |
 | `catalogIdb/catalogReadCache.fakeIndexedDB.test.js` | один getAll, width vs season, workspace isolation |
-| `catalogIdb/catalogIdbSession.readStoreAll.test.js` | abort hydrate без onsuccess отклоняет Promise |
+| `catalogIdb/catalogIdbSession.readStoreAll.test.js` | abort hydrate без onsuccess отклоняет Promise; timeout getAll |
 | `catalogSync/catalogSnapshotValidation.test.js` | wire validation |
 | `catalogSync/catalogSyncService.test.js` | version gate |
 | `catalogSync/catalogSyncService.commitBoundary.test.js` | atomic commit |

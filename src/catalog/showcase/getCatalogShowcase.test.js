@@ -163,7 +163,7 @@ describe('getCatalogShowcase stale-while-revalidate', () => {
     expect(first.shelves[0].items).toHaveLength(30);
   });
 
-  test('диски: collect без раннего лимита 480', async () => {
+  test('диски: collect без раннего лимита 480 (RAM, candidateLimit null)', async () => {
     const indexedDBService = require('../../services/indexedDBService').default;
     if (typeof indexedDBService.collectDiscShowcaseCandidates !== 'function') {
       indexedDBService.collectDiscShowcaseCandidates = jest.fn();
@@ -192,7 +192,7 @@ describe('getCatalogShowcase stale-while-revalidate', () => {
 
     expect(indexedDBService.collectDiscShowcaseCandidates).toHaveBeenCalledWith(
       expect.objectContaining({
-        candidateLimit: Number.POSITIVE_INFINITY,
+        candidateLimit: null,
         minAmount: SHOWCASE_CONFIG.discs.minAmount,
         supplier: SHOWCASE_CONFIG.showcaseSupplier,
       })

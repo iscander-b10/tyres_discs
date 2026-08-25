@@ -82,8 +82,9 @@ export const SHOWCASE_CONFIG = {
     ],
     popularModelsCount: { min: 15, max: 15 },
     /**
-     * Без раннего лимита IDB: на полку нужны ВСЕ литые Шинсервиса с amount >= minAmount.
-     * Лимит 15 — уже в buildDiscShowcase (seeded shuffle).
+     * Кандидаты — все matching из RAM (candidateLimit: null).
+     * На полку нужны все литые Шинсервиса с amount >= minAmount;
+     * лимит 15 — уже в buildDiscShowcase (seeded shuffle).
      */
     minAmount: 4,
     /** Тип диска на полке «Литые диски в наличии». */

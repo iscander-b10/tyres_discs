@@ -527,6 +527,7 @@ describe('CatalogDatabase: store-aware lifecycle', () => {
   });
 
   afterEach(() => {
+    jest.useRealTimers();
     global.indexedDB = originalIndexedDB;
   });
 
@@ -604,6 +605,21 @@ describe('CatalogDatabase: store-aware lifecycle', () => {
     });
     expect(staleDatabase.close).toHaveBeenCalledTimes(1);
     expect(indexedDBService.catalogDb).toBeNull();
+  });
+
+  test('open без onsuccess отклоняет Promise по timeout; onblocked не зависает навсегда', async () => {
+    jest.useFakeTimers();
+    const request = {};
+    global.indexedDB = { open: jest.fn(() => request) };
+    indexedDBService.setActiveStore('timeout-store');
+
+    const opening = indexedDBService.openCatalogDatabase();
+    expect(typeof request.onblocked).toBe('function');
+    request.onblocked();
+
+    jest.advanceTimersByTime(15_000);
+    await expect(opening).rejects.toMatchObject({ name: 'TimeoutError' });
+    jest.useRealTimers();
   });
 
   test('недоступный IndexedDB выглядит как пустой текущий каталог', async () => {

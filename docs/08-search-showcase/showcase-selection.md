@@ -158,7 +158,7 @@ export const getCatalogShowcase = async ({
 ### Side effects
 
 - Module-level **cache** `{ tires, discs }` с полями `workspace`, `version`, `payload`, `promise`
-- IndexedDB read через `collectTireShowcaseCandidates` / `collectDiscShowcaseCandidates`
+- IndexedDB read через RAM `_ensureReadCache` + `collectShowcaseCandidatesFromItems`
 
 ### Алгоритм
 
@@ -181,8 +181,8 @@ flowchart TD
 3. При смене workspace — сброс payload и promise.
 4. Single-flight promise для параллельных вызовов.
 5. Load payload:
-   - **Шины:** `candidateLimit: 480`, `preferItem: isIkonBrand` — Ikon не отрезаются лимитом
-   - **Диски:** `candidateLimit: Infinity` — все литые Шинсервиса
+   - **Шины:** `candidateLimit: 480`, `preferItem: isIkonBrand` — Ikon не отрезаются лимитом (фильтр по RAM)
+   - **Диски:** `candidateLimit: null` — все matching из RAM; литые Шинсервиса отбирает `buildDiscShowcase`
 6. `resolveShowcaseSeed(catalogSnapshotVersion, workspace, candidates)`
 7. Delegate to `buildTireShowcase` / `buildDiscShowcase`.
 
@@ -313,7 +313,7 @@ flowchart TD
 
 **Ikon whitelist matching:** `resolveIkonSeasonModelKey` — нормализация текста модели, исключение SUV/Eco C2/C3/Nordman.
 
-**Preferred candidates в IDB:** `collectShowcaseCandidatesFromStore` с `preferItem: isIkonBrand` — Ikon попадают в `preferred[]` первыми и **не обрезаются** лимитом 480.
+**Preferred candidates:** `collectShowcaseCandidatesFromItems` с `preferItem: isIkonBrand` — Ikon попадают в `preferred[]` первыми и **не обрезаются** лимитом 480. Production-путь — RAM после `_ensureReadCache`, не отдельный IDB cursor.
 
 ### Тесты
 
@@ -377,7 +377,7 @@ flowchart LR
   subgraph Discs["Диски"]
     D1[castPool diskType=Литой]
     D2[shuffleItems slice 15]
-    D3[candidateLimit Infinity]
+    D3[candidateLimit null / RAM]
   end
 
   C1 --> C2
@@ -409,6 +409,7 @@ Props: `kind`, `emptyText`, `onChipClick`.
 | --- | --- |
 | Привязать seed к `catalogDataVersion` | порядок карточек меняется при каждом local sync |
 | Убрать `preferItem` для Ikon | whitelist модели отрезаются лимитом 480 |
+| Вернуть отдельный IDB cursor витрины с `preferItem` | полный `cursor.continue` по поставщику блокирует кадр «Найти» |
 | Использовать scoring на дисках без явного решения | поведение полки изменится непредсказуемо |
 | Смешать cache showcase с searchResults | лишние перезагрузки или stale UI |
 | Не обрабатывать `showcase.empty` | пользователь видит skeleton вместо hint |

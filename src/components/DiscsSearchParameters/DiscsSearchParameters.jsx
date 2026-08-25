@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, memo } from 'react';
-import { Form, Select, Button, Checkbox } from 'antd';
+import { Form, Select, Button, Checkbox, Alert } from 'antd';
 import { ReactComponent as ResetIcon } from '../../icons/Reset.svg';
 import { ReactComponent as SearchIcon } from '../../icons/Search.svg';
 import indexedDBService from '../../services/indexedDBService';
@@ -8,6 +8,7 @@ import CatalogItemCard from '../shared/CatalogItemCard/CatalogItemCard';
 import PaginatedCardsList from '../shared/PaginatedCardsList/PaginatedCardsList';
 import CatalogShowcase from '../shared/CatalogShowcase';
 import CatalogSearchEmptyHint from '../shared/CatalogShowcase/CatalogSearchEmptyHint';
+import CatalogSearchStatus from '../shared/CatalogShowcase/CatalogSearchStatus';
 import HoverTooltip from '../shared/HoverTooltip';
 import SupplierFilterSelect from '../shared/SupplierFilterSelect';
 import {
@@ -25,6 +26,7 @@ import {
   invalidateCatalogSearchRequest,
   scheduleDebounced,
   settleCatalogSearchLoading,
+  withCatalogSearchTimeout,
 } from '../../catalog/search/searchFormCascade';
 import {
   appLog,
@@ -271,12 +273,13 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
       setSearchResetKey((key) => key + 1);
       setSearchLoading(true);
       setErrorSearch(null);
-      setSearchResults(null);
     }
 
     try {
       const searchParams = mapDiscFormValuesToSearchFilters(values);
-      const dbResults = await indexedDBService.searchDiscs(searchParams);
+      const dbResults = await withCatalogSearchTimeout(
+        indexedDBService.searchDiscs(searchParams)
+      );
       if (!isCurrentRequest()) {
         return;
       }
@@ -382,7 +385,7 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
     handleSearch(nextValues);
   };
 
-  const showShowcase = searchResults === null && !loadingSearch;
+  const showShowcase = searchResults === null;
   const showSearchEmpty =
     Array.isArray(searchResults) && searchResults.length === 0 && !loadingSearch;
   const showSearchResults =
@@ -654,6 +657,19 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
         </div>
       </Form>
 
+      <CatalogSearchStatus loading={loadingSearch} />
+
+      {errorSearch ? (
+        <Alert
+          data-testid="search-error"
+          message="Ошибка поиска"
+          description={errorSearch}
+          type="error"
+          showIcon
+          className="error-alert"
+        />
+      ) : null}
+
       {showShowcase && isActive ? (
         <CatalogShowcase
           kind="discs"
@@ -670,10 +686,9 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
         />
       ) : null}
 
-      {showSearchResults || errorSearch ? (
+      {showSearchResults ? (
         <PaginatedCardsList
           items={searchResults}
-          error={errorSearch}
           isClientMode={isClientMode}
           searchResetKey={searchResetKey}
           containerClassName="items-list-container"

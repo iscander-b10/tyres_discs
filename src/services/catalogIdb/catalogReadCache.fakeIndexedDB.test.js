@@ -177,6 +177,15 @@ describe('RAM read cache поиска и facets (fake-indexeddb)', () => {
     expect(indexedDBService._readStoreGetAllCount).toBe(1);
     expect(firstFacets.widths.length).toBeGreaterThan(0);
 
+    const showcase = await indexedDBService.collectTireShowcaseCandidates({
+      candidateLimit: 480,
+      minAmount: 1,
+      supplier: supplierA,
+    });
+    expect(indexedDBService._readStoreGetAllCount).toBe(1);
+    expect(showcase.isEmpty).toBe(false);
+    expect(Array.isArray(showcase.candidates)).toBe(true);
+
     const cascadeStarted = Date.now();
     const cascaded = await indexedDBService.getAvailableParameterOptions({
       season: 's',

@@ -5,9 +5,13 @@ import {
   didOnlyIrrelevantSearchFieldsChange,
   invalidateCatalogSearchRequest,
   settleCatalogSearchLoading,
+  withCatalogSearchTimeout,
 } from './searchFormCascade';
 
 describe('searchFormCascade', () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
   test('шины: бренд, поставщик, чекбоксы и шипы не требуют пересчёта facets', () => {
     expect(
       didOnlyIrrelevantSearchFieldsChange(
@@ -152,5 +156,14 @@ describe('searchFormCascade', () => {
     });
 
     expect(setLoadingSearch).not.toHaveBeenCalled();
+  });
+
+  test('withCatalogSearchTimeout отклоняет зависший Promise без хрупкого sleep', async () => {
+    jest.useFakeTimers();
+    const hanging = new Promise(() => {});
+    const pending = withCatalogSearchTimeout(hanging, 1000);
+    jest.advanceTimersByTime(1000);
+    await expect(pending).rejects.toMatchObject({ name: 'TimeoutError' });
+    jest.useRealTimers();
   });
 });

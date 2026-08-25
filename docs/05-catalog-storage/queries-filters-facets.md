@@ -11,7 +11,8 @@
 
 `CatalogIdbSession` владеет IndexedDB (persistence) и read-cache. Поиск и facets
 читают RAM; `getAll` category store выполняется **один раз на generation/revision**.
-Витрина и cart-read по-прежнему ходят в IDB. `indexedDBService.js` — facade.
+Витрина и cart-read: витрина после hydrate идёт по RAM (`collectShowcaseCandidatesFromItems`);
+cart-read по-прежнему ходит в IDB. `indexedDBService.js` — facade.
 
 ## Active, compatibility и helpers
 
@@ -29,9 +30,9 @@
 
 `isActiveFilterValue`, `matches*`, `collect*FacetOptions`,
 `pickEqualityFilterKey`, `pickEqualityIndex`, `selectIndexedCandidates`,
-`createCategoryMemory`, `collectShowcaseCandidatesFromStore` не владеют
-connection. Почти все синхронны; showcase helper возвращает Promise из-за
-cursor API.
+`createCategoryMemory`, `collectShowcaseCandidatesFromItems` не владеют
+connection. Production search/facets/витрина читают RAM. `collectShowcaseCandidatesFromStore`
+остаётся cursor-helper для тестов; session его не вызывает.
 
 ### Compatibility
 
@@ -214,37 +215,35 @@ sequenceDiagram
     S-->>UI: facet object
 ```
 
-## Витрина: ранний ограниченный обход
+## Витрина: отбор из RAM
 
-### `collectShowcaseCandidatesFromStore(store, options)`
+### `collectShowcaseCandidatesFromItems(items, options)`
 
 **Параметры:** `{ candidateLimit = 480, minAmount = 1, supplier = null,
 preferItem = null }`.
 
-`480` — default самого query helper, а не единый production-лимит обеих
-витрин. `getCatalogShowcase` передаёт его для шин вместе с `preferItem:
-isIkonBrand`, поэтому cursor дочитывается для preferred-пула. Для дисков caller
-явно передаёт `candidateLimit: Number.POSITIVE_INFINITY`, чтобы ранняя отсечка
-не потеряла литые диски showcase-поставщика.
+`480` — default helper'а для шин. `getCatalogShowcase` передаёт его вместе с
+`preferItem: isIkonBrand`. Для дисков caller передаёт `candidateLimit: null`
+(без ранней отсечки): все matching из RAM, литые Шинсервиса отбирает
+`buildDiscShowcase`.
 
-**Результат:** `Promise<{ isEmpty, candidates }>`:
+**Результат:** `{ isEmpty, candidates }` (sync):
 
-- `isEmpty: true` означает, что весь store пуст;
-- непустой store без подходящих строк даёт `{ isEmpty: false, candidates: [] }`.
+- `isEmpty: true` — массив пуст (каталог не загружен);
+- непустой массив без подходящих строк даёт `{ isEmpty: false, candidates: [] }`.
 
-**Алгоритм.**
+**Алгоритм.** Тот же, что у cursor-helper: фильтр supplier / minAmount, preferred
+пул не режется лимитом, без `preferItem` цикл обрывается на limit.
 
-1. `store.count()` различает пустой каталог и пустой результат фильтра.
-2. При supplier использует индекс `supplier`, если он существует.
-3. Пропускает чужого supplier и `amount < minAmount`.
-4. Без `preferItem` завершает cursor при достижении limit.
-5. С `preferItem` дочитывает весь cursor, чтобы preferred-позиции не были
-   отрезаны первыми 480 SKU, затем `mergePreferredShowcaseCandidates` объединяет
-   пулы.
+Session wrappers (`collectTireShowcaseCandidates` / `collectDiscShowcaseCandidates`)
+делают `_ensureReadCache` и вызывают этот helper. Callers — `getCatalogShowcase`.
+`isCatalogEmpty` считает `store.count()`, не гидрирует оба store ради витрины.
 
-Session wrappers открывают readonly-транзакцию нужной категории и после Promise
-проверяют generation. Callers находятся в
-`catalog/showcase/getCatalogShowcase.js`.
+Cursor-helper `collectShowcaseCandidatesFromStore` сохранён для тестов совместимости
+алгоритма; production-поиск и витрина его не вызывают.
+
+Hang-guard: `openCatalogDatabase` — `onblocked` + timeout 15 с; `_readStoreAll` —
+timeout 30 с (`TimeoutError`, код `idb.timeout`).
 
 ## Согласованное чтение корзины
 
@@ -274,7 +273,7 @@ abort-ит всю операцию; тест проверяет как един�
 
 - Request error hydrate отклоняет Promise исходной `request.error`.
 - Abort транзакции hydrate без `request.onerror` отклоняет Promise (`AbortError`),
-  а не оставляет pending.
+  а не оставляет pending. Молчание `getAll`/`open` — `TimeoutError`.
 - Hydrate, чей generation/revision устарел, не записывает кэш; повторный
   `_hydrateReadCache` читает уже новый store. `StaleCatalogStoreError` после
   смены магазина.
@@ -287,11 +286,13 @@ abort-ит всю операцию; тест проверяет как един�
 
 ## Тесты
 
-- `catalogIdbQueries.test.js`: выбор equality hint; `season` не перебивает `width`.
+- `catalogIdbQueries.test.js`: выбор equality hint; `season` не перебивает `width`;
+  Ikon в конце массива не теряются; диски `candidateLimit: null`.
 - `catalogIdbMemory.test.js`: RAM-bucket ширины меньше сезонного.
-- `catalogReadCache.fakeIndexedDB.test.js`: тысячи SKU, один `getAll` на каскад+search,
+- `catalogReadCache.fakeIndexedDB.test.js`: тысячи SKU, один `getAll` на каскад+search+витрину,
   изоляция workspace, invalidate после snapshot.
-- `catalogIdbSession.readStoreAll.test.js`: abort `getAll` без `onsuccess` не зависает.
+- `catalogIdbSession.readStoreAll.test.js`: abort hydrate без `onsuccess` отклоняет Promise;
+  timeout `getAll`.
 - `indexedDBService.searchFilters.test.js`: `minAmount`, spikes, runflat,
   width-only, массив brand, диапазон ET, PCD/PN/diskType.
 - `catalogFacetOptions.test.js`: каскадная независимость width/profile/diameter

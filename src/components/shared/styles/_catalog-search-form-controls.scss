@@ -593,6 +593,37 @@ $catalog-text: $color-text;
     min-width: 0;
     width: 100%;
   }
+
+  .catalog-search-status {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    min-height: 2rem;
+    padding-inline: 2px;
+    color: $color-text-muted;
+    font-size: 0.9375rem;
+    line-height: 1.4;
+  }
+
+  .error-alert.ant-alert-error {
+    background: $color-accent-muted;
+    border: 1px solid $color-accent-border;
+    border-radius: $radius-lg;
+    margin: 0;
+  }
+
+  .error-alert.ant-alert-error .ant-alert-message {
+    color: $color-accent;
+    font-weight: 700;
+  }
+
+  .error-alert.ant-alert-error .ant-alert-description {
+    color: $color-text-muted;
+  }
+
+  .error-alert.ant-alert-error .ant-alert-icon {
+    color: $color-accent;
+  }
 }
 
 // Sticky filter strip — top matches content gap above the form (header is not sticky).

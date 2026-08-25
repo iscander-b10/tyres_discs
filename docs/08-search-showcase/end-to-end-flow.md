@@ -210,7 +210,14 @@ const isCurrentRequest = () =>
   requestId === searchRequestIdRef.current &&
   requestedWorkspaceKey === workspaceKeyRef.current;
 
-// ... await indexedDBService.searchTires(...)
+if (!background) {
+  setSearchLoading(true);
+  setErrorSearch(null);
+  // searchResults не обнуляем: витрина / прошлый список остаются до settle
+}
+const dbResults = await withCatalogSearchTimeout(
+  indexedDBService.searchTires(...)
+);
 if (!isCurrentRequest()) return; // stale — не трогаем UI
 setSearchResults(dbResults);
 ```
@@ -243,7 +250,7 @@ setSearchResults(dbResults);
 
 ## Шаг 6. Построение showcase
 
-**Когда.** `searchResults === null && !loadingSearch && isActive`.
+**Когда.** `searchResults === null && isActive` (в том числе пока крутится foreground «Найти»: витрина не размонтируется в blank).
 
 **Цепочка:**
 
@@ -258,7 +265,7 @@ sequenceDiagram
   UI->>Get: kind, catalogDataVersion, catalogSnapshotVersion, workspaceResetKey
   Get->>Cache: hit/miss по workspace+version
   alt cache miss
-    Cache->>IDB: collectTire/DiscShowcaseCandidates
+    Cache->>IDB: _ensureReadCache → collect from RAM
     IDB-->>Cache: { candidates, isEmpty }
   end
   Get->>Get: resolveShowcaseSeed(snapshotVersion)
@@ -364,6 +371,7 @@ sequenceDiagram
 | Не сбросить RAM-кэш после snapshot | stale каталог до reload |
 | Убрать `searchRequestIdRef` check | stale results перетирают новые |
 | Сброс фильтров без `invalidateCatalogSearchRequest` | spinner «Найти» не гаснет, поздний поиск заполняет витрину |
+| Foreground `setSearchResults(null)` до await | blank UI со spinner |
 | Менять семантику `null` vs `[]` для `searchResults` | сломается переключение витрина/empty/list |
 | Добавлять товар в корзину без fresh IDB read | устаревшая цена/остаток в корзине |
 | Использовать `Math.random()` в showcase | порядок карточек меняется при каждом рендере |
