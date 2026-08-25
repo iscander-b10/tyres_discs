@@ -39,6 +39,8 @@
 
 Без `REACT_APP_CATALOG_API_BASE` / `REACT_APP_CORS_PROXY` autosync **выключен** (`isCatalogSyncConfigured` → false).
 
+Для локального сравнения с GitHub Pages (`npm run start:prod`) задайте те же имена `REACT_APP_*` (CORS/catalog/store), что вшиваете в Pages-сборку. Значения — только в локальных env-файлах, не в docs. См. [Dev vs production](/01-getting-started/dev-production-deploy).
+
 ## Frontend: URL поставщиков (legacy/dev path)
 
 Используются supplier adapters и dev proxy, **не** production autosync:

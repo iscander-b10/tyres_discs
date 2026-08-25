@@ -11,16 +11,26 @@ npm install
 npm start
 ```
 
-Откроется [http://localhost:3000](http://localhost:3000).
+Откроется [http://localhost:3000](http://localhost:3000) (basename `/tyres_discs`).
 
 Скопируйте `.env.example` → `.env` / правьте `.env.development` и `.env.production`. В dev URL вида `/api/...` проксируются через [`src/setupProxy.js`](src/setupProxy.js).
+
+Чтобы локально проверить **тот же production-путь**, что на GitHub Pages (поиск после sync, без CRA StrictMode):
+
+```bash
+npm run start:prod
+```
+
+Откройте [http://localhost:5000/tyres_discs/](http://localhost:5000/tyres_discs/). IndexedDB на localhost не общий с github.io. Подробнее: `docs/01-getting-started/dev-production-deploy.md`.
 
 ## Скрипты
 
 | Команда | Назначение |
 | --- | --- |
-| `npm start` | Локальная разработка |
+| `npm start` | Локальная разработка (CRA hot reload) |
 | `npm run build` | Production-сборка в `build/` |
+| `npm run preview:prod` | Раздача `build/` с basename `/tyres_discs` |
+| `npm run start:prod` | `build` + production preview (как Pages) |
 | `npm run deploy` | Сборка и публикация на GitHub Pages |
 | `npm test` | Тесты CRA |
 

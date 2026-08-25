@@ -19,6 +19,8 @@
     "start": "react-scripts start",
     "prebuild": "node scripts/generate-auth-verifier.js production",
     "build": "react-scripts build",
+    "preview:prod": "node scripts/serve-prod-preview.js",
+    "start:prod": "npm run build && node scripts/serve-prod-preview.js",
     "test": "react-scripts test",
     "test:ci": "react-scripts test --watchAll=false",
     "docs:dev": "vitepress dev docs",

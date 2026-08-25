@@ -20,7 +20,7 @@ npm install
 
 При первом `npm start` или `npm run build` сработает **pre-hook** генерации auth verifier.
 
-## Запуск приложения (CRA)
+## Запуск приложения (CRA — development)
 
 ```bash
 npm start
@@ -32,6 +32,26 @@ npm start
 | `start` | dev-server на `http://localhost:3000` |
 
 Basename приложения: `/tyres_discs` (из `homepage` в `package.json` → `PUBLIC_URL`).
+
+Для UI и hot reload — `npm start`. Чтобы локально гонять **тот же production-путь**, что на GitHub Pages (поиск после sync, без StrictMode/dev proxy), см. ниже и [Сборка и deploy](/01-getting-started/dev-production-deploy).
+
+## Production preview (как GitHub Pages)
+
+Перед сборкой задайте те же `REACT_APP_*` (CORS/catalog/store), что для Pages — без секретов в docs; см. [Конфигурация](/01-getting-started/configuration).
+
+```bash
+npm run start:prod
+# или: npm run build && npm run preview:prod
+```
+
+Откройте `http://localhost:5000/tyres_discs/`.
+
+| Script | Что делает |
+| --- | --- |
+| `start:prod` | `build` + раздача `build/` с basename |
+| `preview:prod` | только раздача уже собранного `build/` |
+
+IndexedDB на `localhost` **не** общий с `github.io`. После первого sync поведение «Найти» совпадает с Pages по runtime-пути.
 
 ## Запуск документации (VitePress)
 
@@ -55,6 +75,8 @@ npm run docs:preview  # preview build → http://localhost:4173
 | `start` | CRA dev server | hot reload |
 | `prebuild` | HMAC verifier для production | пишет `.env.production.local` |
 | `build` | Production bundle → `build/` | |
+| `preview:prod` | Статика `build/` на `:5000` с `/tyres_discs` | нужен готовый `build/` |
+| `start:prod` | `build` + `preview:prod` | Pages-like локально |
 | `test` | Jest watch mode | |
 | `test:ci` | Jest single run (CI) | |
 | `docs:dev` | VitePress dev | |

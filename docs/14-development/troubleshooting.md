@@ -52,8 +52,11 @@ Steps:
 | «Найти» крутит spinner, сброс не гасит | in-flight поиск не инвалидирован — `handleResetFilters` должен вызвать `invalidateCatalogSearchRequest` |
 | Пустой экран при spinner | не должно: foreground не обнуляет `searchResults`; под формой `CatalogSearchStatus` «Ищем…». Если всё же blank — регрессия `showShowcase` |
 | «Найти» крутит spinner без конца | IDB open/`getAll` без settle — должны сработать timeout 15/30 с и `errorSearch` «Каталог не отвечает». Смотреть `idb.timeout` / `idb.blocked` / `idb.hydrate` в console |
+| На `npm start` spinner долго, на Pages «Найти» быстро | Ожидаемо: другой origin → другая IndexedDB; dev + StrictMode; холодный hydrate / очередь за `applyCatalogSnapshot`. Сравните с `npm run start:prod` — тот же бандл, что Pages. IDB с github.io **не** шарится |
 | Пустой showcase | IDB empty или `getCatalogShowcase` error |
 | Facets пустые | filters слишком строгие / no index match |
+
+Проверка «как Pages»: `npm run start:prod` → `http://localhost:5000/tyres_discs/` → логин → дождаться sync → «Найти» должен погасить spinner (список / empty / ошибка), без вечного loading. См. [Dev vs production](/01-getting-started/dev-production-deploy).
 
 ## Корзина
 
@@ -69,6 +72,7 @@ Steps:
 | --- | --- |
 | 404 на refresh | нет `404.html` copy — run `predeploy` |
 | Blank page | wrong basename / `homepage` |
+| Blank / 404 ассетов на локальном `serve -s build` | ассеты под `/tyres_discs`, файлы в корне `build/` — используйте `npm run preview:prod` / `start:prod` |
 | CORS errors | `REACT_APP_CORS_PROXY` не задан в production build |
 
 ## Docs
