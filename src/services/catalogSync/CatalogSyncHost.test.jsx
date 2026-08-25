@@ -299,7 +299,7 @@ describe('CatalogSyncHost workspace lifecycle', () => {
     expect(bootstrap.error).toBe('Сервер каталога не ответил.');
   });
 
-  test('непустой каталог снимает шторку и синхронизирует тихо', async () => {
+  test('непустой каталог не открывает шторку и синхронизирует тихо', async () => {
     indexedDBService.isCatalogEmpty.mockResolvedValue(false);
     checkAndSyncCatalog.mockResolvedValue({
       status: 'up-to-date',
@@ -317,6 +317,13 @@ describe('CatalogSyncHost workspace lifecycle', () => {
       await Promise.resolve();
     });
 
+    const phases = setCatalogBootstrap.mock.calls.map(([update]) => {
+      const next =
+        typeof update === 'function' ? update({ phase: 'idle' }) : update;
+      return next?.phase;
+    });
+    expect(phases).not.toContain('blocking');
+    expect(phases).not.toContain('error');
     expect(bootstrap.phase).toBe('ready');
     expect(bootstrap.waitForShowcase).toBeUndefined();
     expect(checkAndSyncCatalog).toHaveBeenCalledWith(

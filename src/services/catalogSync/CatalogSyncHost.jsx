@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useAppShell } from '../../app/AppShellContext';
 import {
   CATALOG_BOOTSTRAP_WAITING_LABEL,
@@ -44,7 +44,8 @@ async function warmupColdStartCache(onStep) {
  * Монтировать внутри AppShellProvider.
  *
  * Writer lock внутри checkAndSyncCatalog. Cold start (пустой IDB) ставит
- * blocking в AppShell до витрины; warm start идёт тихо, без шторки.
+ * blocking в AppShell до витрины; warm start (непустой IDB / refresh) идёт
+ * тихо — шторку не открываем даже на кадр проверки isCatalogEmpty.
  */
 export function CatalogSyncHost() {
   const {
@@ -58,13 +59,6 @@ export function CatalogSyncHost() {
   const setBootstrapRef = useRef(setCatalogBootstrap);
   setBootstrapRef.current = setCatalogBootstrap;
   const retryRef = useRef(null);
-
-  useLayoutEffect(() => {
-    const currentStoreId = workspace?.storeId;
-    if (!isWorkspaceReady || !currentStoreId) return undefined;
-    setBootstrapRef.current?.(createBlockingBootstrap(0));
-    return undefined;
-  }, [isWorkspaceReady, workspace?.storeId]);
 
   useEffect(() => {
     if (!registerCatalogBootstrapRetry) return undefined;
@@ -83,7 +77,8 @@ export function CatalogSyncHost() {
     let syncing = false;
     let slotTimer = null;
     let lastNotifiedVersion = '';
-    let blockingColdStart = true;
+    // До isCatalogEmpty() не считаем cold start: иначе warm refresh мелькает шторкой.
+    let blockingColdStart = false;
     const abortController = new AbortController();
     const storeGeneration = indexedDBService.setActiveStore(storeId);
     const isCurrent = () =>

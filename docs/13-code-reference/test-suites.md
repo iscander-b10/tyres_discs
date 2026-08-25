@@ -108,7 +108,7 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 | `catalogSync/catalogSyncChannel.test.js` | broadcast |
 | `catalogSync/catalogSyncLock.test.js` | lock lease, onWaiting у второго waiter |
 | `catalogSync/catalogSyncLock.integration.test.js` | multi-tab writer |
-| `catalogSync/CatalogSyncHost.test.jsx` | triggers, empty vs non-empty bootstrap, onProgress → label, warmup до notify, waiting lock |
+| `catalogSync/CatalogSyncHost.test.jsx` | triggers, empty → blocking, non-empty без кадра blocking, onProgress → label, warmup до notify, waiting lock |
 
 **Страницы:** [IndexedDB](/05-catalog-storage/indexeddb-schema), [Autosync](/06-catalog-sync/frontend-autosync), [Locks](/06-catalog-sync/locks-and-channels).
 
