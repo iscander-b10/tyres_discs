@@ -73,4 +73,57 @@ describe('CatalogShowcase empty catalog', () => {
     ).not.toBeInTheDocument();
     expect(screen.getByTestId('showcase-skeleton')).toBeInTheDocument();
   });
+
+  test('готовые полки после phase ready сообщают surface ready', async () => {
+    const notifyCatalogSurfaceReady = jest.fn();
+    getCatalogShowcase.mockResolvedValue({
+      empty: false,
+      shelves: [{ id: 'hits', title: 'Хиты', items: [{ id: '1' }] }],
+      chips: [],
+      chipsTitle: 'Чипы',
+    });
+    mockUseAppShell.mockReturnValue({
+      clientMode: false,
+      catalogDataVersion: 1,
+      catalogSnapshotVersion: 'v1',
+      workspaceResetKey: 'store-a',
+      catalogBootstrap: { phase: 'ready', progress: 100, label: '' },
+      notifyCatalogSurfaceReady,
+    });
+
+    await act(async () => {
+      render(
+        <CatalogShowcase kind="tires" renderCard={() => null} onChipClick={() => {}} />
+      );
+    });
+
+    expect(screen.getByTestId('shelf')).toBeInTheDocument();
+    expect(notifyCatalogSurfaceReady).toHaveBeenCalled();
+  });
+
+  test('skeleton на blocking не сообщает surface ready', async () => {
+    const notifyCatalogSurfaceReady = jest.fn();
+    mockUseAppShell.mockReturnValue({
+      clientMode: false,
+      catalogDataVersion: 1,
+      catalogSnapshotVersion: '',
+      workspaceResetKey: 'store-a',
+      catalogBootstrap: {
+        phase: 'blocking',
+        progress: 10,
+        label: '',
+        waitForShowcase: true,
+      },
+      notifyCatalogSurfaceReady,
+    });
+
+    await act(async () => {
+      render(
+        <CatalogShowcase kind="tires" renderCard={() => null} onChipClick={() => {}} />
+      );
+    });
+
+    expect(screen.getByTestId('showcase-skeleton')).toBeInTheDocument();
+    expect(notifyCatalogSurfaceReady).not.toHaveBeenCalled();
+  });
 });

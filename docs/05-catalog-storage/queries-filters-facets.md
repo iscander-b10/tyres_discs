@@ -246,7 +246,8 @@ Session wrappers (`collectTireShowcaseCandidates` / `collectDiscShowcaseCandidat
 шин, затем дисков. Это не активация скрытой панели: dual-mount по-прежнему не
 ходит в IDB, пока `isActive=false`. Caller — только `CatalogSyncHost` при
 `phase === 'blocking'` после успешного apply/`up-to-date`, до
-`notifyCatalogApplied` и снятия шторки. Hydrate CPU логируется как `idb.hydrate`
+`notifyCatalogApplied` и `phase: 'ready'`. UI-шторка на cold start после этого ещё
+ждёт settled витрину (полки, не skeleton). Hydrate CPU логируется как `idb.hydrate`
 при ≥ 20 ms, поэтому категории не стартуют через `Promise.all`: два тяжёлых
 index build в одном кадре бьют main thread, а шторка должна показать шаг
 «Готовим витрину». `onStep({ category })` — опциональный прогресс.

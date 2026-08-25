@@ -126,7 +126,7 @@ describe('DiscsSearchParameters search races', () => {
       latest.resolve([{ id: 'new-disc', title: 'Новый диск' }]);
       await latest.promise;
     });
-    expect(screen.getByText('Новый диск')).toBeInTheDocument();
+    expect(await screen.findByText('Новый диск')).toBeInTheDocument();
 
     await act(async () => {
       stale.resolve([{ id: 'old-disc', title: 'Устаревший диск' }]);
@@ -298,7 +298,7 @@ describe('DiscsSearchParameters search races', () => {
       await pending.promise;
     });
 
-    expect(screen.getByText('Найденный диск')).toBeInTheDocument();
+    expect(await screen.findByText('Найденный диск')).toBeInTheDocument();
     expect(screen.queryByTestId('discs-showcase')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Найти' })).not.toHaveClass(
       'ant-btn-loading'

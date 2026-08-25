@@ -6,6 +6,7 @@ import { ReactComponent as LoadingIcon } from '../../../icons/Loading.svg';
 import { ReactComponent as SortIcon } from '../../../icons/Sotring.svg';
 import { ReactComponent as PageSizeIcon } from '../../../icons/PageSize.svg';
 import CatalogSearchEmpty from '../CatalogShowcase/CatalogSearchEmpty';
+import CatalogResultsFade from '../CatalogResultsFade/CatalogResultsFade';
 import HoverTooltip from '../HoverTooltip';
 import './PaginatedCardsList.scss';
 
@@ -316,6 +317,11 @@ const PaginatedCardsList = ({
   const listStatus = hasSourceItems
     ? buildListStatus(totalItems, safeItems.length, hasAppliedQuery)
     : null;
+  const resultsViewKey = isTitleFilterEmpty
+    ? `title-empty:${normalizedSearchQuery}`
+    : hasVisibleItems
+      ? `grid:${normalizedSearchQuery}`
+      : 'list-empty';
 
   const searchSuffix = (
     <span className="list-toolbar__search-suffix">
@@ -430,63 +436,65 @@ const PaginatedCardsList = ({
           </div>
         </div>
       )}
-      {hasVisibleItems ? (
-        <div
-          className={[
-            'paginated-list-results',
-            totalPages > 1 ? 'paginated-list-results--paged' : '',
-          ]
-            .filter(Boolean)
-            .join(' ')}
-        >
-          <div className={`paginated-list-results__grid ${gridClassName}`}>
-            {currentPageData.map((item) => renderCard(item, { isClientMode }))}
-          </div>
-          {totalPages > 1 && (
-            <>
-              <nav
-                className={[
-                  'pagination-container',
-                  paginationStuck ? 'is-stuck' : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                aria-label="Страницы"
-              >
-                <Pagination
-                  current={currentPage}
-                  total={totalItems}
-                  pageSize={itemsPerPage}
-                  onChange={handlePageChange}
-                  showSizeChanger={false}
-                  size="small"
+      <CatalogResultsFade viewKey={resultsViewKey}>
+        {hasVisibleItems ? (
+          <div
+            className={[
+              'paginated-list-results',
+              totalPages > 1 ? 'paginated-list-results--paged' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          >
+            <div className={`paginated-list-results__grid ${gridClassName}`}>
+              {currentPageData.map((item) => renderCard(item, { isClientMode }))}
+            </div>
+            {totalPages > 1 && (
+              <>
+                <nav
+                  className={[
+                    'pagination-container',
+                    paginationStuck ? 'is-stuck' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  aria-label="Страницы"
+                >
+                  <Pagination
+                    current={currentPage}
+                    total={totalItems}
+                    pageSize={itemsPerPage}
+                    onChange={handlePageChange}
+                    showSizeChanger={false}
+                    size="small"
+                  />
+                </nav>
+                <div
+                  ref={setPaginationSentinelNode}
+                  className="pagination-container__sentinel"
+                  aria-hidden="true"
                 />
-              </nav>
-              <div
-                ref={setPaginationSentinelNode}
-                className="pagination-container__sentinel"
-                aria-hidden="true"
-              />
-            </>
-          )}
-        </div>
-      ) : isTitleFilterEmpty ? (
-        <div className="empty-state">
-          <CatalogSearchEmpty
-            description={TITLE_FILTER_EMPTY_DESCRIPTION}
-            onResetFilters={handleSearchClear}
-            resetLabel="Очистить поиск"
-            actionIcon={titleFilterClearIcon}
-          />
-        </div>
-      ) : (
-        <div className="empty-state">
-          <CatalogSearchEmpty
-            description={LIST_EMPTY_DESCRIPTION}
-            onResetFilters={onResetFilters}
-          />
-        </div>
-      )}
+              </>
+            )}
+          </div>
+        ) : isTitleFilterEmpty ? (
+          <div className="empty-state">
+            <CatalogSearchEmpty
+              description={TITLE_FILTER_EMPTY_DESCRIPTION}
+              onResetFilters={handleSearchClear}
+              resetLabel="Очистить поиск"
+              actionIcon={titleFilterClearIcon}
+            />
+          </div>
+        ) : (
+          <div className="empty-state">
+            <CatalogSearchEmpty
+              description={LIST_EMPTY_DESCRIPTION}
+              onResetFilters={onResetFilters}
+            />
+          </div>
+        )}
+      </CatalogResultsFade>
     </Flex>
   );
 };

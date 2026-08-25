@@ -8,10 +8,6 @@
   min-width: 0;
   padding-block: $space-5 $space-6;
   padding-inline: 0;
-
-  @media (prefers-reduced-motion: no-preference) {
-    animation: catalog-showcase-enter 280ms ease-out both;
-  }
 }
 
 .catalog-showcase--loading {
@@ -502,28 +498,11 @@
   }
 }
 
-@keyframes catalog-showcase-enter {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 @keyframes catalog-showcase-shimmer {
   0% {
     background-position: 100% 0;
   }
   100% {
     background-position: -100% 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .catalog-showcase {
-    animation: none;
   }
 }

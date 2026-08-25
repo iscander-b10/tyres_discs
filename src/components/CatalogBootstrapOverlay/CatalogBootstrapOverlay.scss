@@ -10,6 +10,13 @@
   padding: $space-5;
   background: $color-overlay-gate;
   cursor: default;
+  opacity: 1;
+  transition: opacity 280ms ease-out;
+}
+
+.catalog-bootstrap-overlay--exit {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .catalog-bootstrap-overlay__panel {
@@ -75,6 +82,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .catalog-bootstrap-overlay {
+    transition: none;
+  }
+
   .catalog-bootstrap-overlay__bar :global(.ant-progress-bg) {
     transition: none;
   }

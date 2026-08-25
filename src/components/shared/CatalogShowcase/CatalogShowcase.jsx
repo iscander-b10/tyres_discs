@@ -29,6 +29,8 @@ const CatalogShowcase = ({
     catalogDataVersion = 0,
     catalogSnapshotVersion = '',
     workspaceResetKey = 'guest',
+    catalogBootstrap,
+    notifyCatalogSurfaceReady,
   } = useAppShell();
   const [status, setStatus] = useState('loading');
   const [showcase, setShowcase] = useState(null);
@@ -88,6 +90,21 @@ const CatalogShowcase = ({
       ? SHOWCASE_CONFIG.copy.popularModels
       : SHOWCASE_CONFIG.copy.seasonHits;
 
+  // Cold-start пустого IDB закрывает шторка AppShell; здесь Empty не показываем.
+  const showSkeleton =
+    status === 'loading' || (status === 'ready' && showcase?.empty);
+  const bootstrapPhase = catalogBootstrap?.phase;
+  const surfaceSettled =
+    status === 'error' ||
+    (status === 'ready' && !showcase?.empty) ||
+    (status === 'ready' &&
+      (bootstrapPhase === 'ready' || bootstrapPhase === 'idle'));
+
+  useEffect(() => {
+    if (!surfaceSettled) return;
+    notifyCatalogSurfaceReady?.();
+  }, [surfaceSettled, notifyCatalogSurfaceReady]);
+
   if (status === 'error') {
     return (
       <div className="catalog-showcase catalog-showcase--empty" role="status">
@@ -95,10 +112,6 @@ const CatalogShowcase = ({
       </div>
     );
   }
-
-  // Cold-start пустого IDB закрывает шторка AppShell; здесь Empty не показываем.
-  const showSkeleton =
-    status === 'loading' || (status === 'ready' && showcase?.empty);
 
   return (
     <div

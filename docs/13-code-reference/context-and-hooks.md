@@ -159,9 +159,11 @@ Sync; сначала ищет mapping по accountId, затем по normalized
 | `clientMode` / `setClientMode` | Режим клиента (скрытие B2B) |
 | `catalogDataVersion` | Bump → поиск/showcase перечитывают IDB |
 | `catalogSnapshotVersion` | Версия последнего apply |
-| `catalogBootstrap` | `{ phase: 'idle' \| 'blocking' \| 'ready' \| 'error', progress, label, error? }` — cold-start шторка |
+| `catalogBootstrap` | `{ phase: 'idle' \| 'blocking' \| 'ready' \| 'error', progress, label, error?, waitForShowcase? }` — cold-start шторка; `waitForShowcase` только на пустом IDB |
 | `setCatalogBootstrap` | Host выставляет blocking/ready/error |
 | `registerCatalogBootstrapRetry` / `retryCatalogBootstrap` | «Повторить» на шторке |
+| `notifyCatalogSurfaceReady` | Активная витрина сообщает, что полки settled |
+| `catalogSurfaceHold` | Держит opacity зоны результатов, пока cold-start шторка не начнёт exit |
 | `bumpCatalogDataVersion` | После snapshot commit |
 | `notifyCatalogApplied(version)` | От channel / sync host |
 | `sessionResetKey` | Увеличивается при клике по бренду; `App.js` использует его в React key поисковых панелей |
@@ -169,7 +171,7 @@ Sync; сначала ищет mapping по accountId, затем по normalized
 | `continueSelection` / `handleBrandClick` | Nav helpers для landing |
 | `lastBackgroundPath` | Return path для dual-mount |
 
-**Side effects:** `clientMode` в localStorage; `useLayoutEffect` вызывает `setActiveStore`/`invalidateActiveStore` и сбрасывает `catalogBootstrap` при смене workspace; подписка на catalog channel обновляет версии; `CatalogBootstrapOverlay` порталится на `document.body` при `blocking`/`error`. **Страница:** [AppShell state](/03-routing-shell/app-shell-state).
+**Side effects:** `clientMode` в localStorage; `useLayoutEffect` вызывает `setActiveStore`/`invalidateActiveStore` и сбрасывает `catalogBootstrap` при смене workspace; подписка на catalog channel обновляет версии; `CatalogBootstrapOverlay` порталится на `document.body` при `blocking`/`error` и на cold start держится до settled витрины, затем opacity 280ms. **Страница:** [AppShell state](/03-routing-shell/app-shell-state).
 
 ---
 

@@ -37,12 +37,16 @@ export function createBlockingBootstrap(progress = 0) {
   };
 }
 
-export function createReadyBootstrap() {
-  return {
+export function createReadyBootstrap({ waitForShowcase = false } = {}) {
+  const ready = {
     phase: 'ready',
     progress: 100,
     label: '',
   };
+  if (waitForShowcase) {
+    ready.waitForShowcase = true;
+  }
+  return ready;
 }
 
 export function createErrorBootstrap(error, progress = 0) {
@@ -66,6 +70,13 @@ export function normalizeCatalogBootstrap(update, current = CATALOG_BOOTSTRAP_ID
   const normalized = { phase, progress, label };
   if (phase === 'error' && next.error) {
     normalized.error = String(next.error);
+  }
+  const waitForShowcase =
+    typeof next.waitForShowcase === 'boolean'
+      ? next.waitForShowcase
+      : phase !== 'idle' && Boolean(current.waitForShowcase);
+  if (waitForShowcase) {
+    normalized.waitForShowcase = true;
   }
   return normalized;
 }

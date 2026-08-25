@@ -1,8 +1,13 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import CatalogBootstrapOverlay from './CatalogBootstrapOverlay';
+import { CATALOG_SURFACE_FADE_MS } from '../shared/CatalogResultsFade/catalogSurfaceFade';
 
 describe('CatalogBootstrapOverlay', () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   test('не рендерится на idle и ready (warm start)', () => {
     const { rerender } = render(
       <CatalogBootstrapOverlay
@@ -116,5 +121,83 @@ describe('CatalogBootstrapOverlay', () => {
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Повторить' }));
     expect(retry).toHaveBeenCalledTimes(1);
+  });
+
+  test('ready без waitForShowcase снимает шторку сразу', () => {
+    const { rerender } = render(
+      <CatalogBootstrapOverlay
+        catalogBootstrap={{
+          phase: 'blocking',
+          progress: 0,
+          label: 'Загружаем каталог шин и дисков',
+        }}
+      />
+    );
+    expect(screen.getByTestId('catalog-bootstrap-overlay')).toBeInTheDocument();
+
+    rerender(
+      <CatalogBootstrapOverlay
+        catalogBootstrap={{ phase: 'ready', progress: 100, label: '' }}
+      />
+    );
+    expect(
+      screen.queryByTestId('catalog-bootstrap-overlay')
+    ).not.toBeInTheDocument();
+  });
+
+  test('waitForShowcase держит шторку до готовой витрины, затем гаснет', () => {
+    jest.useFakeTimers();
+    const onRevealSurface = jest.fn();
+    const { rerender } = render(
+      <CatalogBootstrapOverlay
+        catalogBootstrap={{
+          phase: 'blocking',
+          progress: 40,
+          label: 'Загружаем каталог шин и дисков',
+          waitForShowcase: true,
+        }}
+        holdUntilSurface
+        onRevealSurface={onRevealSurface}
+      />
+    );
+
+    rerender(
+      <CatalogBootstrapOverlay
+        catalogBootstrap={{
+          phase: 'ready',
+          progress: 100,
+          label: '',
+          waitForShowcase: true,
+        }}
+        holdUntilSurface
+        onRevealSurface={onRevealSurface}
+      />
+    );
+    expect(screen.getByTestId('catalog-bootstrap-overlay')).toBeInTheDocument();
+    expect(onRevealSurface).not.toHaveBeenCalled();
+
+    rerender(
+      <CatalogBootstrapOverlay
+        catalogBootstrap={{
+          phase: 'ready',
+          progress: 100,
+          label: '',
+          waitForShowcase: true,
+        }}
+        holdUntilSurface={false}
+        onRevealSurface={onRevealSurface}
+      />
+    );
+    expect(onRevealSurface).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('catalog-bootstrap-overlay')).toHaveClass(
+      'catalog-bootstrap-overlay--exit'
+    );
+
+    act(() => {
+      jest.advanceTimersByTime(CATALOG_SURFACE_FADE_MS);
+    });
+    expect(
+      screen.queryByTestId('catalog-bootstrap-overlay')
+    ).not.toBeInTheDocument();
   });
 });

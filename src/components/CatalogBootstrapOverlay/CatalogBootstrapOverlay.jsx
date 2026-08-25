@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { Button, Progress } from 'antd';
 import {
@@ -8,26 +8,38 @@ import {
   isCatalogBytesLabel,
   isCatalogWaitingLabel,
 } from '../../app/catalogBootstrap';
+import {
+  CATALOG_SURFACE_FADE_MS,
+  prefersCatalogSurfaceFadeInstant,
+} from '../shared/CatalogResultsFade/catalogSurfaceFade';
 import './CatalogBootstrapOverlay.scss';
 
 const APP_ROOT_ID = 'root';
 
-function isOverlayVisible(phase) {
+function isOverlayForcedOpen(phase) {
   return phase === 'blocking' || phase === 'error';
 }
 
 function CatalogBootstrapOverlay({
   catalogBootstrap,
   retryCatalogBootstrap,
+  holdUntilSurface = false,
+  onRevealSurface,
 }) {
   const panelRef = useRef(null);
   const retryRef = useRef(null);
   const previousFocusRef = useRef(null);
+  const revealRef = useRef(onRevealSurface);
+  revealRef.current = onRevealSurface;
   const phase = catalogBootstrap?.phase || 'idle';
   const progress = Math.max(0, Math.min(100, Number(catalogBootstrap?.progress) || 0));
   const label = catalogBootstrap?.label || '';
   const error = catalogBootstrap?.error;
-  const visible = isOverlayVisible(phase);
+  const open = isOverlayForcedOpen(phase) || holdUntilSurface;
+  const waitForShowcase = Boolean(catalogBootstrap?.waitForShowcase);
+  const renderRef = useRef(open);
+  const [render, setRender] = useState(open);
+  const [exiting, setExiting] = useState(false);
   const isError = phase === 'error';
   const percent = Math.floor(progress);
   const displayPercent = Math.min(99, percent);
@@ -39,7 +51,33 @@ function CatalogBootstrapOverlay({
       : label || CATALOG_BOOTSTRAP_LOADING_LABEL;
 
   useEffect(() => {
-    if (!visible) return undefined;
+    if (open) {
+      renderRef.current = true;
+      setRender(true);
+      setExiting(false);
+      return undefined;
+    }
+    if (!renderRef.current) return undefined;
+
+    revealRef.current?.();
+    if (prefersCatalogSurfaceFadeInstant() || !waitForShowcase) {
+      renderRef.current = false;
+      setRender(false);
+      setExiting(false);
+      return undefined;
+    }
+
+    setExiting(true);
+    const timer = window.setTimeout(() => {
+      renderRef.current = false;
+      setRender(false);
+      setExiting(false);
+    }, CATALOG_SURFACE_FADE_MS);
+    return () => window.clearTimeout(timer);
+  }, [open, waitForShowcase]);
+
+  useEffect(() => {
+    if (!render) return undefined;
 
     previousFocusRef.current = document.activeElement;
     const appRoot = document.getElementById(APP_ROOT_ID);
@@ -92,15 +130,20 @@ function CatalogBootstrapOverlay({
       if (appRoot) appRoot.inert = false;
       previousFocusRef.current?.focus?.();
     };
-  }, [visible, isError]);
+  }, [render, isError]);
 
-  if (!visible || typeof document === 'undefined' || !document.body) {
+  if (!render || typeof document === 'undefined' || !document.body) {
     return null;
   }
 
   return ReactDOM.createPortal(
     <div
-      className="catalog-bootstrap-overlay"
+      className={[
+        'catalog-bootstrap-overlay',
+        exiting ? 'catalog-bootstrap-overlay--exit' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
       data-testid="catalog-bootstrap-overlay"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) event.preventDefault();

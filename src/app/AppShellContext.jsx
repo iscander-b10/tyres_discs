@@ -10,7 +10,7 @@ import React, {
 } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { DEFAULT_APP_HOME, PATHS } from './paths';
+import { DEFAULT_APP_HOME, PATHS, pageFromPathname } from './paths';
 import { subscribeCatalogApplied } from '../services/catalogSync/catalogSyncChannel';
 import indexedDBService from '../services/indexedDBService';
 import CatalogBootstrapOverlay from '../components/CatalogBootstrapOverlay/CatalogBootstrapOverlay';
@@ -47,6 +47,7 @@ export function AppShellProvider({ children }) {
   const [lastBackgroundPath, setLastBackgroundPath] = useState(DEFAULT_APP_HOME);
   const lastAppliedVersionRef = useRef('');
   const catalogBootstrapRetryRef = useRef(null);
+  const catalogSurfaceReadyRef = useRef(false);
   const workspaceResetKey = isWorkspaceReady
     ? `${workspace.accountId}:${workspace.storeId}`
     : 'guest';
@@ -54,14 +55,19 @@ export function AppShellProvider({ children }) {
   const [catalogBootstrap, setCatalogBootstrapState] = useState(
     CATALOG_BOOTSTRAP_IDLE
   );
+  const [catalogSurfaceReady, setCatalogSurfaceReady] = useState(false);
+  const [catalogSurfaceReleased, setCatalogSurfaceReleased] = useState(true);
 
   useLayoutEffect(() => {
     const currentWorkspace = isWorkspaceReady ? workspace : null;
     activeWorkspaceRef.current = currentWorkspace;
     lastAppliedVersionRef.current = '';
+    catalogSurfaceReadyRef.current = false;
     setCatalogSnapshotVersion('');
     setCatalogDataVersion((version) => version + 1);
     setCatalogBootstrapState({ ...CATALOG_BOOTSTRAP_IDLE });
+    setCatalogSurfaceReady(false);
+    setCatalogSurfaceReleased(true);
 
     if (currentWorkspace?.storeId) {
       indexedDBService.setActiveStore(currentWorkspace.storeId);
@@ -155,6 +161,16 @@ export function AppShellProvider({ children }) {
     catalogBootstrapRetryRef.current?.();
   }, []);
 
+  const notifyCatalogSurfaceReady = useCallback(() => {
+    if (catalogSurfaceReadyRef.current) return;
+    catalogSurfaceReadyRef.current = true;
+    setCatalogSurfaceReady(true);
+  }, []);
+
+  const releaseCatalogSurface = useCallback(() => {
+    setCatalogSurfaceReleased(true);
+  }, []);
+
   const notifyCatalogApplied = useCallback(
     (version, storeId = activeWorkspaceRef.current?.storeId) => {
       if (
@@ -194,7 +210,37 @@ export function AppShellProvider({ children }) {
     }, subscribedWorkspace.storeId);
   }, [bumpCatalogDataVersion, isWorkspaceReady, workspace]);
 
+  useEffect(() => {
+    const phase = catalogBootstrap.phase;
+    if (phase === 'idle') {
+      catalogSurfaceReadyRef.current = false;
+      setCatalogSurfaceReady(false);
+      setCatalogSurfaceReleased(true);
+      return;
+    }
+    if (phase === 'blocking' && catalogBootstrap.waitForShowcase) {
+      catalogSurfaceReadyRef.current = false;
+      setCatalogSurfaceReady(false);
+      setCatalogSurfaceReleased(false);
+    }
+  }, [catalogBootstrap.phase, catalogBootstrap.waitForShowcase]);
+
   const effectiveClientMode = isAuthenticated ? clientMode : true;
+  const catalogPage = pageFromPathname(pathname);
+  const onCatalogPage = catalogPage === 'tyres' || catalogPage === 'wheels';
+  const waitForShowcase = Boolean(catalogBootstrap.waitForShowcase);
+  const holdUntilSurface =
+    waitForShowcase &&
+    catalogBootstrap.phase === 'ready' &&
+    onCatalogPage &&
+    !catalogSurfaceReady;
+  const catalogSurfaceHold =
+    waitForShowcase &&
+    onCatalogPage &&
+    !catalogSurfaceReleased &&
+    (catalogBootstrap.phase === 'blocking' ||
+      catalogBootstrap.phase === 'error' ||
+      catalogBootstrap.phase === 'ready');
 
   const value = useMemo(
     () => ({
@@ -210,6 +256,8 @@ export function AppShellProvider({ children }) {
       setCatalogBootstrap,
       registerCatalogBootstrapRetry,
       retryCatalogBootstrap,
+      notifyCatalogSurfaceReady,
+      catalogSurfaceHold,
       sessionResetKey,
       workspaceResetKey,
       lastBackgroundPath,
@@ -227,6 +275,8 @@ export function AppShellProvider({ children }) {
       setCatalogBootstrap,
       registerCatalogBootstrapRetry,
       retryCatalogBootstrap,
+      notifyCatalogSurfaceReady,
+      catalogSurfaceHold,
       sessionResetKey,
       workspaceResetKey,
       lastBackgroundPath,
@@ -239,6 +289,8 @@ export function AppShellProvider({ children }) {
       <CatalogBootstrapOverlay
         catalogBootstrap={catalogBootstrap}
         retryCatalogBootstrap={retryCatalogBootstrap}
+        holdUntilSurface={holdUntilSurface}
+        onRevealSurface={releaseCatalogSurface}
       />
     </AppShellContext.Provider>
   );

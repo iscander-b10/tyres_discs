@@ -112,10 +112,12 @@ flowchart LR
 | `catalogSnapshotVersion` | string, `''` | applied notification/channel | reconciliation/showcase | RAM |
 | `bumpCatalogDataVersion` | callback | hosts/consumers | sync bridge | нет |
 | `notifyCatalogApplied` | callback | `CatalogSyncHost` | sync host | нет |
-| `catalogBootstrap` | `{ phase, progress, label, error? }`; `phase`: `'idle' \| 'blocking' \| 'ready' \| 'error'`; старт `{ phase: 'idle', progress: 0, label: '' }` | `setCatalogBootstrap`, workspace layout reset | `CatalogBootstrapOverlay`, `CatalogShowcase`, `CatalogSyncHost` | RAM |
+| `catalogBootstrap` | `{ phase, progress, label, error?, waitForShowcase? }`; `phase`: `'idle' \| 'blocking' \| 'ready' \| 'error'`; старт `{ phase: 'idle', progress: 0, label: '' }` | `setCatalogBootstrap`, workspace layout reset | `CatalogBootstrapOverlay`, `CatalogShowcase`, `CatalogSyncHost` | RAM |
 | `setCatalogBootstrap` | callback | `CatalogSyncHost` | sync host | нет |
 | `registerCatalogBootstrapRetry` | `(fn) => unsubscribe` | `CatalogSyncHost` | sync host | нет |
 | `retryCatalogBootstrap` | callback | overlay «Повторить» | overlay | нет |
+| `notifyCatalogSurfaceReady` | callback | активная `CatalogShowcase` после settled полок | overlay wait | нет |
+| `catalogSurfaceHold` | boolean | AppShell: cold-start wait | `CatalogResultsFade` в поисковых формах | нет |
 | `sessionResetKey` | number, `0` | brand click | `AppFrame` keys | RAM |
 | `workspaceResetKey` | string | производное от Auth | `AppFrame`, search | RAM |
 | `lastBackgroundPath` | path, `/tyres` | pathname effect | сейчас production-consumer отсутствует | RAM |
@@ -276,13 +278,15 @@ Cleanup возвращает unsubscribe из `subscribeCatalogApplied`.
 | `ready` | нет | локальный каталог не пуст, либо cold-start snapshot уже применён |
 | `error` | да, с текстом и «Повторить» | cold start не удался (offline, HTTP, validation, disabled) |
 
-`CatalogSyncHost` в `useLayoutEffect` ставит `blocking` до paint витрины. Затем читает `indexedDBService.isCatalogEmpty()`: пустой каталог остаётся в `blocking` и качает **один** snapshot шин и дисков, затем прогревает RAM обеих категорий; непустой сразу переходит в `ready` и дальше синхронизируется тихо (слот, visibility, online — без шторки и без overlay warmup). Stale store и abort не переводят phase в `error`. Ожидание lock на пустой базе — всё ещё `blocking`, не `error`.
+`CatalogSyncHost` в `useLayoutEffect` ставит `blocking` до paint витрины. Затем читает `indexedDBService.isCatalogEmpty()`: пустой каталог остаётся в `blocking`, ставит `waitForShowcase: true` и качает **один** snapshot шин и дисков, затем прогревает RAM обеих категорий; непустой сразу переходит в `ready` без `waitForShowcase` и дальше синхронизируется тихо (слот, visibility, online — без шторки и без overlay warmup). Stale store и abort не переводят phase в `error`. Ожидание lock на пустой базе — всё ещё `blocking`, не `error`.
 
 Прогресс монотонный 0–99, пока phase не `ready`. Числа и подпись приходят из `catalogBootstrap.progress` / `label` (новые поля в AppShell не заводятся): meta ≈ 0–3%, download — основная доля, затем parse, apply и `warmup` («Готовим витрину», шины затем диски). Если `Content-Length` виден и согласован со stream, бар следует байтам; если нет — крупно показываются мегабайты, а бар идёт коридором ≈ 5–80%, без «N% от файла». Вторая вкладка с пустой IDB ждёт writer: label «Каталог загружается в другой вкладке», progress 0, не error. `setInterval` и откат процента запрещены; 100 появляется только на `ready` после commit и прогрева RAM.
 
-`CatalogBootstrapOverlay` рендерится из `AppShellProvider` порталом на `document.body`. Это не Ant Design Modal: клик по маске и Escape не закрывают шторку. z-index (`--z-catalog-bootstrap`: 1300) выше хедера и ModeToggle. Фон `--color-overlay-gate` темнее `--color-overlay-strong`. Бар и крупный процент используют `--color-accent`, не `--color-cta`. Ошибка cold start показывается в шторке, кнопка «Повторить» вызывает `retryCatalogBootstrap`.
+`CatalogBootstrapOverlay` рендерится из `AppShellProvider` порталом на `document.body`. Это не Ant Design Modal: клик по маске и Escape не закрывают шторку. z-index (`--z-catalog-bootstrap`: 1300) выше хедера и ModeToggle. Фон `--color-overlay-gate` темнее `--color-overlay-strong`. Бар и крупный процент используют `--color-accent`, не `--color-cta`. Ошибка cold start показывается в шторке, кнопка «Повторить» вызывает `retryCatalogBootstrap`. Focus trap, `inert` на `#root` и `overflow: hidden` на `body` держатся, пока шторка смонтирована, включая 280ms exit.
 
-**Тесты:** [`src/app/AppShellContext.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/app/AppShellContext.test.jsx), [`src/components/CatalogBootstrapOverlay/CatalogBootstrapOverlay.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/components/CatalogBootstrapOverlay/CatalogBootstrapOverlay.test.jsx), [`src/services/catalogSync/CatalogSyncHost.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/services/catalogSync/CatalogSyncHost.test.jsx).
+**Снятие UI-шторки ≠ `phase: 'ready'`.** Sync-контракт прежний: warmup RAM, затем `notifyCatalogApplied`, затем `phase: 'ready'`. На cold start (`waitForShowcase`) overlay не unmount-ится по одному `ready`: активная `CatalogShowcase` должна стать settled (полки + чипы, не skeleton/`loading`). Тогда overlay гаснет opacity 280ms ease-out, и в тот же жест зона результатов проявляется целиком. Warm start (`ready` без `waitForShowcase`) снимает шторку сразу, без ожидания витрины и без лишнего fade сайта. На `error` шторка остаётся. Скрытая dual-mount панель не становится `isActive` из-за шторки и не шлёт `notifyCatalogSurfaceReady`. На `/basket` ждать витрину не нужно: overlay уходит по `ready`.
+
+**Тесты:** [`src/app/AppShellContext.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/app/AppShellContext.test.jsx), [`src/components/CatalogBootstrapOverlay/CatalogBootstrapOverlay.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/components/CatalogBootstrapOverlay/CatalogBootstrapOverlay.test.jsx), [`src/services/catalogSync/CatalogSyncHost.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/services/catalogSync/CatalogSyncHost.test.jsx), [`src/components/shared/CatalogShowcase/CatalogShowcase.bootstrap.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/components/shared/CatalogShowcase/CatalogShowcase.bootstrap.test.jsx).
 
 ## `useAppShell()`
 
@@ -370,6 +374,8 @@ React Context передаёт новое `value` всем consumers. `useMemo` 
 8. Не возвращать unsubscribe/cleanup и получить дублированные channel callbacks в StrictMode.
 9. Считать витрину владельцем cold-start и показать Empty «Каталог ещё загружается» вместо шторки AppShell.
 10. Показать шторку на warm start (непустой IDB) или toast на фоновый autosync.
+11. Снимать overlay по одному `phase: 'ready'` на cold start и показать skeleton вспышкой.
+12. Включить скрытую dual-mount панель (`isActive=true`) только чтобы дождаться витрины дисков.
 
 ## Связанные страницы
 

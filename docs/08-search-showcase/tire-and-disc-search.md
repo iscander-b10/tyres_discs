@@ -103,10 +103,13 @@ showSpikesFilter = selectedSeason === 'w'
 ```
 Form (всегда)
 ├─ Alert errorSearch, если есть
-├─ showShowcase && isActive → CatalogShowcase kind="tires"
-├─ showSearchEmpty → CatalogSearchEmptyHint
-└─ showSearchResults → PaginatedCardsList
+└─ CatalogResultsFade (opacity 280ms, delayed unmount)
+   ├─ showShowcase && isActive → CatalogShowcase kind="tires"
+   ├─ showSearchEmpty → CatalogSearchEmptyHint
+   └─ showSearchResults → PaginatedCardsList
 ```
+
+Смены витрина ↔ empty ↔ список — целиком, без stagger полок/карточек и без translate. `prefers-reduced-motion: reduce` — мгновенная смена.
 
 ### Ant Design
 

@@ -317,7 +317,7 @@ isTitleFilterEmpty → CatalogSearchEmpty (`.empty-state`) + «Очистить 
 else → CatalogSearchEmpty (`.empty-state`) + onResetFilters
 ```
 
-Обе empty-ветки списка: `min-height: 420px`, контент в верхней трети — тот же ритм, что у `CatalogSearchEmptyHint`. Title-filter empty чистит локальный поиск по названию (`handleSearchClear`), не форму фильтров.
+Обе empty-ветки списка: `min-height: 420px`, контент в верхней трети — тот же ритм, что у `CatalogSearchEmptyHint`. Title-filter empty чистит локальный поиск по названию (`handleSearchClear`), не форму фильтров. Сетка и title-filter empty меняются через `CatalogResultsFade` (opacity 280ms на весь блок, без stagger карточек). Toolbar «Поиск по названию» не анимируется.
 
 Пустой source (`items = []`) — запасной путь: родители обычно показывают `CatalogSearchEmptyHint` вместо списка.
 

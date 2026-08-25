@@ -215,6 +215,7 @@ describe('CatalogSyncHost workspace lifecycle', () => {
     });
 
     expect(bootstrap.phase).toBe('blocking');
+    expect(bootstrap.waitForShowcase).toBe(true);
     expect(checkAndSyncCatalog).toHaveBeenCalledWith(
       expect.objectContaining({
         storeId: 'store-a',
@@ -235,7 +236,9 @@ describe('CatalogSyncHost workspace lifecycle', () => {
       expect.objectContaining({ tires: true, discs: true })
     );
     expect(bootstrap.phase).toBe('ready');
+    expect(bootstrap.waitForShowcase).toBe(true);
     expect(bootstrap.progress).toBe(100);
+    expect(bootstrap.waitForShowcase).toBe(true);
   });
 
   test('onProgress cold start обновляет progress и label в AppShell', async () => {
@@ -315,6 +318,7 @@ describe('CatalogSyncHost workspace lifecycle', () => {
     });
 
     expect(bootstrap.phase).toBe('ready');
+    expect(bootstrap.waitForShowcase).toBeUndefined();
     expect(checkAndSyncCatalog).toHaveBeenCalledWith(
       expect.objectContaining({
         storeId: 'store-a',

@@ -13,7 +13,7 @@
 | `LandingPage` | `src/components/LandingPage/LandingPage.jsx` | Маркетинговая главная | — | [Продукт](/00-overview/product-and-users) |
 | `ScrollToTop` | `src/components/ScrollToTop/ScrollToTop.jsx` | Сброс scroll при route change | `useLocation` | [Маршруты](/03-routing-shell/routes-and-login-modal) |
 | `ModeToggle` | `src/components/ModeToggle/ModeToggle.jsx` | Переключатель менеджер/клиент | `useAppShell` | [Режим клиента](/10-ui/basket-and-client-mode) |
-| `CatalogBootstrapOverlay` | `src/components/CatalogBootstrapOverlay/CatalogBootstrapOverlay.jsx` | Полноэкранная шторка cold start | props из AppShell | [AppShell](/03-routing-shell/app-shell-state) |
+| `CatalogBootstrapOverlay` | `src/components/CatalogBootstrapOverlay/CatalogBootstrapOverlay.jsx` | Полноэкранная шторка cold start; exit opacity 280ms после settled витрины | props из AppShell | [AppShell](/03-routing-shell/app-shell-state) |
 | `ThemeSwitch` | `src/components/shared/ThemeSwitch/ThemeSwitch.jsx` | Светлая/тёмная тема | props `appearance`, `onAppearanceChange` | [Тема](/10-ui/theme-and-shell-components) |
 
 ### `SiteHeader`
@@ -74,7 +74,8 @@ export default function LoginPage()
 `mapDiscFormValuesToSearchFilters` → facade
 `indexedDBService.searchTires` / `searchDiscs` (реализация делегируется
 singleton `catalogIdbSession`). При `searchResults === null` панель рендерит
-`CatalogShowcase`. Витрина читает тот же RAM-кэш, что поиск.
+`CatalogShowcase`. Смены витрина / empty / список идут через shared
+`CatalogResultsFade` (opacity 280ms, delayed unmount). Витрина читает тот же RAM-кэш, что поиск.
 
 **Тесты:** `TiresSearchParameters.searchRace.test.jsx`, `DiscsSearchParameters.searchRace.test.jsx`.
 
@@ -86,11 +87,12 @@ singleton `catalogIdbSession`). При `searchResults === null` панель р�
 
 | Компонент | Путь | Основные props | Страница |
 | --- | --- | --- | --- |
-| `CatalogShowcase` | `shared/CatalogShowcase/CatalogShowcase.jsx` | `kind`, `renderCard`, `onChipClick`; пустой store → skeleton, без Empty catalog-empty | [Showcase](/08-search-showcase/showcase-selection) |
+| `CatalogShowcase` | `shared/CatalogShowcase/CatalogShowcase.jsx` | `kind`, `renderCard`, `onChipClick`; пустой store → skeleton, без Empty catalog-empty; `notifyCatalogSurfaceReady` когда полки settled | [Showcase](/08-search-showcase/showcase-selection) |
 | `ShowcaseShelf` | `shared/CatalogShowcase/ShowcaseShelf.jsx` | `title`, `items`, `renderCard`, `skeleton` | [UI каталога](/10-ui/catalog-components) |
 | `ShowcaseSizeChips` | `shared/CatalogShowcase/ShowcaseSizeChips.jsx` | `chips`, `onChipClick` | [Showcase](/08-search-showcase/showcase-selection) |
 | `CatalogSearchEmpty` | `shared/CatalogShowcase/CatalogSearchEmpty.jsx` | `title`, `description`, `onResetFilters`, `actionIcon` | [UI каталога](/10-ui/catalog-components) |
 | `CatalogSearchEmptyHint` | `shared/CatalogShowcase/CatalogSearchEmptyHint.jsx` | `kind`, `onResetFilters`, `onChipClick` | [UI каталога](/10-ui/catalog-components) |
+| `CatalogResultsFade` | `shared/CatalogResultsFade/CatalogResultsFade.jsx` | `viewKey`, `hold`; opacity 280ms, delayed unmount | [Поиск](/08-search-showcase/tire-and-disc-search) |
 | `CatalogItemCard` | `shared/CatalogItemCard/CatalogItemCard.jsx` | `item`, `category`, `isClientMode` | [UI каталога](/10-ui/catalog-components) |
 | `CatalogItemModalWindow` | `shared/CatalogItemModalWindow/...` | `isOpen`, `item`, `category` | [UI каталога](/10-ui/catalog-components) |
 | `CatalogPriceStrip` | `shared/CatalogPriceStrip/...` | `item`, `isClientMode` | [UI каталога](/10-ui/catalog-components) |

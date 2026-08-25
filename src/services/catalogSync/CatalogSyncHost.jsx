@@ -102,12 +102,17 @@ export function CatalogSyncHost() {
         phase: 'blocking',
         progress: nextBlockingProgress(current?.progress, event?.progress),
         label: labelFromSyncProgress(event, current?.label),
+        ...(current?.waitForShowcase ? { waitForShowcase: true } : {}),
       }));
     };
 
     const markReady = () => {
       blockingColdStart = false;
-      setBootstrap(createReadyBootstrap());
+      setBootstrap((current) =>
+        createReadyBootstrap({
+          waitForShowcase: Boolean(current?.waitForShowcase),
+        })
+      );
     };
 
     const markError = (error) => {
@@ -189,11 +194,12 @@ export function CatalogSyncHost() {
           onProgress: blockingColdStart ? applySyncProgress : undefined,
           onLockWaiting: blockingColdStart
             ? () => {
-                setBootstrap({
+                setBootstrap((current) => ({
                   phase: 'blocking',
                   progress: 0,
                   label: CATALOG_BOOTSTRAP_WAITING_LABEL,
-                });
+                  ...(current?.waitForShowcase ? { waitForShowcase: true } : {}),
+                }));
               }
             : undefined,
         });
@@ -237,7 +243,12 @@ export function CatalogSyncHost() {
         return;
       }
       blockingColdStart = true;
-      applySyncProgress({ phase: 'meta', progress: 0 });
+      setBootstrap((current) => ({
+        phase: 'blocking',
+        progress: nextBlockingProgress(current?.progress, 0),
+        label: labelFromSyncProgress({ phase: 'meta' }, current?.label),
+        waitForShowcase: true,
+      }));
       if (!configured) {
         markError(resolveCatalogBootstrapError({ status: 'disabled' }));
         return;
@@ -248,7 +259,10 @@ export function CatalogSyncHost() {
     retryRef.current = () => {
       if (!isCurrent() || syncing) return;
       blockingColdStart = true;
-      setBootstrap(createBlockingBootstrap(0));
+      setBootstrap({
+        ...createBlockingBootstrap(0),
+        waitForShowcase: true,
+      });
       run('retry');
     };
 

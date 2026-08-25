@@ -8,6 +8,7 @@ import CatalogItemCard from '../shared/CatalogItemCard/CatalogItemCard';
 import PaginatedCardsList from '../shared/PaginatedCardsList/PaginatedCardsList';
 import CatalogShowcase from '../shared/CatalogShowcase';
 import CatalogSearchEmptyHint from '../shared/CatalogShowcase/CatalogSearchEmptyHint';
+import CatalogResultsFade from '../shared/CatalogResultsFade/CatalogResultsFade';
 import HoverTooltip from '../shared/HoverTooltip';
 import SupplierFilterSelect from '../shared/SupplierFilterSelect';
 import {
@@ -49,6 +50,7 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
     clientMode: isClientMode,
     catalogDataVersion = 0,
     workspaceResetKey = 'guest',
+    catalogSurfaceHold = false,
   } = useAppShell();
   const [form] = Form.useForm();
   const [loadingSearch, setLoadingSearch] = useState(false);
@@ -393,6 +395,13 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
     Array.isArray(searchResults) && searchResults.length === 0 && !loadingSearch;
   const showSearchResults =
     Array.isArray(searchResults) && searchResults.length > 0;
+  const resultsViewKey = showShowcase
+    ? 'showcase'
+    : showSearchEmpty
+      ? 'empty'
+      : showSearchResults
+        ? 'results'
+        : 'none';
 
   return (
     <div className="discs-search-parameters">
@@ -671,33 +680,35 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
         />
       ) : null}
 
-      {showShowcase && isActive ? (
-        <CatalogShowcase
-          kind="discs"
-          renderCard={renderCatalogCard}
-          onChipClick={handleShowcaseChipClick}
-        />
-      ) : null}
+      <CatalogResultsFade viewKey={resultsViewKey} hold={catalogSurfaceHold}>
+        {showShowcase && isActive ? (
+          <CatalogShowcase
+            kind="discs"
+            renderCard={renderCatalogCard}
+            onChipClick={handleShowcaseChipClick}
+          />
+        ) : null}
 
-      {showSearchEmpty ? (
-        <CatalogSearchEmptyHint
-          kind="discs"
-          onResetFilters={handleResetFilters}
-          onChipClick={handleShowcaseChipClick}
-        />
-      ) : null}
+        {showSearchEmpty ? (
+          <CatalogSearchEmptyHint
+            kind="discs"
+            onResetFilters={handleResetFilters}
+            onChipClick={handleShowcaseChipClick}
+          />
+        ) : null}
 
-      {showSearchResults ? (
-        <PaginatedCardsList
-          items={searchResults}
-          isClientMode={isClientMode}
-          searchResetKey={searchResetKey}
-          containerClassName="items-list-container"
-          gridClassName="items-grid"
-          onResetFilters={handleResetFilters}
-          renderCard={renderCatalogCard}
-        />
-      ) : null}
+        {showSearchResults ? (
+          <PaginatedCardsList
+            items={searchResults}
+            isClientMode={isClientMode}
+            searchResetKey={searchResetKey}
+            containerClassName="items-list-container"
+            gridClassName="items-grid"
+            onResetFilters={handleResetFilters}
+            renderCard={renderCatalogCard}
+          />
+        ) : null}
+      </CatalogResultsFade>
     </div>
   );
 });

@@ -199,8 +199,8 @@ await checkAndSyncCatalog({
 
 **Cold start vs warm start.** В `useLayoutEffect` host ставит `catalogBootstrap.phase = 'blocking'`, чтобы до commit snapshot пользователь видел только шторку, а не рабочий сайт. Затем `isCatalogEmpty()`:
 
-- `true` — шторка остаётся, скачивается один snapshot шин и дисков. `onProgress` обновляет `catalogBootstrap.progress` и `label`: meta ≈ 0–3%, download — основная доля, затем parse и apply. После успешного apply (или `up-to-date`, если снимок уже положила другая вкладка) host вызывает `warmupCatalogReadCache({ tires: true, discs: true })` — фаза «Готовим витрину», два шага. Только потом `notifyCatalogApplied` и `phase: 'ready'`. Если writer lock занят, шторка остаётся, label «Каталог загружается в другой вкладке», download % не имитируется. Когда lock отпущен, tab догоняет persisted version/channel и снимает шторку; waiting ≠ error;
-- `false` — phase сразу `ready`, overlay нет, warmup не вызывается, дальше тихий autosync без обязательного UI-прогресса (слот, visibility, online);
+- `true` — шторка остаётся, скачивается один snapshot шин и дисков. `onProgress` обновляет `catalogBootstrap.progress` и `label`: meta ≈ 0–3%, download — основная доля, затем parse и apply. После успешного apply (или `up-to-date`, если снимок уже положила другая вкладка) host вызывает `warmupCatalogReadCache({ tires: true, discs: true })` — фаза «Готовим витрину», два шага. Только потом `notifyCatalogApplied` и `phase: 'ready'` с `waitForShowcase: true`. Overlay UI при этом ещё не снимается: ждёт settled витрину (полки, не skeleton), затем opacity 280ms. Если writer lock занят, шторка остаётся, label «Каталог загружается в другой вкладке», download % не имитируется. Когда lock отпущен, tab догоняет persisted version/channel; waiting ≠ error;
+- `false` — phase сразу `ready` без `waitForShowcase`, overlay нет, warmup не вызывается, дальше тихий autosync без обязательного UI-прогресса (слот, visibility, online);
 - ошибка чтения IDB трактуется как пустой каталог (нельзя доказать, что он не пуст).
 
 `offline`, HTTP, validation и `disabled` на пустом каталоге ставят `phase: 'error'` с текстом в шторке и кнопкой «Повторить». Progress не маскирует эту ошибку. `{status:'skipped', error:'aborted'|'stale store'}` общую ошибку не показывают. Фоновый sync после `ready` шторку и toast не открывает.
@@ -229,7 +229,7 @@ await checkAndSyncCatalog({
 
 ### Первая загрузка
 
-IDB version пустая, каталог пуст. Даже если localStorage содержит старую cloudVersion, она не участвует в решении. Пользователь видит полноэкранную шторку (`phase: 'blocking'`), а не рабочий сайт. Host получает meta, скачивает snapshot, валидирует его и коммитит. Затем прогревает RAM шин и дисков, UI получает persisted version, bootstrap становится `ready`, шторка снимается, витрина читает уже тёплый кэш. Empty «Каталог ещё загружается» в витрине нет.
+IDB version пустая, каталог пуст. Даже если localStorage содержит старую cloudVersion, она не участвует в решении. Пользователь видит полноэкранную шторку (`phase: 'blocking'`), а не рабочий сайт. Host получает meta, скачивает snapshot, валидирует его и коммитит. Затем прогревает RAM шин и дисков, UI получает persisted version, bootstrap становится `ready`. Шторка UI держится, пока активная витрина не соберёт полки (не skeleton), затем гаснет вместе с fade-in зоны результатов. Empty «Каталог ещё загружается» в витрине нет.
 
 ### Повторный запуск
 
@@ -287,7 +287,7 @@ Fatal validation report блокирует вызов IDB. Service пишет `c
 
 - `catalogSyncService.test.js`: validation до IDB, нормализация, localStorage/broadcast только после commit, persisted version как gate, пустой каталог, store isolation, stale store, stream progress с/без Content-Length, abort посреди stream, gzip/total mismatch и onProgress на up-to-date.
 - `catalogSyncService.commitBoundary.test.js`: реальные транзакции через `fake-indexeddb`, rollback при abort, отсутствие side effects при invalid snapshot, supplier-scoped purge.
-- `CatalogSyncHost.test.jsx`: ожидание готового workspace, abort/изоляция старого магазина, UI bump по persisted version, подавление slot в hidden-вкладке, empty → blocking затем ready, non-empty → ready без шторки, onProgress → progress/label, warmup до notify, waiting lock без download %, offline на пустом каталоге → error, stale/abort без общей ошибки.
+- `CatalogSyncHost.test.jsx`: ожидание готового workspace, abort/изоляция старого магазина, UI bump по persisted version, подавление slot в hidden-вкладке, empty → blocking затем ready с `waitForShowcase`, non-empty → ready без шторки и без `waitForShowcase`, onProgress → progress/label, warmup до notify, waiting lock без download %, offline на пустом каталоге → error, stale/abort без общей ошибки.
 - `catalogSyncLock.integration.test.js`: два параллельных запуска скачивают snapshot один раз.
 
 Тесты не доказывают доступность реального API, поведение браузера при длительном suspend вкладки или восстановление после исчерпания quota.

@@ -122,7 +122,7 @@ describe('TiresSearchParameters search races', () => {
       latest.resolve([{ id: 'new', title: 'Новый результат' }]);
       await latest.promise;
     });
-    expect(screen.getByText('Новый результат')).toBeInTheDocument();
+    expect(await screen.findByText('Новый результат')).toBeInTheDocument();
 
     await act(async () => {
       stale.resolve([{ id: 'old', title: 'Устаревший результат' }]);
@@ -287,7 +287,7 @@ describe('TiresSearchParameters search races', () => {
       await pending.promise;
     });
 
-    expect(screen.getByText('Найденная шина')).toBeInTheDocument();
+    expect(await screen.findByText('Найденная шина')).toBeInTheDocument();
     expect(screen.queryByTestId('tires-showcase')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Найти' })).not.toHaveClass(
       'ant-btn-loading'
