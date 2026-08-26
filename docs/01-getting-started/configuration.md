@@ -36,8 +36,10 @@
 | `REACT_APP_CATALOG_API_BASE` | Отдельный base для catalog meta/snapshot; если пуст — fallback на `CORS_PROXY` |
 | `REACT_APP_STORE_ID` | Default storeId для workspace |
 | `REACT_APP_STORE_MAP` | JSON map accountId/login → storeId |
+| `REACT_APP_DEMO_SNAPSHOT_URL` | Необязательно: внешний URL frozen snapshot, если JSON не в `public/demo/` |
+| `REACT_APP_DEMO_META_URL` | Необязательно: URL `meta.json` с полем `bytes` для прогресса шторки |
 
-Без `REACT_APP_CATALOG_API_BASE` / `REACT_APP_CORS_PROXY` autosync **выключен** (`isCatalogSyncConfigured` → false).
+Без `REACT_APP_CATALOG_API_BASE` / `REACT_APP_CORS_PROXY` **staff** autosync **выключен** (`isCatalogSyncConfigured` → false). Публичное демо `/demo` от этого не зависит: по умолчанию читает `public/demo/snapshot.json` через `PUBLIC_URL`. Значения URL в docs не приводятся. How-to снимка: [Обновить frozen demo snapshot](/14-development/update-demo-snapshot).
 
 Для локального сравнения с GitHub Pages (`npm run start:prod`) задайте те же имена `REACT_APP_*` (CORS/catalog/store), что вшиваете в Pages-сборку. Значения — только в локальных env-файлах, не в docs. См. [Dev vs production](/01-getting-started/dev-production-deploy).
 
@@ -100,3 +102,4 @@ flowchart TB
 - [Dev vs production](/01-getting-started/dev-production-deploy)
 - [Client auth](/04-auth/client-auth-model)
 - [Frontend autosync](/06-catalog-sync/frontend-autosync)
+- [Обновить frozen demo snapshot](/14-development/update-demo-snapshot)

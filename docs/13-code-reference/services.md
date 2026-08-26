@@ -19,7 +19,7 @@ Production runtime каталога: **sync → validation → IDB**. Legacy sup
 | **Внутренние вызовы** | `withCatalogSyncLock`, `validateAndNormalizeCatalogSnapshot`, `applyCatalogSnapshot`, indexedDBService |
 | **Ошибки** | `404`/пустой ответ → `skipped`; network, JSON, validation или IDB failure → log + `error`; abort/stale store → `skipped` |
 | **Прогресс** | опциональный `onProgress({ phase, receivedBytes, totalBytes, progress })` на meta / download / parse / apply; `onLockWaiting` когда writer занят; snapshot читается stream-ом; исключение callback не валит sync |
-| **Кто вызывает** | `CatalogSyncHost`, tests |
+| **Кто вызывает** | `CatalogSyncHost`, `DemoCatalogHost` (через `fetchCatalogSnapshot`), tests |
 | **Тесты** | `catalogSyncService.test.js`, `catalogSyncService.commitBoundary.test.js` |
 | **Страница** | [Frontend autosync](/06-catalog-sync/frontend-autosync) |
 
@@ -58,6 +58,27 @@ BroadcastChannel + storage event fallback для multi-tab. **Тесты:** `cat
 | `getCatalogStoreId(storeId)` | Нормализованный `storeId` с fallback |
 | `CATALOG_SYNC_CHECK_SLOTS` | Расписание проверок МСК |
 | `msUntilNextSyncCheck(now?)` | ms до ближайшего слота |
+| `fetchCatalogSnapshot(url, options)` | Stream download snapshot; `onProgress` с байтами |
+| `downloadProgressPercent(received, total)` | 0–99 при известном total |
+| `SYNC_PROGRESS` | Константы фаз прогресса |
+
+---
+
+## 1b. Demo catalog — `src/services/demoCatalog/`
+
+### `loadFrozenDemoCatalog(options?)`
+
+| | |
+| --- | --- |
+| **Путь** | `demoCatalogService.js` |
+| **Назначение** | Скачать frozen JSON + meta, validate, один IDB commit, warmup |
+| **Сеть** | Static `PUBLIC_URL/demo/` или `REACT_APP_DEMO_*_URL`; не live `/v2/catalog/{storeId}` |
+| **Прогресс** | `% = receivedBytes / meta.bytes`; overlay с `hideBytesLabel` |
+| **Кто вызывает** | `DemoCatalogHost` |
+| **Тесты** | `demoCatalogService.test.js`, `DemoCatalogHost.test.jsx` |
+| **Страница** | [Frontend autosync](/06-catalog-sync/frontend-autosync), [how-to](/14-development/update-demo-snapshot) |
+
+Helpers: `resolveDemoSnapshotUrl`, `resolveDemoMetaUrl`, `formatDemoCatalogDate`.
 
 ---
 
@@ -151,18 +172,24 @@ Pure; используется transformers и UI price strip.
 
 ```mermaid
 flowchart LR
-  Host[CatalogSyncHost]
+  StaffHost[CatalogSyncHost]
+  DemoHost[DemoCatalogHost]
   Svc[catalogSyncService]
+  DemoSvc[loadFrozenDemoCatalog]
   Val[validateAndNormalize]
   Lock[withCatalogSyncLock]
   IDB[catalogIdbSession]
   Ch[postCatalogApplied]
 
-  Host --> Svc
+  StaffHost --> Svc
   Svc --> Lock
   Svc --> Val
   Svc --> IDB
   Svc --> Ch
+  DemoHost --> DemoSvc
+  DemoSvc --> Svc
+  DemoSvc --> Val
+  DemoSvc --> IDB
 ```
 
 ## Связанные страницы

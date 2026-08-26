@@ -12,7 +12,7 @@ flowchart TB
   Shell[AppShellProvider]
   Cart[CartProvider]
   Auth --> Shell --> Cart
-  Cart --> Hosts[CatalogSyncHost + CartReconciliationHost]
+  Cart --> Hosts[DemoCatalogHost или CatalogSyncHost + CartReconciliationHost]
   Cart --> Routes[App routes]
 ```
 
@@ -31,10 +31,10 @@ flowchart TB
 
 | Поле | Тип | Назначение |
 | --- | --- | --- |
-| `isAuthenticated` | `boolean` | Есть workspace |
-| `isReady` | `boolean` | Restore завершён |
-| `isWorkspaceReady` | `boolean` | Auth restore завершён и workspace существует |
-| `workspace` | `{ login, accountId, storeId } \| null` | Текущий workspace |
+| `isAuthenticated` | `boolean` | Есть **staff** session (`staffWorkspace`), не demo-path |
+| `isReady` | `boolean` | Restore staff-сессии завершён |
+| `isWorkspaceReady` | `boolean` | Demo-path **или** restore завершён и есть staff workspace |
+| `workspace` | `{ login, accountId, storeId } \| null` | На `/demo*` всегда `DEMO_WORKSPACE`; иначе staff |
 | `signIn` | `(email, password) => Promise<boolean>` | UI-обёртка session login + workspace |
 | `login` | `string \| null` | Нормализованный login текущего workspace |
 | `logout` | `() => void` | session.logout + reset state |
@@ -45,7 +45,7 @@ flowchart TB
 - **Generation guard:** `generationRef` для race-safe async.
 - **Хранилище:** `localStorage` через `session.js`.
 
-`AuthProvider` не активирует IndexedDB. Привязка `workspace.storeId` к IDB выполняется в `AppShellProvider`, который расположен ниже Auth в дереве Provider.
+`AuthProvider` не активирует IndexedDB. Привязка `workspace.storeId` к IDB выполняется в `AppShellProvider`, который расположен ниже Auth в дереве Provider. На `/demo*` публикует `DEMO_WORKSPACE` (нужен Router: `useLocation`).
 
 ### Кто вызывает
 
@@ -212,11 +212,12 @@ Sync; сначала ищет mapping по accountId, затем по normalized
 
 | Export | Назначение |
 | --- | --- |
-| `PATHS`, `DEFAULT_APP_HOME`, `ROUTER_BASENAME` | Константы маршрутов |
+| `PATHS`, `DEFAULT_APP_HOME`, `DEFAULT_DEMO_HOME`, `ROUTER_BASENAME` | Константы маршрутов, включая `/demo*` |
 | `isLoginQueryOpen`, `stripLoginQuery` | Query `?login=1` |
-| `resolvePostLoginPath`, `resolveLoginDismissPath` | Безопасный redirect |
+| `resolvePostLoginPath`, `resolveLoginDismissPath` | Безопасный redirect; post-login не возвращает `/demo*` |
 | `isSafeRelativePath` | Open-redirect guard |
-| `pageFromPathname`, `isMarketingPath`, `isAppPath` | Классификация URL |
+| `pageFromPathname`, `isMarketingPath`, `isAppPath`, `isDemoPath`, `isStaffAppPath` | Классификация URL |
+| `toAppPath`, `appHomePath` | Staff vs demo-пути одной страницы |
 
 **Кто вызывает:** `App.js`, `LoginPage`, tests. **Тесты:** `paths.test.js`. **Страница:** [Маршруты](/03-routing-shell/routes-and-login-modal).
 
@@ -226,10 +227,19 @@ Sync; сначала ищет mapping по accountId, затем по normalized
 
 | Export | Назначение |
 | --- | --- |
-| `isDemo` | Флаг demo из env |
-| `canUseApp` | Доступность staff UI |
+| `isDemo(pathname)` | Prefix `/demo`; не env и не константа модуля |
+| `canUseApp(isAuthenticated, pathname)` | Staff session **или** demo-path |
 
-**Страница:** [Ограничения](/00-overview/constraints-and-non-goals).
+**Тесты:** `appMode.test.js`. **Страница:** [AppShell](/03-routing-shell/app-shell-state), [ADR-009](/adr/009-demo-url-frozen-snapshot).
+
+## demoWorkspace.js
+
+| Export | Назначение |
+| --- | --- |
+| `DEMO_WORKSPACE` | `{ login, accountId, storeId } = 'demo'` |
+| `DEMO_STORE_ID` | `'demo'` |
+
+**Страница:** [Клиентская модель auth](/04-auth/client-auth-model).
 
 ## Связанные страницы
 

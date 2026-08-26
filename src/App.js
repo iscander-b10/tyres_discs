@@ -17,6 +17,7 @@ import {
   LOGIN_QUERY_VALUE,
   PATHS,
   ROUTER_BASENAME,
+  isDemoPath,
   isLoginQueryOpen,
   loginRedirectState,
   pageFromPathname,
@@ -33,7 +34,9 @@ import LoginPage from './components/LoginPage/LoginPage';
 import LandingPage from './components/LandingPage/LandingPage';
 import ModeToggle from './components/ModeToggle/ModeToggle';
 import ScrollToTop from './components/ScrollToTop/ScrollToTop';
+import DemoCatalogBanner from './components/DemoCatalogBanner/DemoCatalogBanner';
 import { CatalogSyncHost } from './services/catalogSync/CatalogSyncHost';
+import { DemoCatalogHost } from './services/demoCatalog/DemoCatalogHost';
 import './App.scss';
 
 function LoginRedirect() {
@@ -66,7 +69,8 @@ function LoginRouteRedirect() {
 
 function RequireAuth() {
   const { isAuthenticated } = useAuth();
-  if (!canUseApp(isAuthenticated)) {
+  const { pathname } = useLocation();
+  if (!canUseApp(isAuthenticated, pathname)) {
     return <LoginRedirect />;
   }
   return null;
@@ -74,7 +78,8 @@ function RequireAuth() {
 
 function BasketGuard() {
   const { isAuthenticated } = useAuth();
-  if (!canUseApp(isAuthenticated)) {
+  const { pathname } = useLocation();
+  if (!canUseApp(isAuthenticated, pathname)) {
     return <Navigate to={PATHS.home} replace />;
   }
   return null;
@@ -83,7 +88,8 @@ function BasketGuard() {
 /** Auth users never reside on marketing `/` — app home is `/tyres`. */
 function HomeRoute() {
   const { isAuthenticated } = useAuth();
-  if (canUseApp(isAuthenticated)) {
+  const { pathname } = useLocation();
+  if (canUseApp(isAuthenticated, pathname)) {
     return <Navigate to={DEFAULT_APP_HOME} replace />;
   }
   return null;
@@ -93,14 +99,18 @@ function UnmatchedRoute() {
   return <Navigate to={PATHS.home} replace />;
 }
 
+function UnmatchedDemoRoute() {
+  return <Navigate to={PATHS.demoTyres} replace />;
+}
+
 function AppFrame({ appearance = 'light', onAppearanceChange }) {
   const { sessionResetKey, workspaceResetKey } = useAppShell();
   const { isAuthenticated } = useAuth();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  // TODO phase 3: isDemo from appMode — demo URL, JSON catalog
-  const appEnabled = canUseApp(isAuthenticated);
-  const isLoginOpen = isLoginQueryOpen(searchParams);
+  const demo = isDemoPath(location.pathname);
+  const appEnabled = canUseApp(isAuthenticated, location.pathname);
+  const isLoginOpen = !demo && isLoginQueryOpen(searchParams);
   const isHome = location.pathname === PATHS.home;
   const showLanding = !appEnabled && (isHome || isLoginOpen);
   const showCatalog = appEnabled && !showLanding;
@@ -121,6 +131,7 @@ function AppFrame({ appearance = 'light', onAppearanceChange }) {
                 <LandingPage />
               ) : (
                 <>
+                  {showCatalog && demo ? <DemoCatalogBanner /> : null}
                   {showCatalog ? (
                     <>
                       <div
@@ -184,12 +195,14 @@ function AppFrame({ appearance = 'light', onAppearanceChange }) {
 
 function WorkspaceHosts() {
   const { isWorkspaceReady, workspace } = useAuth();
+  const { pathname } = useLocation();
   if (!isWorkspaceReady || !workspace) return null;
 
   const workspaceKey = `${workspace.accountId}:${workspace.storeId}`;
+  const demo = isDemoPath(pathname);
   return (
     <React.Fragment key={workspaceKey}>
-      <CatalogSyncHost />
+      {demo ? <DemoCatalogHost /> : <CatalogSyncHost />}
       <CartReconciliationHost />
     </React.Fragment>
   );
@@ -197,7 +210,8 @@ function WorkspaceHosts() {
 
 function AppReady({ children }) {
   const { isReady } = useAuth();
-  if (!isReady) return null;
+  const { pathname } = useLocation();
+  if (!isReady && !isDemoPath(pathname)) return null;
   return children;
 }
 
@@ -217,6 +231,13 @@ export function AppRoutes({ appearance = 'light', onAppearanceChange }) {
         <Route path="wheels" element={<RequireAuth />} />
         <Route path="basket" element={<BasketGuard />} />
         <Route path="login" element={<LoginRouteRedirect />} />
+        <Route path="demo">
+          <Route index element={<Navigate to={PATHS.demoTyres} replace />} />
+          <Route path="tyres" element={null} />
+          <Route path="wheels" element={null} />
+          <Route path="basket" element={null} />
+          <Route path="*" element={<UnmatchedDemoRoute />} />
+        </Route>
       </Route>
       <Route path="*" element={<UnmatchedRoute />} />
     </Routes>

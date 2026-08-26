@@ -184,6 +184,7 @@ const sidebar = [
       { text: 'Добавить поставщика', link: '/14-development/add-new-supplier' },
       { text: 'Изменить IndexedDB', link: '/14-development/change-indexeddb' },
       { text: 'Изменить catalog sync', link: '/14-development/change-catalog-sync' },
+      { text: 'Обновить demo snapshot', link: '/14-development/update-demo-snapshot' },
       { text: 'GitHub Pages', link: '/12-operations/github-pages' },
       { text: 'Yandex Cloud', link: '/12-operations/yandex-runbook' },
       { text: 'Troubleshooting', link: '/14-development/troubleshooting' },
@@ -216,6 +217,7 @@ const sidebar = [
       { text: '006 Dual-mount catalog', link: '/adr/006-dual-mount-catalog' },
       { text: '007 Cart envelope v3', link: '/adr/007-cart-envelope-v3' },
       { text: '008 Web Locks и вкладки', link: '/adr/008-web-locks-multitab' },
+      { text: '009 Demo URL и frozen snapshot', link: '/adr/009-demo-url-frozen-snapshot' },
     ],
   },
 ];

@@ -71,7 +71,7 @@ src/index.js
       └─ AuthProvider
          └─ AppShellProvider
             └─ CartProvider
-               ├─ CatalogSyncHost
+               ├─ DemoCatalogHost (только `/demo*`) или CatalogSyncHost
                ├─ CartReconciliationHost
                └─ маршруты и AppFrame
 ```
@@ -187,8 +187,8 @@ docs/
 - `system-context` — Browser, GitHub Pages, Yandex и поставщики; Yandex configs и root app.
 - `frontend-provider-tree` — порядок providers и причины зависимостей; `index.js`, `App.js`, Context.
 - `end-to-end-data-flow` — поставщик → snapshot → IDB → UI → cart.
-- `routes-and-login-modal` — матрица маршрутов, guards и безопасный redirect; `App.js`, `paths.js`, routing tests.
-- `app-shell-state` — каждое поле Context и владелец состояния; `AppShellContext.jsx`.
+- `routes-and-login-modal` — матрица маршрутов, guards и безопасный redirect; `App.js`, `paths.js`, routing tests. Включает дерево `/demo*`.
+- `app-shell-state` — каждое поле Context и владелец состояния; `AppShellContext.jsx`. `isDemo(pathname)` / `canUseApp`.
 - `dual-mount-catalog` — `hidden`, `inert`, reset и catch-up; `App.js`, оба SearchParameters и dual-mount tests.
 
 ### Авторизация
@@ -202,8 +202,8 @@ docs/
 - `indexeddb-schema` — имя базы, stores, indexes и metadata.
 - `queries-filters-facets` — equality index hint, cursor, JS post-filter и каскадные facets.
 - `lifecycle-and-migration` — active store, generation, close и legacy database migration.
-- `frontend-autosync` — start/visible/online/scheduled triggers, статусы и version gate.
-- `snapshot-protocol-validation` — wire schema, команды, fatal/warning и normalization.
+- `frontend-autosync` — start/visible/online/scheduled triggers, статусы и version gate. На `/demo*` — `DemoCatalogHost` и frozen JSON, не этот путь.
+- `snapshot-protocol-validation` — wire schema, команды, fatal/warning и normalization. Демо использует тот же schemaVersion 1.
 - `locks-and-channels` — Web Locks, lease, BroadcastChannel и storage fallback.
 - `yandex-catalog-sync` — Timer, upstream, partial success, storage keys и handler.
 
@@ -223,13 +223,14 @@ docs/
 - `catalog-reconciliation` — read-before-add и обновление после snapshot.
 - `catalog-components` — Card, Modal, AddToCart, PriceStrip, PromoBadges и pagination.
 - `basket-and-client-mode` — BasketPage, totals и B2B/client visibility.
-- `theme-and-shell-components` — appearance, ConfigProvider, Header, Footer и Tooltip.
+- `theme-and-shell-components` — appearance, ConfigProvider, Header, Footer и Tooltip. Скрытие «Войти» на `/demo*`.
 - `test-strategy` — инструменты, mocks, fake-indexeddb и CI.
 - `contract-catalog` — трассировка инвариантов к тестам.
-- `github-pages` — homepage, basename, `404.html` и `.nojekyll` основного приложения.
+- `github-pages` — homepage, basename, `404.html` и `.nojekyll` основного приложения; deep link `/demo`.
 - `yandex-runbook` — безопасная эксплуатация Function, Timer, bucket и Gateway.
 - `logging-and-diagnostics` — appLog codes, sanitization и cloud logs.
-- `adr/index` — индекс решений, альтернатив и последствий.
+- `update-demo-snapshot` — how-to снять frozen JSON (`npm run demo:freeze`); рантайм файл не обновляет.
+- `adr/index` — индекс решений, альтернатив и последствий. ADR-009 — demo URL + frozen snapshot.
 
 ## 7. Необходимые Mermaid-диаграммы
 
@@ -263,6 +264,7 @@ docs/
 | --- | --- |
 | Bootstrap и тема | `install-and-scripts`, `frontend-provider-tree`, `theme-and-shell-components`, `github-pages` |
 | Routing и AppShell | `routes-and-login-modal`, `app-shell-state`, `dual-mount-catalog` |
+| Публичное демо `/demo*` | `routes-and-login-modal`, `frontend-autosync`, `update-demo-snapshot`, `adr/009-demo-url-frozen-snapshot` |
 | Auth/session/crypto/workspace/logout | `client-auth-model`, `session-crypto-workspace`, `races-and-logout` |
 | IndexedDB | `indexeddb-schema`, `queries-filters-facets`, `lifecycle-and-migration` |
 | Catalog Sync и snapshot | `frontend-autosync`, `snapshot-protocol-validation`, `locks-and-channels`, `yandex-catalog-sync` |
@@ -281,7 +283,7 @@ docs/
 
 - `App`, `AppRoutes`, `AppFrame`, `WorkspaceHosts`;
 - `AuthProvider`, `AppShellProvider`, `CartProvider`;
-- `CatalogSyncHost`, `CartReconciliationHost`;
+- `CatalogSyncHost`, `DemoCatalogHost`, `CartReconciliationHost`;
 - `TiresSearchParameters`, `DiscsSearchParameters`;
 - `CatalogShowcase`;
 - `AddToCartControl`;
@@ -303,6 +305,7 @@ docs/
 - auth: session, crypto, fingerprint, workspace и logout coordination;
 - cart: storage, sync, migration, reconciliation и domain utils;
 - catalog sync: service, validation, lock, channel и host;
+- demo catalog: frozen snapshot host и `loadFrozenDemoCatalog`;
 - catalog IDB: schema, session, queries, filters, facets и validation;
 - showcase: facade, builders, scoring, season selection и seed;
 - supplier adapters и общие transformers;
@@ -359,6 +362,7 @@ P1:
 18. Частичный сбой поставщика с `keepPrevious`.
 19. Переключение режима клиента/менеджера и темы.
 20. Диагностика ошибки по безопасному коду `appLog`.
+21. Публичное демо `/demo`: frozen snapshot, шторка только с %, без live autosync.
 
 ## 13. Планируемые ADR
 
@@ -385,7 +389,7 @@ P1:
 21. Закрытие legacy gateway routes ответом 403.
 22. Два proxy-пути для малых и больших upstream-ответов.
 
-Отдельный ADR создаётся только после повторной проверки решения и альтернатив. Пока этот список означает **«Планируется»**.
+Отдельный ADR создаётся только после повторной проверки решения и альтернатив. Пока этот список означает **«Планируется»**, кроме уже принятых ADR-001…008 и **ADR-009** (demo URL + frozen snapshot без live sync).
 
 ## 14. Обнаруженные противоречия
 

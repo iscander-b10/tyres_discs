@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAppShell } from '../../app/AppShellContext';
 import {
   CATALOG_BOOTSTRAP_WAITING_LABEL,
@@ -11,6 +12,7 @@ import {
   resolveCatalogBootstrapError,
 } from '../../app/catalogBootstrap';
 import { useAuth } from '../../auth/AuthContext';
+import { isDemoPath } from '../../app/paths';
 import indexedDBService from '../indexedDBService';
 import {
   checkAndSyncCatalog,
@@ -54,6 +56,7 @@ export function CatalogSyncHost() {
     registerCatalogBootstrapRetry,
   } = useAppShell();
   const { isWorkspaceReady, workspace } = useAuth();
+  const { pathname } = useLocation();
   const notifyRef = useRef(notifyCatalogApplied);
   notifyRef.current = notifyCatalogApplied;
   const setBootstrapRef = useRef(setCatalogBootstrap);
@@ -69,7 +72,7 @@ export function CatalogSyncHost() {
 
   useEffect(() => {
     const storeId = workspace?.storeId;
-    if (!isWorkspaceReady || !storeId) {
+    if (!isWorkspaceReady || !storeId || isDemoPath(pathname)) {
       return undefined;
     }
 
@@ -276,7 +279,7 @@ export function CatalogSyncHost() {
       document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('online', onOnline);
     };
-  }, [isWorkspaceReady, workspace?.storeId]);
+  }, [isWorkspaceReady, pathname, workspace?.storeId]);
 
   return null;
 }

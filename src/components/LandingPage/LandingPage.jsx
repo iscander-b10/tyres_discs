@@ -7,8 +7,8 @@ import {
   ShoppingCartOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
-import { Button, Card, Flex, Tooltip } from 'antd';
-import { loginLinkTarget } from '../../app/paths';
+import { Button, Card, Flex } from 'antd';
+import { PATHS, loginLinkTarget } from '../../app/paths';
 import { SITE_PHONE } from '../../config/site';
 import './LandingPage.scss';
 
@@ -95,13 +95,11 @@ function LandingPage() {
                 Войти
               </Button>
             </Link>
-            <Tooltip title="Скоро">
-              <span className="landing-page__demo-wrap">
-                <Button size="large" disabled>
-                  Посмотреть демо
-                </Button>
-              </span>
-            </Tooltip>
+            <Link to={PATHS.demo}>
+              <Button size="large">
+                Посмотреть демо
+              </Button>
+            </Link>
           </Flex>
         </div>
       </section>

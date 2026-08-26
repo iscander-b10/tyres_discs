@@ -48,7 +48,7 @@ src/
 ├── components/       UI страницы и shared-компоненты
 ├── config/           site.js — контакты и nav
 ├── icons/            SVG и статичные изображения
-├── services/         IndexedDB, sync, supplier adapters
+├── services/         IndexedDB, sync, demo catalog, supplier adapters
 ├── theme/            appearance (светлая/тёмная)
 └── utils/            fetchSupplier, appLog
 ```
@@ -62,7 +62,7 @@ src/
 | `cart/` | Локальная корзина, независимая от IndexedDB каталога |
 | `catalog/` | Чистая(относительно) доменная логика без JSX страниц |
 | `components/` | То, что рисуется на экране |
-| `services/` | Инфраструктура: сеть, IDB, sync, adapters |
+| `services/` | Инфраструктура: сеть, IDB, sync, demo snapshot, adapters |
 
 Facade `src/services/indexedDBService.js` — это **re-export**, а не основная реализация. Логика живёт в `src/services/catalogIdb/`.
 

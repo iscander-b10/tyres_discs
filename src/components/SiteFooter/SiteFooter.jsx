@@ -8,7 +8,7 @@ import {
   SITE_PRODUCT_NAV,
   SITE_SERVICE_NAV,
 } from '../../config/site';
-import { DEFAULT_APP_HOME, PATHS, loginLinkTarget } from '../../app/paths';
+import { DEFAULT_APP_HOME, PATHS, isDemoPath, loginLinkTarget, toAppPath } from '../../app/paths';
 import { useAppShell } from '../../app/AppShellContext';
 import { useAuth } from '../../auth/AuthContext';
 import HoverTooltip from '../shared/HoverTooltip';
@@ -49,7 +49,12 @@ function SiteFooter() {
   const { handleBrandClick } = useAppShell();
   const { isAuthenticated } = useAuth();
   const location = useLocation();
-  const brandPath = isAuthenticated ? DEFAULT_APP_HOME : PATHS.home;
+  const demo = isDemoPath(location.pathname);
+  const brandPath = demo
+    ? toAppPath(location.pathname, PATHS.tyres)
+    : isAuthenticated
+      ? DEFAULT_APP_HOME
+      : PATHS.home;
   const loginTarget = loginLinkTarget(location);
 
   return (
@@ -66,7 +71,14 @@ function SiteFooter() {
             </Link>
           </div>
 
-          <NavColumn label="Каталог" items={SITE_PRODUCT_NAV} />
+          <NavColumn
+            label="Каталог"
+            items={SITE_PRODUCT_NAV.map((item) =>
+              item.path
+                ? { ...item, path: toAppPath(location.pathname, item.path) }
+                : item
+            )}
+          />
           <NavColumn label="Услуги" items={SITE_SERVICE_NAV} />
 
           <div className="site-footer__col site-footer__col--contacts">
@@ -84,6 +96,7 @@ function SiteFooter() {
             </ul>
           </div>
 
+          {demo ? null : (
           <nav className="site-footer__col" aria-label="Аккаунт">
             <h2 className="site-footer__heading">Аккаунт</h2>
             <ul className="site-footer__list">
@@ -109,6 +122,7 @@ function SiteFooter() {
               </li>
             </ul>
           </nav>
+          )}
         </div>
 
         <p className="site-footer__credit">

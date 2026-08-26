@@ -7,15 +7,20 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { useLocation } from 'react-router-dom';
 import { login as loginSession, logout as logoutSession, restore } from './session';
 import { createWorkspace } from './workspace';
+import { DEMO_WORKSPACE } from '../app/demoWorkspace';
+import { isDemoPath } from '../app/paths';
 import { appLog } from '../utils/appLog';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
+  const { pathname } = useLocation();
+  const demo = isDemoPath(pathname);
   const [isReady, setIsReady] = useState(false);
-  const [workspace, setWorkspace] = useState(null);
+  const [staffWorkspace, setStaffWorkspace] = useState(null);
   const generationRef = useRef(0);
 
   useEffect(() => {
@@ -26,7 +31,7 @@ export function AuthProvider({ children }) {
       .then(async (session) => {
         if (!session || !isCurrent()) return;
         const restoredWorkspace = await createWorkspace(session.login);
-        if (isCurrent()) setWorkspace(restoredWorkspace);
+        if (isCurrent()) setStaffWorkspace(restoredWorkspace);
       })
       .catch((error) => {
         appLog.error({
@@ -38,7 +43,7 @@ export function AuthProvider({ children }) {
         });
         if (isCurrent()) {
           logoutSession();
-          setWorkspace(null);
+          setStaffWorkspace(null);
         }
       })
       .finally(() => {
@@ -64,7 +69,7 @@ export function AuthProvider({ children }) {
       const nextWorkspace = await createWorkspace(session.login);
       if (!isCurrent()) return false;
 
-      setWorkspace(nextWorkspace);
+      setStaffWorkspace(nextWorkspace);
       setIsReady(true);
       return true;
     } catch (error) {
@@ -77,7 +82,7 @@ export function AuthProvider({ children }) {
       });
       if (isCurrent()) {
         logoutSession();
-        setWorkspace(null);
+        setStaffWorkspace(null);
         setIsReady(true);
       }
       return false;
@@ -87,21 +92,25 @@ export function AuthProvider({ children }) {
   const logout = useCallback(() => {
     generationRef.current += 1;
     logoutSession();
-    setWorkspace(null);
+    setStaffWorkspace(null);
     setIsReady(true);
   }, []);
 
+  const workspace = demo ? DEMO_WORKSPACE : staffWorkspace;
+  const isAuthenticated = Boolean(staffWorkspace);
+  const isWorkspaceReady = demo || (isReady && Boolean(staffWorkspace));
+
   const value = useMemo(
     () => ({
-      isAuthenticated: Boolean(workspace),
+      isAuthenticated,
       workspace,
       login: workspace?.login ?? null,
       isReady,
-      isWorkspaceReady: isReady && Boolean(workspace),
+      isWorkspaceReady,
       signIn,
       logout,
     }),
-    [isReady, logout, signIn, workspace]
+    [isAuthenticated, isReady, isWorkspaceReady, logout, signIn, workspace]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

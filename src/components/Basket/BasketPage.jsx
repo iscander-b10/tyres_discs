@@ -3,7 +3,7 @@ import { Button, Checkbox, Spin, Typography } from 'antd';
 import { CloseOutlined } from '@ant-design/icons';
 import { useLocation } from 'react-router-dom';
 import { useAppShell } from '../../app/AppShellContext';
-import { PATHS } from '../../app/paths';
+import { pageFromPathname } from '../../app/paths';
 import { useAuth } from '../../auth/AuthContext';
 import { useCart } from '../../cart/CartContext';
 import {
@@ -34,7 +34,7 @@ function BasketPage() {
   const { clientMode: isClientMode, continueSelection } = useAppShell();
   const { isWorkspaceReady } = useAuth();
   const { pathname } = useLocation();
-  const isActive = pathname === PATHS.basket;
+  const isActive = pageFromPathname(pathname) === 'basket';
   const {
     items,
     isLoaded,

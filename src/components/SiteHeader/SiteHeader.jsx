@@ -4,7 +4,14 @@ import { ShoppingCartOutlined } from '@ant-design/icons';
 import { ReactComponent as PhoneIcon } from '../../icons/Phone.svg';
 import { ReactComponent as UserIcon } from '../../icons/User.svg';
 import { SITE_NAV_ITEMS, SITE_PHONE } from '../../config/site';
-import { DEFAULT_APP_HOME, PATHS, loginLinkTarget } from '../../app/paths';
+import {
+  DEFAULT_APP_HOME,
+  PATHS,
+  appHomePath,
+  isDemoPath,
+  loginLinkTarget,
+  toAppPath,
+} from '../../app/paths';
 import { canUseApp } from '../../app/appMode';
 import { useAppShell } from '../../app/AppShellContext';
 import { useAuth } from '../../auth/AuthContext';
@@ -27,8 +34,9 @@ function SiteHeader({
   const logout = useLogout();
   const { isLoaded, totalQuantity } = useCart();
   const location = useLocation();
+  const demo = isDemoPath(location.pathname);
   const loginTarget = loginLinkTarget(location);
-  const appEnabled = canUseApp(isAuthenticated);
+  const appEnabled = canUseApp(isAuthenticated, location.pathname);
 
   const visibleQuantity =
     isWorkspaceReady && isLoaded ? totalQuantity : 0;
@@ -38,7 +46,11 @@ function SiteHeader({
       : visibleQuantity > 0
         ? String(visibleQuantity)
         : null;
-  const brandPath = appEnabled ? DEFAULT_APP_HOME : PATHS.home;
+  const brandPath = demo
+    ? appHomePath(location.pathname)
+    : appEnabled
+      ? DEFAULT_APP_HOME
+      : PATHS.home;
 
   return (
     <header className="site-header">
@@ -65,7 +77,7 @@ function SiteHeader({
               </a>
             </div>
 
-            {isAuthenticated ? (
+            {demo ? null : isAuthenticated ? (
               <button
                 type="button"
                 className="site-header__icon-btn"
@@ -104,7 +116,7 @@ function SiteHeader({
                     .filter(Boolean)
                     .join(' ')
                 }
-                to={PATHS.basket}
+                to={toAppPath(location.pathname, PATHS.basket)}
                 end
                 aria-label={
                   visibleQuantity > 0
@@ -150,7 +162,7 @@ function SiteHeader({
               return (
                 <NavLink
                   key={item.key}
-                  to={item.path}
+                  to={toAppPath(location.pathname, item.path)}
                   end
                   className={navClassName}
                 >

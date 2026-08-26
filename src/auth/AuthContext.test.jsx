@@ -1,5 +1,6 @@
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
+import { MemoryRouter } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext';
 import { createWorkspace } from './workspace';
 import { login, logout, restore } from './session';
@@ -44,9 +45,11 @@ async function mountAuth() {
 
   await act(async () => {
     root.render(
-      <AuthProvider>
-        <Probe onChange={onChange} />
-      </AuthProvider>
+      <MemoryRouter>
+        <AuthProvider>
+          <Probe onChange={onChange} />
+        </AuthProvider>
+      </MemoryRouter>
     );
   });
 
@@ -157,5 +160,37 @@ describe('AuthContext workspace races', () => {
     expect(harness.api.login).toBe('new@example.com');
     expect(createWorkspace).toHaveBeenCalledTimes(1);
     await harness.unmount();
+  });
+});
+
+describe('AuthContext demo workspace', () => {
+  test('на /demo публикует demo-workspace без verifier и без staff session', async () => {
+    restore.mockReturnValue(new Promise(() => {}));
+    global.IS_REACT_ACT_ENVIRONMENT = true;
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    let api;
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={['/demo/tyres']}>
+          <AuthProvider>
+            <Probe onChange={(next) => { api = next; }} />
+          </AuthProvider>
+        </MemoryRouter>
+      );
+    });
+
+    expect(api.workspace).toEqual({
+      login: 'demo',
+      accountId: 'demo',
+      storeId: 'demo',
+    });
+    expect(api.isAuthenticated).toBe(false);
+    expect(api.isWorkspaceReady).toBe(true);
+    expect(createWorkspace).not.toHaveBeenCalled();
+
+    await act(async () => root.unmount());
+    container.remove();
   });
 });

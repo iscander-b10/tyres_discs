@@ -10,7 +10,14 @@ import React, {
 } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { DEFAULT_APP_HOME, PATHS, pageFromPathname } from './paths';
+import {
+  DEFAULT_APP_HOME,
+  PATHS,
+  appHomePath,
+  isDemoPath,
+  pageFromPathname,
+  toAppPath,
+} from './paths';
 import { subscribeCatalogApplied } from '../services/catalogSync/catalogSyncChannel';
 import indexedDBService from '../services/indexedDBService';
 import CatalogBootstrapOverlay from '../components/CatalogBootstrapOverlay/CatalogBootstrapOverlay';
@@ -86,49 +93,61 @@ export function AppShellProvider({ children }) {
     };
   }, [isWorkspaceReady, workspace]);
 
+  const demo = isDemoPath(pathname);
+
   useEffect(() => {
-    if (pathname === PATHS.tyres || pathname === PATHS.wheels) {
+    const page = pageFromPathname(pathname);
+    if (page === 'tyres' || page === 'wheels') {
       setLastCatalogPath(pathname);
       setLastBackgroundPath(pathname);
       return;
     }
-    if (pathname === PATHS.basket) {
+    if (page === 'basket') {
       setLastBackgroundPath(pathname);
     }
   }, [pathname]);
 
   useEffect(() => {
-    if (!isReady || isAuthenticated) return;
+    if (!isReady || isAuthenticated || isDemoPath(pathname)) return;
     setClientModeState(true);
-  }, [isAuthenticated, isReady]);
+  }, [isAuthenticated, isReady, pathname]);
 
   useEffect(() => {
     if (!isReady) return;
-    const stored = isAuthenticated ? clientMode : true;
+    const stored = isAuthenticated || isDemoPath(pathname) ? clientMode : true;
     try {
       window.localStorage.setItem(CLIENT_MODE_STORAGE_KEY, String(stored));
     } catch {
       /* ignore */
     }
-  }, [clientMode, isAuthenticated, isReady]);
+  }, [clientMode, isAuthenticated, isReady, pathname]);
 
   const setClientMode = useCallback(
     (value) => {
-      if (!isAuthenticated) {
+      if (!isAuthenticated && !isDemoPath(pathname)) {
         setClientModeState(true);
         return;
       }
       setClientModeState(value);
     },
-    [isAuthenticated]
+    [isAuthenticated, pathname]
   );
 
   const continueSelection = useCallback(() => {
-    navigate(lastCatalogPath === PATHS.wheels ? PATHS.wheels : DEFAULT_APP_HOME);
-  }, [lastCatalogPath, navigate]);
+    const lastPage = pageFromPathname(lastCatalogPath);
+    const staffPath = lastPage === 'wheels' ? PATHS.wheels : DEFAULT_APP_HOME;
+    navigate(toAppPath(pathname, staffPath));
+  }, [lastCatalogPath, navigate, pathname]);
 
   const handleBrandClick = useCallback(() => {
     setSessionResetKey((key) => key + 1);
+    if (isDemoPath(pathname)) {
+      const demoHome = appHomePath(pathname);
+      setLastCatalogPath(demoHome);
+      setLastBackgroundPath(demoHome);
+      navigate(demoHome);
+      return;
+    }
     if (isAuthenticated) {
       setLastCatalogPath(DEFAULT_APP_HOME);
       setLastBackgroundPath(DEFAULT_APP_HOME);
@@ -136,7 +155,7 @@ export function AppShellProvider({ children }) {
       return;
     }
     navigate(PATHS.home);
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, pathname]);
 
   const bumpCatalogDataVersion = useCallback(() => {
     setCatalogDataVersion((version) => version + 1);
@@ -225,7 +244,8 @@ export function AppShellProvider({ children }) {
     }
   }, [catalogBootstrap.phase, catalogBootstrap.waitForShowcase]);
 
-  const effectiveClientMode = isAuthenticated ? clientMode : true;
+  const effectiveClientMode =
+    isAuthenticated || demo ? clientMode : true;
   const catalogPage = pageFromPathname(pathname);
   const onCatalogPage = catalogPage === 'tyres' || catalogPage === 'wheels';
   const waitForShowcase = Boolean(catalogBootstrap.waitForShowcase);

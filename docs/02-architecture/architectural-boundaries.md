@@ -83,7 +83,7 @@ Cloud catalog-sync
 | **Active** | `CatalogSyncHost`, `catalogIdbSession`, auth/cart contexts | Основной runtime |
 | **Legacy, но живой** | Миграция старых ключей корзины/auth, закрытые Gateway-маршруты 403 | Нужны для совместимости |
 | **Unused в runtime UI** | `supplierOrchestrator.js` | Не считать текущим путём каталога |
-| **Планируется** | Demo mode (`isDemo`) | Есть TODO/stubs, поведения нет |
+| **Active** | Demo `/demo*` + frozen snapshot | `DemoCatalogHost`, [ADR-009](/adr/009-demo-url-frozen-snapshot) |
 
 ## Client-only auth как граница
 

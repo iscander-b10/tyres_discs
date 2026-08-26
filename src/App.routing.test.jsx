@@ -52,6 +52,7 @@ jest.mock('./components/SiteFooter/SiteFooter', () => () => (
 ));
 jest.mock('./components/ModeToggle/ModeToggle', () => () => null);
 jest.mock('./components/ScrollToTop/ScrollToTop', () => () => null);
+jest.mock('./components/DemoCatalogBanner/DemoCatalogBanner', () => () => null);
 jest.mock('./services/catalogSync/CatalogSyncHost', () => ({
   CatalogSyncHost: () => null,
 }));
@@ -93,6 +94,39 @@ const renderRoutes = (initialEntry, auth = guestAuth) => {
 describe('AppRoutes guards', () => {
   beforeEach(() => {
     window.localStorage.clear();
+  });
+
+  test('гость на /demo и /demo/tyres видит каталог без login', () => {
+    renderRoutes('/demo');
+    expect(screen.getByTestId('location')).toHaveTextContent('/demo/tyres');
+    expect(screen.getByTestId('tires-search')).toBeInTheDocument();
+    expect(screen.queryByTestId('login-page')).not.toBeInTheDocument();
+  });
+
+  test('гость на /demo/tyres остаётся в каталоге', () => {
+    renderRoutes('/demo/tyres');
+    expect(screen.getByTestId('location')).toHaveTextContent('/demo/tyres');
+    expect(screen.getByTestId('tires-search')).toBeInTheDocument();
+    expect(screen.queryByTestId('login-page')).not.toBeInTheDocument();
+  });
+
+  test('гость на /demo/wheels видит диски', () => {
+    renderRoutes('/demo/wheels');
+    expect(screen.getByTestId('location')).toHaveTextContent('/demo/wheels');
+    expect(screen.getByTestId('discs-search')).toBeInTheDocument();
+  });
+
+  test('гость на /demo/basket видит корзину', () => {
+    renderRoutes('/demo/basket');
+    expect(screen.getByTestId('location')).toHaveTextContent('/demo/basket');
+    expect(screen.getByTestId('basket-page')).toBeInTheDocument();
+  });
+
+  test('неизвестный /demo/x уходит на /demo/tyres, не на /', () => {
+    renderRoutes('/demo/x');
+    expect(screen.getByTestId('location')).toHaveTextContent('/demo/tyres');
+    expect(screen.getByTestId('tires-search')).toBeInTheDocument();
+    expect(screen.queryByTestId('landing-page')).not.toBeInTheDocument();
   });
 
   test('гость на /tyres уходит на /?login=1', () => {

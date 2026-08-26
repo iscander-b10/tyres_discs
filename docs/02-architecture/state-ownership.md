@@ -124,9 +124,9 @@ flowchart LR
 - Корзина при logout сохраняется (политика подтверждена тестами `useLogout.cartPolicy`).
 - Active IndexedDB store переключается вместе с `workspace.storeId`.
 
-## Планируется
+## Фактическое поведение (демо)
 
-- Demo mode со своим источником каталога — не реализован, отдельного владельца demo-state нет.
+На `/demo*` владелец workspace — синтетический `DEMO_WORKSPACE` (`storeId=demo`). Каталог пишет `DemoCatalogHost` в IndexedDB `CatalogDatabase.demo`; корзина — envelope `cart.staff.v3.demo.demo`. Staff session на том же origin не читает и не пишет эти namespaces. Live `CatalogSyncHost` на demo-path не монтируется.
 
 ## Известные ограничения
 

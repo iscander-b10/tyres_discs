@@ -31,7 +31,7 @@ npm run deploy
 
 ## SPA fallback
 
-GitHub Pages отдаёт `404.html` на неизвестные пути. Копия `index.html` позволяет client-side routing работать при прямом открытии `/tyres_discs/tyres`.
+GitHub Pages отдаёт `404.html` на неизвестные пути. Копия `index.html` позволяет client-side routing работать при прямом открытии `/tyres_discs/tyres`, `/tyres_discs/demo`, `/tyres_discs/demo/wheels`.
 
 ## Отличие от документации
 
@@ -60,4 +60,5 @@ flowchart LR
 
 - [Сборка](/01-getting-started/dev-production-deploy)
 - [ADR: GitHub Pages](/adr/004-github-pages-spa)
+- [ADR-009: публичное демо](/adr/009-demo-url-frozen-snapshot)
 - [Конфигурация](/01-getting-started/configuration)

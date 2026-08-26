@@ -13,6 +13,7 @@ Snapshot — versioned JSON, который серверный catalog-sync фо
 - `catalogSnapshotValidation.js` — чистый браузерный валидатор/нормализатор.
 - `catalogSyncService.applyCatalogSnapshot` связывает validation, active-store
   race guards, IDB commit, localStorage и broadcast.
+- Публичное демо применяет **тот же** wire snapshot schemaVersion 1 (`public/demo/snapshot.json`); отдельного демо-формата нет.
 - `CatalogIdbSession.applyCatalogSnapshot` применяет уже доверенные команды одной
   readwrite-транзакцией.
 

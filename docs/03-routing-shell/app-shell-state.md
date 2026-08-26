@@ -35,10 +35,10 @@
 
 | Механизм | Значение | Владелец | Текущее состояние |
 | --- | --- | --- | --- |
-| Доступность app surfaces | `canUseApp(isAuthenticated)` | `appMode.js` | доступ есть у auth user; demo выключен |
-| Представление цен/управления | `clientMode` | `AppShellProvider` | auth user может переключать; guest forced client |
+| Доступность app surfaces | `canUseApp(isAuthenticated, pathname)` | `appMode.js` | auth **или** pathname `/demo*` |
+| Представление цен/управления | `clientMode` | `AppShellProvider` | auth и демо могут переключать; guest на `/` forced client |
 
-`appMode.isDemo` не равен `clientMode`. Первый должен в будущем разрешить приложение без session с JSON-каталогом. Второй уже работает и меняет пользовательское представление внутри доступного приложения.
+`isDemo(pathname)` не равен `clientMode`. Первый открывает каталог без staff-сессии на URL `/demo*`. Второй меняет представление цен внутри уже доступного приложения.
 
 ## `isDemo` и `canUseApp`
 
@@ -47,23 +47,22 @@
 ### Контракты
 
 ```js
-export const isDemo = false;
-export function canUseApp(isAuthenticated) {
-  return isAuthenticated || isDemo;
+export function isDemo(pathname) {
+  return isDemoPath(pathname);
+}
+export function canUseApp(isAuthenticated, pathname) {
+  return Boolean(isAuthenticated) || isDemo(pathname);
 }
 ```
 
-- `isDemo`: статическая константа build-time модуля; runtime state и side effects отсутствуют.
-- `canUseApp(isAuthenticated)`: синхронная pure function.
-- Вход: truthy/falsy признак авторизации.
-- Выход: boolean-подобный результат выражения `isAuthenticated || isDemo`; production callers передают boolean.
+- `isDemo(pathname)`: pure function, prefix `/demo`; не env и не константа модуля.
+- `canUseApp(isAuthenticated, pathname)`: app доступно при сессии **или** demo-path.
 - Вызывающие стороны: route guards, `HomeRoute`, `AppFrame`, `SiteHeader`.
+- Запрещено `export const isDemo = true`: тогда `/tyres` открылся бы без пароля.
 
-Алгоритм: если пользователь авторизован, app доступно; иначе возвращается `isDemo`. Сейчас `isDemo=false`, поэтому guest не может открыть каталог.
+Пример: `canUseApp(false, '/tyres') === false`, `canUseApp(false, '/demo/tyres') === true`.
 
-Пример: `canUseApp(false) === false`, `canUseApp(true) === true`.
-
-Отдельного unit-теста `appMode.js` нет. Поведение косвенно подтверждено [`src/App.routing.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/App.routing.test.jsx). Опасно включать `isDemo=true` без реализации источника demo-каталога: guards откроют app surfaces, но `WorkspaceHosts`, IndexedDB store и cart namespace останутся неготовыми.
+**Тест:** [`src/app/appMode.test.js`](https://github.com/iscander-b10/tyres_discs/blob/main/src/app/appMode.test.js), routing tests.
 
 ## `AppShellProvider`
 
@@ -170,23 +169,23 @@ flowchart LR
 
 **Trigger:** `[pathname]`
 
-- `/tyres` и `/wheels` обновляют и `lastCatalogPath`, и `lastBackgroundPath`.
-- `/basket` обновляет только `lastBackgroundPath`.
-- `/`, `/login` и неизвестный path не заменяют последнюю app surface.
+- `/tyres`, `/wheels` и те же страницы под `/demo` обновляют и `lastCatalogPath`, и `lastBackgroundPath`.
+- `/basket` и `/demo/basket` обновляют только `lastBackgroundPath`.
+- `/`, `/login` и неизвестный staff path не заменяют последнюю app surface.
 
 Причина: «продолжить подбор» должно вернуть именно в последний каталог, а login modal может помнить более широкую фоновую поверхность, включая basket.
 
 ### 3. Guest forced client mode
 
-**Trigger:** `[isAuthenticated, isReady]`
+**Trigger:** `[isAuthenticated, isReady, pathname]`
 
-До завершения auth restore effect ничего не меняет. После readiness guest принудительно получает внутренний `clientMode=true`.
+До завершения auth restore effect ничего не меняет. После readiness guest на маркетинговых URL принудительно получает внутренний `clientMode=true`. На `/demo*` переключатель менеджер/клиент работает и без staff session.
 
 ### 4. Persistence режима
 
-**Trigger:** `[clientMode, isAuthenticated, isReady]`
+**Trigger:** `[clientMode, isAuthenticated, isReady, pathname]`
 
-После readiness сохраняется текущий auth mode либо `true` для guest. Ошибки localStorage проглатываются: приватный режим/запрет storage не должен ломать UI.
+После readiness сохраняется текущий mode для auth **или** demo-path; для guest на `/` — `true`. Ошибки localStorage проглатываются: приватный режим/запрет storage не должен ломать UI.
 
 ### 5. Cross-tab catalog applied
 
@@ -209,7 +208,7 @@ Cleanup возвращает unsubscribe из `subscribeCatalogApplied`.
 **Результат:** явного return нет.  
 **Side effect:** обновление state, затем persistence effect.
 
-Если пользователь не авторизован, callback игнорирует запрошенное значение и фиксирует `true`. Иначе сохраняет `value`.
+Если нет ни сессии, ни demo-path, callback игнорирует запрошенное значение и фиксирует `true`. На `/demo*` и у auth user сохраняет `value`.
 
 Пример: auth user вызывает `setClientMode(false)` и получает manager mode; guest вызывает то же, но Context продолжает публиковать `true`.
 
@@ -232,8 +231,9 @@ Cleanup возвращает unsubscribe из `subscribeCatalogApplied`.
 Алгоритм:
 
 1. Увеличить `sessionResetKey`.
-2. Для auth user сбросить обе навигационные памяти на `/tyres` и перейти туда.
-3. Для guest перейти на `/`.
+2. На `/demo*` сбросить памяти на `appHomePath` (`/demo/tyres`) и перейти туда.
+3. Для auth user вне демо — памяти на `/tyres` и переход туда.
+4. Для guest вне демо — переход на `/`.
 
 Изменение React `key` в `AppFrame` принудительно размонтирует и заново монтирует обе поисковые панели, поэтому очищаются их локальные фильтры и результаты.
 
@@ -386,3 +386,4 @@ React Context передаёт новое `value` всем consumers. `useMemo` 
 - [Автосинхронизация frontend](/06-catalog-sync/frontend-autosync)
 - [Блокировки и каналы](/06-catalog-sync/locks-and-channels)
 - [Корзина и режим клиента](/10-ui/basket-and-client-mode)
+- [ADR-009: публичное демо](/adr/009-demo-url-frozen-snapshot)

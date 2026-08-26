@@ -100,13 +100,14 @@ Notification настроен на верхний правый угол и не 
 
 ### `SiteHeader({ appearance, onAppearanceChange })`
 
-- `useAuth` определяет кнопку «Войти»/«Выйти» и доступность staff UI;
+- `useAuth` определяет кнопку «Войти»/«Выйти» на маркетинговых и staff URL;
+- на `/demo*` «Войти» и «Выйти» скрыты (`isDemoPath`); login modal с демо не открывается;
+- `useCart` показывает badge только когда одновременно готовы workspace и cart;
 - `useCart` показывает badge только когда одновременно готовы workspace и cart;
 - badge ограничивает визуальный текст значением `99+`, но accessible label
   содержит фактическое количество;
 - `loginLinkTarget(location)` сохраняет безопасный post-login return path;
-- `handleBrandClick` сбрасывает поисковые панели и ведёт staff на `/tyres`, а
-  гостя — на `/`;
+- `handleBrandClick` сбрасывает поисковые панели и ведёт staff на `/tyres`, гостя на `/`, демо на `/demo/tyres`;
 - disabled пункты `SITE_NAV_ITEMS` показываются как «Скоро».
 
 `SiteHeader.test.jsx` подтверждает важный readiness-инвариант badge: старое
@@ -115,14 +116,13 @@ Notification настроен на верхний правый угол и не 
 ### `SiteFooter`
 
 Footer использует те же nav/contact constants, поэтому телефон и подписи не
-дублируются. Для гостя отображается вход через query-modal target, для staff —
-disabled «Личный кабинет» со статусом «Скоро». Внешняя ссылка разработчика
-открывается с `noopener noreferrer nofollow`.
+дублируются. Для гостя вне демо отображается вход через query-modal target, для staff —
+disabled «Личный кабинет» со статусом «Скоро». На `/demo*` кнопок входа и выхода нет. Внешняя ссылка разработчика
+открывается с `noopener noreferrer nofollow`. `SiteFooter.test.jsx` проверяет скрытие «Войти»/«Выйти» на demo-path.
 
 ## `ModeToggle`
 
-Компонент монтируется в `document.body` через portal только для доступного staff
-UI (`AppFrame`). Он читает `clientMode` из AppShell, переключает режим Ant
+Компонент монтируется в `document.body` через portal для доступного app UI (`AppFrame`), включая `/demo*`. Он читает `clientMode` из AppShell, переключает режим Ant
 Design `Switch` и позволяет перетаскивать панель:
 
 - позиция ограничивается viewport;
@@ -143,8 +143,7 @@ Design `Switch` и позволяет перетаскивать панель:
   `ModeToggle`; интеграция Ant Design tokens также не покрыта тестом.
 - Системная тема читается только при инициализации: подписки на последующее
   изменение `prefers-color-scheme` нет.
-- Disabled nav, «Личный кабинет» и demo не являются скрытыми active routes:
-  это явно неготовые элементы интерфейса.
+- Disabled nav и «Личный кабинет» не являются скрытыми active routes: это явно неготовые элементы интерфейса. Кнопка «Посмотреть демо» на лендинге — active, ведёт на `/demo`.
 
 ## Связанные страницы
 
@@ -153,3 +152,4 @@ Design `Switch` и позволяет перетаскивать панель:
 - [Состояние AppShell](/03-routing-shell/app-shell-state)
 - [Корзина и режим клиента](/10-ui/basket-and-client-mode)
 - [ADR-005: Ant Design](/adr/005-ant-design-ui)
+- [ADR-009: публичное демо](/adr/009-demo-url-frozen-snapshot)

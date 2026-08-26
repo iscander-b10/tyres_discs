@@ -169,13 +169,13 @@ AuthProvider
 
 | Потребитель | Что читает |
 | --- | --- |
-| `AppReady` | `isReady` — не рендерит routes до конца restore |
-| `RequireAuth` / `BasketGuard` / `HomeRoute` | `isAuthenticated` (+ `canUseApp`) |
+| `AppReady` | `isReady` + pathname — staff routes ждут restore; `/demo*` нет |
+| `RequireAuth` / `BasketGuard` / `HomeRoute` | `isAuthenticated` (+ `canUseApp(pathname)`) |
 | `LoginPage` | `signIn`, `isAuthenticated` |
 | `AppShellProvider` | `isAuthenticated`, `isReady`, `workspace` |
 | `CartProvider` | `workspace`, `isWorkspaceReady` |
-| `CatalogSyncHost` / `CartReconciliationHost` | `isWorkspaceReady`, `workspace` |
-| `SiteHeader` | `isAuthenticated`, `useLogout` |
+| `CatalogSyncHost` / `DemoCatalogHost` / `CartReconciliationHost` | `isWorkspaceReady`, `workspace` |
+| `SiteHeader` / `SiteFooter` | `isAuthenticated`, `isDemoPath`, `useLogout` |
 | `AddToCartControl` / `BasketPage` | `isWorkspaceReady` / workspace |
 
 ---
@@ -233,11 +233,11 @@ sequenceDiagram
 | Verifier в bundle | Ротация учёток = пересборка; дайджесты публичны |
 | Fingerprint «мягкий» | Смена браузера/UA может разлогинить; это не hardware TPM |
 | Один список пользователей на env | Нет ролей, invite, self-service reset |
-| `isDemo = false` заглушка | Demo-режим в коде намечен, но выключен |
+| `isDemo(pathname)` | Prefix `/demo` открывает каталог без verifier; staff `/tyres` по-прежнему требует сессию |
 | Нет server revoke | Logout локален для вкладки/хранилища устройства |
 | Legacy keys ещё читаются | Миграция `ivanor-auth-*` → `auth.*.v1` односторонняя при чтении |
 
-**Планируется** (если появится в коде — обновить эту страницу): полноценный demo URL, серверный auth — только после отдельного ADR; сейчас этого нет.
+**Планируется** (если появится в коде — обновить эту страницу): серверный auth — только после отдельного ADR; сейчас этого нет. Публичное демо `/demo` реализовано, см. [ADR-009](/adr/009-demo-url-frozen-snapshot).
 
 ---
 
@@ -301,7 +301,7 @@ flowchart TB
 
   subgraph ReactMem[React memory]
     W["workspace: { login, accountId, storeId }"]
-    Flags["isReady, isAuthenticated = Boolean(workspace)"]
+    Flags["isReady; isAuthenticated = Boolean(staffWorkspace); на /demo* workspace = DEMO_WORKSPACE"]
   end
 
   subgraph Related[Связанные, но не auth-keys]
@@ -343,20 +343,22 @@ export function AuthProvider({ children })
 | Поле | Тип | Начало | Смысл |
 | --- | --- | --- | --- |
 | `isReady` | `boolean` | `false` | Restore (или failed path) завершён |
-| `workspace` | `object \| null` | `null` | Текущий staff-контекст |
+| `workspace` | `object \| null` | `null` | Публикуемый контекст: staff session или `DEMO_WORKSPACE` на `/demo*` |
+| `staffWorkspace` | `object \| null` | `null` | Сессия сотрудника; `isAuthenticated` смотрит только сюда |
 | `generationRef` | `number` | `0` | Инвалидация устаревших async |
 
 Производные в value:
 
-- `isAuthenticated` = `Boolean(workspace)`
+- `isAuthenticated` = `Boolean(staffWorkspace)` — не demo-workspace
+- `workspace` = demo-path ? `DEMO_WORKSPACE` : `staffWorkspace`
 - `login` = `workspace?.login ?? null`
-- `isWorkspaceReady` = `isReady && Boolean(workspace)`
+- `isWorkspaceReady` = demo-path **или** (`isReady && Boolean(staffWorkspace)`)
 
 ### Side effects
 
 - Mount: async `restore` → возможно `createWorkspace` / `logoutSession`
 - `signIn`: `loginSession`, `createWorkspace`, запись LS через session
-- `logout`: чистка LS, `setWorkspace(null)`
+- `logout`: чистка LS, `setStaffWorkspace(null)`; на `/demo*` публикуемый workspace остаётся `DEMO_WORKSPACE`
 - Логи `appLog.error` с кодом `auth.infra_failed`
 
 ### Алгоритм mount-effect
@@ -507,12 +509,12 @@ async (email, password) => boolean
 ### Сигнатура
 
 ```js
-export function canUseApp(isAuthenticated)
+export function canUseApp(isAuthenticated, pathname)
 ```
 
 ### Алгоритм
 
-`return isAuthenticated || isDemo` где сейчас `isDemo === false`.
+`return Boolean(isAuthenticated) || isDemo(pathname)` где `isDemo` — prefix `/demo`, не константа модуля.
 
 ### Вызывающие стороны
 
@@ -520,7 +522,7 @@ export function canUseApp(isAuthenticated)
 
 ### Ограничение
 
-Это UI-gate, не security boundary.
+На demo-path `AuthProvider` публикует синтетический workspace `{ login: 'demo', accountId: 'demo', storeId: 'demo' }` без HMAC verifier. Staff session на том же origin не читает demo IndexedDB/корзину. Залогиненный сотрудник на `/demo` всё равно получает demo-workspace и frozen JSON, не live meta.
 
 ---
 
@@ -630,3 +632,4 @@ node scripts/generate-auth-verifier.js development|production
 - [Дерево провайдеров](/02-architecture/frontend-provider-tree)
 - [Владение состоянием](/02-architecture/state-ownership)
 - [Ограничения и не-цели](/00-overview/constraints-and-non-goals)
+- [ADR-009: публичное демо](/adr/009-demo-url-frozen-snapshot)

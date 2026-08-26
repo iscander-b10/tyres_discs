@@ -25,6 +25,14 @@
   align-items: center;
   width: min(360px, 100%);
   outline: none;
+  box-shadow: none;
+
+  /* Programmatic focus for trap; ring would look like a red frame on the gate. */
+  &:focus,
+  &:focus-visible {
+    outline: none;
+    box-shadow: none;
+  }
 }
 
 .catalog-bootstrap-overlay__percent {
@@ -39,15 +47,19 @@
   text-align: center;
 }
 
-.catalog-bootstrap-overlay__bar {
+/* Specificity matches antd Progress CSS-in-JS (.hash.ant-progress .ant-progress-*). */
+.catalog-bootstrap-overlay__bar.ant-progress {
   width: 100%;
 
-  :global(.ant-progress-inner) {
+  .ant-progress-inner {
+    overflow: hidden;
     background: rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
   }
 
-  :global(.ant-progress-bg) {
+  .ant-progress-bg {
     background: $color-accent;
+    border-radius: 999px;
   }
 }
 
@@ -86,7 +98,7 @@
     transition: none;
   }
 
-  .catalog-bootstrap-overlay__bar :global(.ant-progress-bg) {
+  .catalog-bootstrap-overlay__bar.ant-progress .ant-progress-bg {
     transition: none;
   }
 }

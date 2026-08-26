@@ -1,6 +1,10 @@
-/** Demo: phase 3 — /demo URL, JSON catalog, isDemo=true */
-export const isDemo = false;
+import { isDemoPath } from './paths';
 
-export function canUseApp(isAuthenticated) {
-  return isAuthenticated || isDemo;
+/** Публичное демо: считается из pathname (`/demo` и `/demo/*`), не из env. */
+export function isDemo(pathname) {
+  return isDemoPath(pathname);
+}
+
+export function canUseApp(isAuthenticated, pathname) {
+  return Boolean(isAuthenticated) || isDemo(pathname);
 }

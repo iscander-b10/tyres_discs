@@ -14,7 +14,7 @@
 
 **applyCatalogSnapshot** — атомарная запись wire-snapshot в IndexedDB. Frontend: `catalogSyncService` + `catalogIdbSession`.
 
-**autosync** — фоновая проверка meta/snapshot без UI-кнопки. Host: `CatalogSyncHost`.
+**autosync** — фоновая проверка meta/snapshot без UI-кнопки. Host: `CatalogSyncHost`. На `/demo*` не запускается.
 
 ## C
 
@@ -29,6 +29,8 @@
 ## D
 
 **discs** — доменная категория дисков в IDB. URL маршрут: `/wheels`.
+
+**demo-path** — URL с prefix `/demo`. Открывает каталог без staff session; workspace `storeId=demo`; frozen snapshot без live autosync. [ADR-009](/adr/009-demo-url-frozen-snapshot).
 
 **dual-mount** — обе панели поиска смонтированы; неактивная `hidden`+`inert`. [ADR-006](/adr/006-dual-mount-catalog).
 
@@ -66,9 +68,9 @@
 
 **showcase** — автовитрина до первого поиска; seeded shuffle per version.
 
-**snapshot** — версионированный JSON каталога всех поставщиков в Object Storage. [ADR-003](/adr/003-snapshot-sync).
+**snapshot** — версионированный JSON каталога всех поставщиков в Object Storage. [ADR-003](/adr/003-snapshot-sync). Публичное демо читает **frozen** копию того же wire-format (`public/demo/snapshot.json`), без live autosync.
 
-**storeId** — идентификатор магазина; изоляция IDB и cart namespace.
+**storeId** — идентификатор магазина; изоляция IDB и cart namespace. Демо использует константу `demo`.
 
 **supplier** — upstream источник (shinservice, semisotnov, …).
 
@@ -82,7 +84,7 @@
 
 **wire schema** — JSON формат snapshot/meta между cloud и browser.
 
-**workspace** — `{ login, accountId, storeId }` после входа.
+**workspace** — `{ login, accountId, storeId }` после входа. На `/demo*` публикуется синтетический `DEMO_WORKSPACE` без verifier.
 
 **Web Locks** — координация writer autosync между вкладками.
 

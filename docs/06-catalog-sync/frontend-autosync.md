@@ -16,10 +16,13 @@
 
 ## Где путь подключён
 
-`CatalogSyncHost` монтируется в `App.js` внутри дерева приложения и требует `AppShellProvider`. Из `AuthContext` он получает готовность workspace и `workspace.storeId`; из `AppShellContext` — `notifyCatalogApplied`, `setCatalogBootstrap` и `registerCatalogBootstrapRetry`. Шторку рисует `AppShellProvider` (`CatalogBootstrapOverlay`), а не сам host.
+`CatalogSyncHost` монтируется в `App.js` внутри дерева приложения **только вне demo-path**. Из `AuthContext` он получает готовность workspace и `workspace.storeId`; из `AppShellContext` — `notifyCatalogApplied`, `setCatalogBootstrap` и `registerCatalogBootstrapRetry`. Шторку рисует `AppShellProvider` (`CatalogBootstrapOverlay`), а не сам host.
 
-Эффект не запускается, пока:
+На `/demo*` монтируется `DemoCatalogHost`: тот же overlay и apply в IDB, без `checkAndSyncCatalog`, слотов, visibility и `/v2/catalog/{liveStoreId}/meta|snapshot`. Источник — `public/demo/snapshot.json` (или `REACT_APP_DEMO_SNAPSHOT_URL`) и `meta.json` с полем `bytes` для расчёта процента. Пользователь видит только %, не мегабайты. How-to снимка: [Обновить frozen demo snapshot](/14-development/update-demo-snapshot).
 
+Эффект staff-host не запускается, пока:
+
+- pathname — `/demo*`;
 - `isWorkspaceReady !== true`;
 - отсутствует `workspace.storeId`;
 - не настроен API base (`REACT_APP_CATALOG_API_BASE`, либо fallback `REACT_APP_CORS_PROXY`).
@@ -301,3 +304,5 @@ Fatal validation report блокирует вызов IDB. Service пишет `c
 - [Жизненный цикл и миграция storage](/05-catalog-storage/lifecycle-and-migration)
 - [Запросы, фильтры и фасеты](/05-catalog-storage/queries-filters-facets)
 - [Состояние App Shell](/03-routing-shell/app-shell-state)
+- [Обновить frozen demo snapshot](/14-development/update-demo-snapshot)
+- [ADR-009: demo URL](/adr/009-demo-url-frozen-snapshot)

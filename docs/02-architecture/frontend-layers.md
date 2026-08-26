@@ -127,7 +127,7 @@ flowchart TB
 
 ## Планируется
 
-- Demo mode в `appMode.js` / `App.js` — phase 3, сейчас `isDemo = false`.
+- Demo — отдельное URL-дерево `/demo*`, не глобальный флаг; см. [ADR-009](/adr/009-demo-url-frozen-snapshot).
 - Отдельный промежуточный hooks-слой над IndexedDB для UI — в коде как стандарт не выделен.
 
 ## Связанные страницы

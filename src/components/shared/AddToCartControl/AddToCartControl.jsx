@@ -1,8 +1,8 @@
 import React, { useRef } from 'react';
 import { Button } from 'antd';
 import { ShoppingCartOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
-import { PATHS } from '../../../app/paths';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { PATHS, toAppPath } from '../../../app/paths';
 import { useAuth } from '../../../auth/AuthContext';
 import { useCart } from '../../../cart/CartContext';
 import indexedDBService from '../../../services/indexedDBService';
@@ -23,6 +23,7 @@ function AddToCartControl({
   block = true,
 }) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { isWorkspaceReady, workspace } = useAuth();
   const {
     addItem,
@@ -80,7 +81,7 @@ function AddToCartControl({
   const handleGoToCart = (e) => {
     e.stopPropagation();
     onGoToCart?.();
-    navigate(PATHS.basket);
+    navigate(toAppPath(pathname, PATHS.basket));
   };
 
   const rootClassName = [

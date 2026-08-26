@@ -230,7 +230,7 @@ indexedDBService.invalidateActiveStore(workspace?.storeId)
 
 - `isAuthenticated === false`
 - `HomeRoute` / landing снова доступны
-- `canUseApp` → false (пока `isDemo` выключен)
+- `canUseApp` → false на `/` и `/tyres` без сессии; на `/demo*` true
 - `AppShell` принудительно держит client mode для гостя
 - Catalog panels не в `showCatalog`
 
@@ -278,7 +278,7 @@ indexedDBService.invalidateActiveStore(workspace?.storeId)
 - Нет BroadcastChannel «auth-logout» между вкладками.
 - Нет блокировки повторного входа на сервере.
 - Fingerprint logout при смене UA выглядит для пользователя как «выйти сами», хотя это fail restore.
-- Demo-режим (`isDemo`) может в будущем ослабить guards без настоящего login — сейчас выключен.
+- Demo-режим (`isDemo(pathname)`) открывает `/demo*` без login; кнопка «Выйти» там скрыта, `useLogout` с демо не вызывается.
 
 ---
 

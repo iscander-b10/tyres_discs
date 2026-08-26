@@ -5,6 +5,8 @@ import { useAuth } from '../../auth/AuthContext';
 import { useCart } from '../../cart/CartContext';
 import SiteHeader from './SiteHeader';
 
+let mockLocationPathname = '/';
+
 jest.mock('../../app/AppShellContext', () => ({ useAppShell: jest.fn() }));
 jest.mock('../../auth/AuthContext', () => ({ useAuth: jest.fn() }));
 jest.mock('../../auth/useLogout', () => ({ useLogout: () => jest.fn() }));
@@ -25,7 +27,7 @@ jest.mock('react-router-dom', () => ({
       children
     );
   },
-  useLocation: () => ({ pathname: '/' }),
+  useLocation: () => ({ pathname: mockLocationPathname, search: '' }),
 }));
 jest.mock('@ant-design/icons', () => ({
   ShoppingCartOutlined: () => null,
@@ -45,6 +47,7 @@ describe('SiteHeader cart badge', () => {
 
   beforeEach(() => {
     global.IS_REACT_ACT_ENVIRONMENT = true;
+    mockLocationPathname = '/';
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -85,5 +88,64 @@ describe('SiteHeader cart badge', () => {
       '7'
     );
     expect(container.querySelector('[aria-label="Корзина, 7"]')).not.toBeNull();
+  });
+});
+
+describe('SiteHeader auth actions', () => {
+  let container;
+  let root;
+
+  beforeEach(() => {
+    global.IS_REACT_ACT_ENVIRONMENT = true;
+    mockLocationPathname = '/';
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    useAppShell.mockReturnValue({ handleBrandClick: jest.fn() });
+    useCart.mockReturnValue({ isLoaded: true, totalQuantity: 0 });
+  });
+
+  afterEach(async () => {
+    await act(async () => root.unmount());
+    container.remove();
+    jest.clearAllMocks();
+  });
+
+  const render = async () => {
+    await act(async () => {
+      root.render(<SiteHeader />);
+    });
+  };
+
+  test('на / гость видит Войти', async () => {
+    useAuth.mockReturnValue({
+      isAuthenticated: false,
+      isWorkspaceReady: false,
+    });
+    await render();
+    expect(container.querySelector('[aria-label="Войти"]')).not.toBeNull();
+    expect(container.querySelector('[aria-label="Выйти"]')).toBeNull();
+  });
+
+  test('на /demo* нет Войти и Выйти', async () => {
+    mockLocationPathname = '/demo/tyres';
+    useAuth.mockReturnValue({
+      isAuthenticated: false,
+      isWorkspaceReady: true,
+    });
+    await render();
+    expect(container.querySelector('[aria-label="Войти"]')).toBeNull();
+    expect(container.querySelector('[aria-label="Выйти"]')).toBeNull();
+  });
+
+  test('сотрудник на /demo* тоже без Выйти', async () => {
+    mockLocationPathname = '/demo/wheels';
+    useAuth.mockReturnValue({
+      isAuthenticated: true,
+      isWorkspaceReady: true,
+    });
+    await render();
+    expect(container.querySelector('[aria-label="Войти"]')).toBeNull();
+    expect(container.querySelector('[aria-label="Выйти"]')).toBeNull();
   });
 });

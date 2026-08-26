@@ -128,7 +128,7 @@ flowchart TB
 
 - Legacy HTTP-маршруты без `/v2` в Gateway закрыты ответом 403 (`dummy` в `apigw.yaml`).
 - Frontend `supplierOrchestrator.js` сохранён, но не входит в основную цепочку UI.
-- Demo mode и дополнительные разделы сайта — **планируется**, в runtime не активны.
+- Публичное демо `/demo*` — **active**: frozen snapshot, без live autosync. Disabled nav («Датчики», «Примерка») по-прежнему stubs.
 
 ## Неизвестно
 

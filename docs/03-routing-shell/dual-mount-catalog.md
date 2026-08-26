@@ -60,7 +60,7 @@ stateDiagram-v2
 </div>
 ```
 
-Панель дисков симметрична. Basket получает `hidden`/`inert` и key по workspace, но не внешний `isActive` prop. `BasketPage` сам читает `location.pathname`, вычисляет `isActive = pathname === PATHS.basket` и только при активной корзине синхронизирует локальный `selected` с текущими item keys.
+Панель дисков симметрична. Basket получает `hidden`/`inert` и key по workspace, но не внешний `isActive` prop. `BasketPage` сам читает `location.pathname`, вычисляет `isActive = pageFromPathname(pathname) === 'basket'` (включая `/demo/basket`) и только при активной корзине синхронизирует локальный `selected` с текущими item keys.
 
 ## `TiresSearchParameters`
 

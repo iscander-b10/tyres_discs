@@ -10,10 +10,11 @@
 | --- | --- | --- | --- | --- |
 | `SiteHeader` | `src/components/SiteHeader/SiteHeader.jsx` | Шапка: nav, корзина, тема, вход | `useAuth`, `useCart`, props `appearance` | [Тема и shell](/10-ui/theme-and-shell-components) |
 | `SiteFooter` | `src/components/SiteFooter/SiteFooter.jsx` | Подвал, телефон, вход | `useAuth` | [Тема и shell](/10-ui/theme-and-shell-components) |
-| `LandingPage` | `src/components/LandingPage/LandingPage.jsx` | Маркетинговая главная | — | [Продукт](/00-overview/product-and-users) |
+| `LandingPage` | `src/components/LandingPage/LandingPage.jsx` | Маркетинговая главная; «Посмотреть демо» → `/demo` | — | [Продукт](/00-overview/product-and-users) |
 | `ScrollToTop` | `src/components/ScrollToTop/ScrollToTop.jsx` | Сброс scroll при route change | `useLocation` | [Маршруты](/03-routing-shell/routes-and-login-modal) |
 | `ModeToggle` | `src/components/ModeToggle/ModeToggle.jsx` | Переключатель менеджер/клиент | `useAppShell` | [Режим клиента](/10-ui/basket-and-client-mode) |
 | `CatalogBootstrapOverlay` | `src/components/CatalogBootstrapOverlay/CatalogBootstrapOverlay.jsx` | Полноэкранная шторка cold start; exit opacity 50ms после settled витрины | props из AppShell | [AppShell](/03-routing-shell/app-shell-state) |
+| `DemoCatalogBanner` | `src/components/DemoCatalogBanner/DemoCatalogBanner.jsx` | Неблокирующий Alert: дата frozen каталога | `useAppShell` | [Маршруты](/03-routing-shell/routes-and-login-modal) |
 | `ThemeSwitch` | `src/components/shared/ThemeSwitch/ThemeSwitch.jsx` | Светлая/тёмная тема | props `appearance`, `onAppearanceChange` | [Тема](/10-ui/theme-and-shell-components) |
 
 ### `SiteHeader`
@@ -21,7 +22,7 @@
 - **Props:** `appearance: 'light' \| 'dark'`, `onAppearanceChange(next)`.
 - **Side effects:** navigate, открытие login query, logout через `useLogout`.
 - **Кто вызывает:** `AppFrame` в `App.js`.
-- **Тесты:** `SiteHeader.test.jsx` — badge корзины, login link.
+- **Тесты:** `SiteHeader.test.jsx` — badge корзины, login link, скрытие «Войти»/«Выйти» на `/demo*`.
 - **Страница:** [Тема и shell](/10-ui/theme-and-shell-components).
 
 ---
@@ -139,7 +140,8 @@ export default function AddToCartControl({
 
 | Компонент | Путь | Назначение | Страница |
 | --- | --- | --- | --- |
-| `CatalogSyncHost` | `src/services/catalogSync/CatalogSyncHost.jsx` | Таймеры autosync и cold-start bootstrap | [Frontend autosync](/06-catalog-sync/frontend-autosync) |
+| `CatalogSyncHost` | `src/services/catalogSync/CatalogSyncHost.jsx` | Таймеры autosync и cold-start bootstrap; на `/demo*` не монтируется | [Frontend autosync](/06-catalog-sync/frontend-autosync) |
+| `DemoCatalogHost` | `src/services/demoCatalog/DemoCatalogHost.jsx` | Frozen snapshot, без live meta/slots | [Frontend autosync](/06-catalog-sync/frontend-autosync), [ADR-009](/adr/009-demo-url-frozen-snapshot) |
 | `CartReconciliationHost` | `src/cart/CartReconciliationHost.jsx` | Reconcile после snapshot | [Reconciliation](/09-cart/catalog-reconciliation) |
 
 Внутри `CartReconciliationHost` две небольшие функции обеспечивают корректный

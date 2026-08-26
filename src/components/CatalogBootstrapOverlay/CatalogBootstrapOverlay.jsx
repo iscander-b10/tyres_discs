@@ -185,6 +185,7 @@ function CatalogBootstrapOverlay({
                 type="line"
                 percent={displayPercent}
                 showInfo={false}
+                strokeLinecap="round"
                 strokeColor="var(--color-accent)"
                 trailColor="rgba(255, 255, 255, 0.16)"
               />

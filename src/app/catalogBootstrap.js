@@ -136,9 +136,14 @@ export function catalogBootstrapValueText(catalogBootstrap) {
 
 export function labelFromSyncProgress(
   event = {},
-  fallback = CATALOG_BOOTSTRAP_LOADING_LABEL
+  fallback = CATALOG_BOOTSTRAP_LOADING_LABEL,
+  { hideBytesLabel = false } = {}
 ) {
-  if (event.phase === 'download' && !(Number(event.totalBytes) > 0)) {
+  if (
+    !hideBytesLabel &&
+    event.phase === 'download' &&
+    !(Number(event.totalBytes) > 0)
+  ) {
     return formatCatalogBytesLabel(event.receivedBytes || 0);
   }
   if (event.phase && CATALOG_BOOTSTRAP_PHASE_LABELS[event.phase]) {

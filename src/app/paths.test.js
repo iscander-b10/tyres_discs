@@ -5,14 +5,18 @@ import {
   PATHS,
   buildHomeLoginPath,
   isAppPath,
+  isDemoPath,
   isLoginQueryOpen,
   isMarketingPath,
   isSafeRelativePath,
+  isStaffAppPath,
   loginLinkState,
   loginLinkTarget,
+  pageFromPathname,
   resolveLoginDismissPath,
   resolvePostLoginPath,
   stripLoginQuery,
+  toAppPath,
 } from './paths';
 
 describe('path helpers', () => {
@@ -24,6 +28,10 @@ describe('path helpers', () => {
     expect(isAppPath(PATHS.basket)).toBe(true);
     expect(isAppPath(PATHS.home)).toBe(false);
     expect(isAppPath(PATHS.login)).toBe(false);
+    expect(isAppPath(PATHS.demoTyres)).toBe(true);
+    expect(isAppPath(PATHS.demoWheels)).toBe(true);
+    expect(isAppPath(PATHS.demoBasket)).toBe(true);
+    expect(isAppPath('/demo/x')).toBe(true);
   });
 
   test('isSafeRelativePath rejects open redirects', () => {
@@ -141,5 +149,37 @@ describe('loginLinkState', () => {
     expect(
       loginLinkState({ pathname: PATHS.home, search: '?login=1' })
     ).toEqual({ from: DEFAULT_APP_HOME });
+  });
+});
+
+describe('demo path helpers', () => {
+  test('isDemoPath', () => {
+    expect(isDemoPath(PATHS.demo)).toBe(true);
+    expect(isDemoPath(PATHS.demoTyres)).toBe(true);
+    expect(isDemoPath('/demo/x')).toBe(true);
+    expect(isDemoPath(PATHS.tyres)).toBe(false);
+    expect(isDemoPath(PATHS.home)).toBe(false);
+  });
+
+  test('pageFromPathname понимает /demo*', () => {
+    expect(pageFromPathname(PATHS.demo)).toBe('tyres');
+    expect(pageFromPathname(PATHS.demoTyres)).toBe('tyres');
+    expect(pageFromPathname(PATHS.demoWheels)).toBe('wheels');
+    expect(pageFromPathname(PATHS.demoBasket)).toBe('basket');
+    expect(pageFromPathname('/demo/x')).toBe('tyres');
+    expect(pageFromPathname(PATHS.tyres)).toBe('tyres');
+  });
+
+  test('toAppPath сохраняет дерево demo/staff', () => {
+    expect(toAppPath(PATHS.demoTyres, PATHS.wheels)).toBe(PATHS.demoWheels);
+    expect(toAppPath(PATHS.demoTyres, PATHS.basket)).toBe(PATHS.demoBasket);
+    expect(toAppPath(PATHS.tyres, PATHS.wheels)).toBe(PATHS.wheels);
+  });
+
+  test('post-login не возвращает demo URL', () => {
+    expect(isStaffAppPath(PATHS.demoTyres)).toBe(false);
+    expect(resolvePostLoginPath({ state: { from: PATHS.demoTyres } })).toBe(
+      PATHS.tyres
+    );
   });
 });

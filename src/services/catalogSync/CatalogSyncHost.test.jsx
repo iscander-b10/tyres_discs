@@ -1,5 +1,6 @@
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
+import { MemoryRouter } from 'react-router-dom';
 import { useAppShell } from '../../app/AppShellContext';
 import { useAuth } from '../../auth/AuthContext';
 import indexedDBService from '../indexedDBService';
@@ -100,15 +101,30 @@ describe('CatalogSyncHost workspace lifecycle', () => {
     jest.clearAllMocks();
   });
 
-  const render = async () => {
+  const render = async (initialPath = '/') => {
     await act(async () => {
-      root.render(<CatalogSyncHost />);
+      root.render(
+        <MemoryRouter initialEntries={[initialPath]}>
+          <CatalogSyncHost />
+        </MemoryRouter>
+      );
       await Promise.resolve();
     });
   };
 
   test('не обращается к sync API до готового workspace', async () => {
     await render();
+
+    expect(isCatalogSyncConfigured).not.toHaveBeenCalled();
+    expect(checkAndSyncCatalog).not.toHaveBeenCalled();
+  });
+
+  test('на demo-path не вызывает checkAndSyncCatalog', async () => {
+    auth = {
+      isWorkspaceReady: true,
+      workspace: { accountId: 'demo', storeId: 'demo' },
+    };
+    await render('/demo/tyres');
 
     expect(isCatalogSyncConfigured).not.toHaveBeenCalled();
     expect(checkAndSyncCatalog).not.toHaveBeenCalled();

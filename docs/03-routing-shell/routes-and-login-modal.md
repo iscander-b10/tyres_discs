@@ -26,10 +26,15 @@ Login реализован как query-modal `/?login=1`, а не как отд
 | --- | --- | --- | --- | --- |
 | `/` | `HomeRoute` | остаётся на `/` | `replace` → `/tyres` | landing для guest |
 | `/?login=1` | `HomeRoute` + query logic | остаётся; modal открыт | `replace` → `/tyres` | landing под login modal для guest |
+| `/demo` | redirect | `replace` → `/demo/tyres` | то же | каталог шин (демо) |
+| `/demo/tyres` | без auth guard | остаётся | остаётся (demo-workspace) | панель шин, frozen snapshot |
+| `/demo/wheels` | без auth guard | остаётся | остаётся | панель дисков |
+| `/demo/basket` | без auth guard | остаётся | остаётся | корзина namespace `demo` |
 | `/tyres` | `RequireAuth` | `replace` → `/?login=1`, state.from=`/tyres` | остаётся | панель шин |
 | `/wheels` | `RequireAuth` | `replace` → `/?login=1`, state.from=`/wheels` | остаётся | панель дисков |
 | `/basket` | `BasketGuard` | `replace` → `/` | остаётся | корзина |
 | `/login` | `LoginRouteRedirect` | `replace` → `/?login=1` | далее home redirect → `/tyres` | нормализация legacy route |
+| `/demo/*` неизвестный | `UnmatchedDemoRoute` | `replace` → `/demo/tyres` | то же | не маркетинговый `/` |
 | любой другой | `UnmatchedRoute` | `replace` → `/` | `replace` → `/`, затем → `/tyres` | безопасный fallback |
 
 `ROUTER_BASENAME` вычисляется из `process.env.PUBLIC_URL` с удалением завершающего `/`. Для GitHub Pages `/tyres_discs/tyres` Router видит внутренний pathname `/tyres`.
@@ -97,9 +102,9 @@ flowchart TD
 
 ### `RequireAuth()`
 
-**Вход:** `isAuthenticated` из `useAuth`; глобальный `isDemo` через `canUseApp`.  
+**Вход:** `isAuthenticated` из `useAuth`; `canUseApp(isAuthenticated, pathname)` — auth или prefix `/demo`.  
 **Выход:** `null`, если app разрешено; иначе `<LoginRedirect />`.  
-**Кто вызывает:** child routes `/tyres` и `/wheels`.
+**Кто вызывает:** child routes `/tyres` и `/wheels` (не `/demo/*`).
 
 Механизм не оборачивает children: route element сам является guard, а каталог расположен в родительском `AppFrame`. Guest получает redirect к query-modal и deep-link в `location.state.from`.
 
@@ -140,12 +145,12 @@ flowchart TD
 
 ### Вычисляемые значения
 
-- `appEnabled = canUseApp(isAuthenticated)`.
-- `isLoginOpen = searchParams.get('login') === '1'`.
+- `appEnabled = canUseApp(isAuthenticated, pathname)`.
+- `isLoginOpen` — query `login=1`, **но не на** `/demo*`.
 - `isHome = pathname === '/'`.
 - `showLanding = !appEnabled && (isHome || isLoginOpen)`.
 - `showCatalog = appEnabled && !showLanding`.
-- `backgroundPage = pageFromPathname(pathname)`.
+- `backgroundPage = pageFromPathname(pathname)` — для `/demo/tyres` тоже `tyres`.
 
 ### Основные layout-компоненты
 
@@ -154,11 +159,12 @@ flowchart TD
 3. `Layout.Content` + `Flex` — основная область.
 4. `LandingPage` для guest marketing/login background.
 5. Keep-alive panels шин, дисков и basket для доступного app.
-6. `SiteFooter`.
-7. `ModeToggle` только при `appEnabled`.
-8. `ScrollToTop`.
-9. `Outlet` для guard/redirect route elements.
-10. `LoginPage` рендерится рядом с layout, когда query открыт и user ещё guest.
+6. `DemoCatalogBanner` на `/demo*` при `showCatalog` — немодальный Alert с датой frozen каталога.
+7. `SiteFooter`.
+8. `ModeToggle` только при `appEnabled`.
+9. `ScrollToTop`.
+10. `Outlet` для guard/redirect route elements.
+11. `LoginPage` рендерится рядом с layout, когда query открыт и user ещё guest.
 
 ### Почему modal находится вне inert layout
 
@@ -217,8 +223,9 @@ Side effects: auth/session operations, navigation, animation frame и focus. Cle
 
 ### Константы
 
-- `PATHS`: единый словарь `/`, `/tyres`, `/wheels`, `/basket`, `/login`.
+- `PATHS`: единый словарь `/`, `/tyres`, `/wheels`, `/basket`, `/login`, `/demo`, `/demo/tyres`, `/demo/wheels`, `/demo/basket`.
 - `DEFAULT_APP_HOME`: `/tyres`.
+- `DEFAULT_DEMO_HOME`: `/demo/tyres`.
 - `ROUTER_BASENAME`: нормализованный `PUBLIC_URL`.
 - `LOGIN_QUERY_PARAM` / `LOGIN_QUERY_VALUE`: `login` / `1`.
 
@@ -229,14 +236,17 @@ Side effects: auth/session operations, navigation, animation frame и focus. Cle
 | `isLoginQueryOpen` | `(searchParams)`; URLSearchParams или строка | boolean | нормализует input и сравнивает `login` с `'1'` |
 | `stripLoginQuery` | `(pathname, search='')` | path с остальными query | удаляет только `login` |
 | `buildHomeLoginPath` | `(fromHref?)` | Router target object | строит `/?login=1`, optional state.from |
-| `pageFromPathname` | `(pathname)` | page id | exact match, неизвестное → `home` |
+| `pageFromPathname` | `(pathname)` | page id | staff exact match; `/demo*` снимает prefix; неизвестное demo → `tyres`, иначе `home` |
 
 Пример: `stripLoginQuery('/', 'login=1&campaign=a')` возвращает `/?campaign=a`.
 
 ### Классификация path
 
 - `isMarketingPath(pathname)` принимает только `/`.
-- `isAppPath(pathname)` принимает только tyres/wheels/basket.
+- `isStaffAppPath(pathname)` — только `/tyres`, `/wheels`, `/basket` (post-login whitelist).
+- `isAppPath(pathname)` — staff и `/demo*` каталог/корзина (`pageFromPathname` ∈ tyres/wheels/basket).
+- `isDemoPath(pathname)` — `/demo` и `/demo/…`.
+- `toAppPath(pathname, staffPath)` — тот же экран в текущем дереве.
 - `isSafeRelativePath(pathname)` требует начало `/` и запрещает `//`.
 
 Последняя функция блокирует protocol-relative и absolute open redirects. Она не является полной URL sanitizer; безопасность обеспечивается вторым whitelist `isAppPath`.
@@ -291,12 +301,13 @@ Side effects: auth/session operations, navigation, animation frame и focus. Cle
 
 Механизм:
 
-- guest brand ведёт на `/`, auth brand — `/tyres`;
-- вход строится через `loginLinkTarget(location)`;
-- basket показывается только при `canUseApp`;
+- guest brand ведёт на `/`, auth brand — `/tyres`, demo brand — `/demo/tyres`;
+- на `/demo*` нет «Войти» и «Выйти»;
+- вход строится через `loginLinkTarget(location)` только вне демо;
+- basket показывается при `canUseApp`; ссылка — `toAppPath` (`/demo/basket` в демо);
 - badge не показывает stale quantity до готовности workspace и cart namespace;
 - значение выше 99 отображается как `99+`;
-- navigation items берутся из `config/site`, disabled показываются с tooltip «Скоро».
+- navigation items берутся из `config/site`, в демо пути через `toAppPath`, disabled показываются с tooltip «Скоро».
 
 **Тест:** [`src/components/SiteHeader/SiteHeader.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/components/SiteHeader/SiteHeader.test.jsx) проверяет readiness badge.
 
@@ -394,9 +405,10 @@ History изменяется Router-ом без полной перезагру�
 2. guest `/basket` → `/`, корзина отсутствует;
 3. auth `/` → `/tyres`;
 4. `/login` → query-modal;
-5. auth `/basket` показывает basket.
-
-Не покрыты прямо: `/wheels` guard, wildcard, auth user с login query, basename, сохранение state.from на уровне integration, `ScrollToTop` и pending `AppReady`.
+5. auth `/basket` показывает basket;
+6. guest `/demo` и `/demo/tyres` открывают каталог без login;
+7. `/demo/wheels`, `/demo/basket` доступны;
+8. unmatched `/demo/x` → `/demo/tyres`.
 
 ## Checklist добавления маршрута
 
@@ -419,3 +431,4 @@ History изменяется Router-ом без полной перезагру�
 - [Клиентская модель авторизации](/04-auth/client-auth-model)
 - [Гонки и logout](/04-auth/races-and-logout)
 - [GitHub Pages приложения](/12-operations/github-pages)
+- [ADR-009: публичное демо](/adr/009-demo-url-frozen-snapshot)

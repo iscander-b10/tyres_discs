@@ -37,10 +37,11 @@ flowchart TD
   H --> I[AuthProvider запускает restore]
   I --> J[AppShellProvider и CartProvider уже существуют]
   J --> K{Auth isReady?}
-  K -- нет --> L[AppReady возвращает null]
+  K -- нет, не demo --> L[AppReady возвращает null]
+  K -- нет, /demo* --> N
   K -- да, гость --> M[Маркетинговая страница или login modal]
   K -- да, есть workspace --> N[WorkspaceHosts и AppRoutes]
-  N --> O[CatalogSyncHost и CartReconciliationHost]
+  N --> O[DemoCatalogHost или CatalogSyncHost + CartReconciliationHost]
   N --> P[AppFrame выбирает видимую панель]
 ```
 
@@ -81,8 +82,8 @@ flowchart TD
 6. `AuthProvider` восстанавливает сессию и публикует workspace.
 7. `AppShellProvider` читает Router и Auth Context; переключает IndexedDB namespace и публикует shell API.
 8. `CartProvider` читает Auth Context и загружает корзину workspace.
-9. `WorkspaceHosts` монтирует два невизуальных bridge только для готового workspace.
-10. `AppReady` не пропускает маршруты до завершения `restore`.
+9. `WorkspaceHosts` монтирует невизуальные bridge только для готового workspace: staff — `CatalogSyncHost`, демо — `DemoCatalogHost`, плюс `CartReconciliationHost`.
+10. `AppReady` не пропускает staff-маршруты до завершения `restore`; на `/demo*` не ждёт restore.
 
 ## Sequence diagram открытия страницы
 
@@ -238,19 +239,19 @@ Generation guard не даёт позднему `restore` перезаписат
 
 **Путь:** [`src/App.js`](https://github.com/iscander-b10/tyres_discs/blob/main/src/App.js)  
 **Сигнатура:** `function WorkspaceHosts()`  
-**Возвращает:** `null`, пока workspace не готов; иначе keyed fragment с `CatalogSyncHost` и `CartReconciliationHost`.
+**Возвращает:** `null`, пока workspace не готов; иначе keyed fragment. На `/demo*` — `DemoCatalogHost` вместо `CatalogSyncHost`; `CartReconciliationHost` всегда рядом.
 
 `workspaceKey = accountId:storeId` заставляет React полностью перемонтировать оба host при смене workspace. Это простой boundary очистки timers, abort controllers, listeners и stale refs.
 
-Практический пример: после перехода со `store-a` на `store-b` старый `CatalogSyncHost` cleanup отменяет fetch/timer, а новый начинает синхронизацию только для `store-b`.
+Практический пример: после перехода со `store-a` на `store-b` старый host cleanup отменяет fetch/timer, а новый начинает работу только для нового store. Переход staff ↔ `/demo` меняет `workspaceKey` на `demo:demo` и монтирует `DemoCatalogHost`.
 
-Тесты: [`src/services/catalogSync/CatalogSyncHost.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/services/catalogSync/CatalogSyncHost.test.jsx) и [`src/cart/CartReconciliationHost.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/cart/CartReconciliationHost.test.jsx).
+Тесты: [`src/services/catalogSync/CatalogSyncHost.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/services/catalogSync/CatalogSyncHost.test.jsx), [`src/services/demoCatalog/DemoCatalogHost.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/services/demoCatalog/DemoCatalogHost.test.jsx) и [`src/cart/CartReconciliationHost.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/cart/CartReconciliationHost.test.jsx).
 
 ## `AppReady`
 
 **Сигнатура:** `function AppReady({ children })`  
-**Вход:** React children и `isReady` из Auth Context.  
-**Результат:** `null` до завершения restore, затем `children`.
+**Вход:** React children, `isReady` из Auth и pathname.  
+**Результат:** на `/demo*` рисует children сразу (demo-workspace не ждёт restore); иначе `null` до завершения restore, затем `children`.
 
 Этот gate предотвращает ложный гостевой redirect: пока session восстанавливается, `isAuthenticated` временно false. Без gate открытие `/wheels` могло бы сначала отправить пользователя на login, а затем вернуть после restore.
 
@@ -278,7 +279,7 @@ Generation guard не даёт позднему `restore` перезаписат
 - Workspace отсутствует: sync hosts не монтируются, корзина не загружается, active IndexedDB store инвалидируется.
 - Смена workspace: keyed hosts и reset keys не дают старым данным попасть в новую область.
 - StrictMode development: эффекты могут запускаться повторно с cleanup между запусками; это не production double mount. Ref, который cleanup ставит в `false`, нужно вернуть в `true` в следующем setup (`mountedRef` поиска).
-- Demo mode сейчас не включён: `isDemo=false`; отдельного JSON provider нет.
+- Demo `/demo*` публикует workspace `demo` без restore; staff restore на `/` не блокирует демо-шторку.
 
 ## Checklist при изменении композиции
 

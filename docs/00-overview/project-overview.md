@@ -83,13 +83,13 @@ flowchart TB
 - Production SPA публикуется на GitHub Pages (`npm run deploy`); документация собирается отдельно (`npm run docs:build`).
 - Основной runtime каталога — cloud snapshot → IndexedDB, а не live-опрос поставщиков из UI.
 - Авторизация — локальный gate в браузере; облачные endpoints каталога не проверяют пользовательскую сессию.
-- `isDemo` сейчас равен `false`: демо-режим не активен.
+- `isDemo(pathname)` открывает `/demo*` без staff session; `/tyres` по-прежнему требует вход.
 
 ## Планируется и legacy
 
 | Статус | Что | Где |
 | --- | --- | --- |
-| **Планируется** | Demo mode: `/demo`, JSON-каталог | комментарии в `src/app/appMode.js`, `src/App.js` |
+| **Active** | Публичное демо `/demo*` + frozen snapshot | `DemoCatalogHost`, `public/demo/` |
 | **Планируется** | Пункты навигации «Датчики», «Примерка» и др. | `src/config/site.js` (`disabled: true`) |
 | **Legacy / unused** | `supplierOrchestrator.js` — frontend-оркестратор поставщиков | `src/services/suppliers/supplierOrchestrator.js` (не импортируется runtime UI) |
 | **Упомянуто, кода нет** | `yandex/saas-api/` | встречается в README, директории в репозитории нет |

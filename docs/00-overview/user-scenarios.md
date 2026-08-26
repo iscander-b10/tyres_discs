@@ -12,7 +12,7 @@
 
 Сценарий — это цепочка «действие человека → вызовы в коде → результат на экране». Ivanor удобно изучать именно сценариями: вход, синхронизация каталога, поиск, витрина, корзина, смена режима.
 
-Ниже — общая карта и таблица из 27 сценариев со ссылками «куда читать дальше».
+Ниже — общая карта и таблица из 28 сценариев со ссылками «куда читать дальше».
 
 ## Общая карта сценариев
 
@@ -46,7 +46,7 @@ flowchart TD
 | Форма → запрос → showcase | Фильтры, поиск, витрина | [Frontend-слои](/02-architecture/frontend-layers) | [Поиск](/08-search-showcase/tire-and-disc-search), [showcase](/08-search-showcase/showcase-selection) |
 | Каталог → корзина → reconciliation | Read-before-add и сверка | [Владение состоянием](/02-architecture/state-ownership) | [Корзина](/09-cart/cart-domain-and-storage), [reconciliation](/09-cart/catalog-reconciliation) |
 
-## Таблица из 27 сценариев
+## Таблица из 28 сценариев
 
 | # | Сценарий | Что происходит | Куда смотреть в коде | Страницы |
 | --- | --- | --- | --- | --- |
@@ -76,7 +76,8 @@ flowchart TD
 | 24 | Bootstrap пустого IndexedDB | Пустой каталог заставляет скачать snapshot даже при равной meta version | `checkAndSyncCatalog`, `isCatalogEmpty` | [Autosync](/06-catalog-sync/frontend-autosync) |
 | 25 | Закрытие login modal | Query удаляется, return path проходит open-redirect guard | `resolveLoginDismissPath`, `isSafeRelativePath`, `LoginPage` | [Маршруты](/03-routing-shell/routes-and-login-modal) |
 | 26 | Quota/error при записи корзины | Runtime не меняется, пишется безопасный `storage.quota_exceeded`/`cart.persist_failed` | `CartContext`, `appLog` | [Домен корзины](/09-cart/cart-domain-and-storage), [Логи](/12-operations/logging-and-diagnostics) |
-| 27 | Клик по бренду | Сбрасывает search-panel keys и ведёт staff на `/tyres`, гостя на `/` | `AppShellContext.handleBrandClick`; callers `SiteHeader`, `SiteFooter` | [AppShell](/03-routing-shell/app-shell-state), [Тема и оболочка](/10-ui/theme-and-shell-components) |
+| 27 | Клик по бренду | Сбрасывает search-panel keys и ведёт staff на `/tyres`, гостя на `/`, демо на `/demo/tyres` | `AppShellContext.handleBrandClick`; callers `SiteHeader`, `SiteFooter` | [AppShell](/03-routing-shell/app-shell-state), [Тема и оболочка](/10-ui/theme-and-shell-components) |
+| 28 | Публичное демо | `/demo` без пароля, frozen snapshot, шторка только с %, без live autosync | `DemoCatalogHost`, `demoWorkspace`, `appMode.isDemo` | [Маршруты](/03-routing-shell/routes-and-login-modal), [ADR-009](/adr/009-demo-url-frozen-snapshot) |
 
 ## Минимальный «счастливый путь» новичка
 
@@ -94,7 +95,6 @@ flowchart TD
 
 | Наблюдение | Статус |
 | --- | --- |
-| Кнопка «Посмотреть демо» на лендинге | UI stub, демо **планируется** |
 | Пункты nav «Датчики», «Примерка», … | `disabled: true` |
 | Live-опрос пяти поставщиков из UI | Не основной runtime; orchestrator unused |
 

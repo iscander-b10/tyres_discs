@@ -1,7 +1,7 @@
 # Тестовые наборы
 
 ::: tip Статус: проверено по коду
-52 test-файлов под `src/` входят в корневой `npm test`. Ещё один тестовый файл `yandex/catalog-sync` запускается отдельной cloud-командой. Карта трассировки контрактов — [contract-catalog](/11-testing/contract-catalog).
+58 test-файлов под `src/` входят в корневой `npm test`. Ещё один тестовый файл `yandex/catalog-sync` запускается отдельной cloud-командой. Карта трассировки контрактов — [contract-catalog](/11-testing/contract-catalog).
 :::
 
 ## Инструменты
@@ -47,13 +47,15 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 
 ---
 
-## App / Routing (4 файла)
+## App / Routing (6 файлов)
 
 | Файл | Инварианты |
 | --- | --- |
-| `app/paths.test.js` | login redirect safety |
+| `app/paths.test.js` | login redirect safety, `/demo*` prefix, unmatched → `/demo/tyres` |
+| `app/appMode.test.js` | `isDemo(pathname)`, `canUseApp` без глобального флага |
 | `app/AppShellContext.test.jsx` | catalogBootstrap, шторка, сброс workspace, retry |
-| `App.routing.test.jsx` | guards, login modal |
+| `app/catalogBootstrap.test.js` | label прогресса; `hideBytesLabel` без МБ |
+| `App.routing.test.jsx` | guards, login modal, guest `/demo` без login, guest `/tyres` → `/?login=1` |
 | `App.catalogDualMount.test.jsx` | hidden/inert panels |
 
 **Страницы:** [Routes](/03-routing-shell/routes-and-login-modal), [Dual-mount](/03-routing-shell/dual-mount-catalog).
@@ -73,23 +75,25 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 
 ---
 
-## Components (6 файлов)
+## Components (9 файлов)
 
 | Файл | Инварианты |
 | --- | --- |
-| `SiteHeader.test.jsx` | cart badge, auth links |
+| `SiteHeader.test.jsx` | cart badge, auth links, нет «Войти»/«Выйти» на `/demo*` |
+| `SiteFooter.test.jsx` | нет «Войти»/«Выйти» на `/demo*`; на `/` «Войти» есть |
+| `LandingPage.test.jsx` | «Посмотреть демо» enabled → `/demo` |
 | `TiresSearchParameters.searchRace.test.jsx` | stale request discard, spinner, skip facets, reset during pending, pending не blank, timeout, StrictMode settle |
 | `DiscsSearchParameters.searchRace.test.jsx` | stale request discard, spinner, skip facets, reset during pending, pending не blank, timeout, StrictMode settle |
 | `CatalogShowcase.appLog.test.jsx` | error logging on showcase fail |
 | `CatalogShowcase.bootstrap.test.jsx` | пустой store / loading → skeleton; Empty «Каталог ещё загружается» отсутствует; notify только на settled полках |
-| `CatalogBootstrapOverlay.test.jsx` | шторка на blocking/error, нет на idle/ready, Escape не закрывает, МБ вместо % файла, waiting lock без 0%, waitForShowcase держит до витрины затем fade |
+| `CatalogBootstrapOverlay.test.jsx` | шторка на blocking/error, нет на idle/ready, Escape не закрывает, staff МБ при неизвестном Content-Length, demo % без МБ, waiting lock без 0%, waitForShowcase держит до витрины затем fade |
 | `CatalogResultsFade.test.jsx` | delayed unmount 50ms, reduced-motion сразу |
 
 **Страница:** [Async race guards](/08-search-showcase/async-race-guards).
 
 ---
 
-## Services / IDB / Sync (15 файлов)
+## Services / IDB / Sync (17 файлов)
 
 | Файл | Инварианты |
 | --- | --- |
@@ -107,7 +111,9 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 | `catalogSync/catalogSyncChannel.test.js` | broadcast |
 | `catalogSync/catalogSyncLock.test.js` | lock lease, onWaiting у второго waiter |
 | `catalogSync/catalogSyncLock.integration.test.js` | multi-tab writer |
-| `catalogSync/CatalogSyncHost.test.jsx` | triggers, empty → blocking, non-empty без кадра blocking, onProgress → label, warmup до notify, waiting lock |
+| `catalogSync/CatalogSyncHost.test.jsx` | triggers, empty → blocking, non-empty без кадра blocking, onProgress → label, warmup до notify, waiting lock; на `/demo*` `checkAndSyncCatalog` не вызывается |
+| `demoCatalog/demoCatalogService.test.js` | fetch static snapshot, progress от meta.bytes, `hideBytesLabel` |
+| `demoCatalog/DemoCatalogHost.test.jsx` | пустой IDB → overlay + download; непустой → без overlay и без повторного fetch |
 
 **Страницы:** [IndexedDB](/05-catalog-storage/indexeddb-schema), [Autosync](/06-catalog-sync/frontend-autosync), [Locks](/06-catalog-sync/locks-and-channels).
 

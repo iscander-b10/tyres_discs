@@ -115,7 +115,7 @@ catalog-sync загружает upstream своим server path; наличие 
 - Client mode только скрывает служебное представление и не меняет auth-права.
 - Тема имеет два значения (`light`/`dark`) и не подписывается на изменение
   system preference после mount.
-- Demo недоступно: `isDemo = false`, `/demo` и JSON provider не реализованы.
+- Demo доступно по URL `/demo*`: синтетический workspace `storeId=demo`, frozen snapshot, без live autosync. Staff `/tyres` по-прежнему требует сессию.
 - Disabled nav items и «Личный кабинет» — UI stubs, не активные функции.
 
 ## Не является обещанной целью
@@ -125,7 +125,6 @@ catalog-sync загружает upstream своим server path; наличие 
 - полноценного интернет-магазина;
 - server-side auth/cart;
 - live browser aggregation поставщиков;
-- demo route;
 - датчиков, примерки, шиномонтажа, хранения шин;
 - личного кабинета;
 - автоматического offline-first install/PWA.

@@ -23,6 +23,7 @@
     "start:prod": "npm run build && node scripts/serve-prod-preview.js",
     "test": "react-scripts test",
     "test:ci": "react-scripts test --watchAll=false",
+    "demo:freeze": "node scripts/freeze-demo-snapshot.js",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:gate": "node scripts/check-docs-sync.js",

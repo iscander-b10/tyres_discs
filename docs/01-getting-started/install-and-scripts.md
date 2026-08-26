@@ -86,6 +86,7 @@ npm run docs:preview  # preview build → http://localhost:4173
 | `docs:preview` | Preview docs build | |
 | `predeploy` | build + `404.html` + `.nojekyll` | |
 | `deploy` | gh-pages publish `build/` | push to gh-pages branch |
+| `demo:freeze` | Скачать live snapshot в `public/demo/` | пишет JSON + meta; нужны catalog env локально |
 | `eject` | CRA eject (не использовался) | необратимо |
 
 ## Pre-hook авторизации
@@ -111,3 +112,4 @@ flowchart LR
 - [Сборка и deploy](/01-getting-started/dev-production-deploy)
 - [Тестирование](/11-testing/test-strategy)
 - [Troubleshooting](/14-development/troubleshooting)
+- [Обновить frozen demo snapshot](/14-development/update-demo-snapshot)

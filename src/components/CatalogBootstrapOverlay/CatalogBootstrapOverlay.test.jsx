@@ -50,12 +50,35 @@ describe('CatalogBootstrapOverlay', () => {
       'aria-valuenow',
       '42'
     );
+    const bar = overlay.querySelector('.catalog-bootstrap-overlay__bar');
+    expect(bar).toBeTruthy();
+    expect(bar.querySelector('.ant-progress-inner')).toBeTruthy();
+    expect(bar.querySelector('.ant-progress-bg')).toBeTruthy();
 
     fireEvent.mouseDown(overlay);
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(overlay).toBeInTheDocument();
     expect(retry).not.toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: 'Повторить' })).toBeNull();
+  });
+
+  test('демо-загрузка с известным total показывает %, без текста про МБ', () => {
+    render(
+      <CatalogBootstrapOverlay
+        catalogBootstrap={{
+          phase: 'blocking',
+          progress: 37,
+          label: 'Загружаем каталог шин и дисков',
+        }}
+      />
+    );
+
+    expect(screen.getByText('37%')).toBeInTheDocument();
+    expect(screen.queryByText(/МБ/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/байт/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Загружаем каталог шин и дисков')
+    ).toBeInTheDocument();
   });
 
   test('без известного total крупно показывает МБ, а не процент файла', () => {

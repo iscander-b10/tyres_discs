@@ -51,6 +51,7 @@ flowchart TB
   subgraph Svc[services/]
     IDB[catalogIdb]
     Sync[catalogSync]
+    Demo[demoCatalog]
     Sup[suppliers legacy]
   end
 
@@ -63,8 +64,10 @@ flowchart TB
   Comp --> Cat
   Ctx --> Cart
   Ctx --> Sync
+  Ctx --> Demo
   Cat --> IDB
   Sync --> IDB
+  Demo --> IDB
   CS --> IDB
   Comp -. dev only .-> Sup
   Sup -. proxy .-> SP
@@ -75,6 +78,7 @@ flowchart TB
 | Код | Статус | Примечание |
 | --- | --- | --- |
 | `catalogSyncService`, `catalogIdbSession` | **active** | Production-путь каталога |
+| `DemoCatalogHost`, `loadFrozenDemoCatalog` | **active** | `/demo*` frozen snapshot, без live autosync |
 | `supplierOrchestrator`, `fetchSupplier` (browser load) | **legacy / dev** | Не основной runtime; см. [адаптеры](/07-suppliers/supplier-adapters) |
 | `indexedDBService.js` | **facade** | Re-export; реализация в `catalogIdb/` |
 | `saveTires`, `replaceTiresForSupplier` | **legacy API** | Публичны, но snapshot — основной writer |

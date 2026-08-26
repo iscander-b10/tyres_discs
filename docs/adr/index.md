@@ -16,6 +16,7 @@
 | [006](/adr/006-dual-mount-catalog) | Dual-mount search panels | Принято |
 | [007](/adr/007-cart-envelope-v3) | Cart envelope v3 | Принято |
 | [008](/adr/008-web-locks-multitab) | Web Locks + BroadcastChannel | Принято |
+| [009](/adr/009-demo-url-frozen-snapshot) | Demo URL + frozen snapshot, без live sync | Принято |
 
 ## Граф зависимостей
 
@@ -27,6 +28,8 @@ flowchart TB
   ADR3 --> ADR8[008 Multi-tab]
   ADR2 --> ADR6[006 Dual-mount]
   ADR1 --> ADR7[007 Cart envelope]
+  ADR1 --> ADR9[009 Demo URL]
+  ADR3 --> ADR9
   ADR5[005 Ant Design] --> UI[UI layer]
 ```
 

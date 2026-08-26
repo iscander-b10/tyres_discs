@@ -193,7 +193,7 @@ async function getPersistedCatalogVersion() {
   }
 }
 
-const SYNC_PROGRESS = {
+export const SYNC_PROGRESS = {
   metaStart: 1,
   metaEnd: 3,
   downloadStart: 5,
@@ -248,7 +248,7 @@ function isTrustedByteTotal(totalBytes, receivedBytes) {
   );
 }
 
-function downloadProgressPercent(receivedBytes, totalBytes) {
+export function downloadProgressPercent(receivedBytes, totalBytes) {
   const start = SYNC_PROGRESS.downloadStart;
   const span = SYNC_PROGRESS.downloadEnd - start;
   if (isTrustedByteTotal(totalBytes, receivedBytes)) {
@@ -336,7 +336,7 @@ async function readSnapshotFromResponse(
   return JSON.parse(text);
 }
 
-async function fetchSnapshot(url, options = {}) {
+export async function fetchCatalogSnapshot(url, options = {}) {
   const res = await fetch(url, { cache: 'no-store', signal: options.signal });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -428,7 +428,7 @@ export async function checkAndSyncCatalog({
         phase: 'download',
         progress: SYNC_PROGRESS.downloadStart,
       });
-      const snapshot = await fetchSnapshot(snapshotUrl(storeId), {
+      const snapshot = await fetchCatalogSnapshot(snapshotUrl(storeId), {
         signal,
         onDownloadProgress: ({ receivedBytes, totalBytes, complete }) => {
           reportProgress({

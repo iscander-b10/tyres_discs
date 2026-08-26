@@ -21,6 +21,8 @@
 | --- | --- | --- |
 | open redirect blocked | `paths.test.js` | [Routes](/03-routing-shell/routes-and-login-modal) |
 | RequireAuth → login query | `App.routing.test.jsx` | [Routes](/03-routing-shell/routes-and-login-modal) |
+| guest `/demo*` без login; unmatched → `/demo/tyres` | `App.routing.test.jsx`, `paths.test.js` | [Routes](/03-routing-shell/routes-and-login-modal), [ADR-009](/adr/009-demo-url-frozen-snapshot) |
+| `isDemo` от pathname, не env | `appMode.test.js` | [AppShell](/03-routing-shell/app-shell-state) |
 | dual-mount hidden/inert | `App.catalogDualMount.test.jsx` | [Dual-mount](/03-routing-shell/dual-mount-catalog) |
 
 ## Catalog sync & IDB
@@ -32,6 +34,7 @@
 | wire validation fatal/warning | `catalogSnapshotValidation.test.js` | [Snapshot protocol](/06-catalog-sync/snapshot-protocol-validation) |
 | replace/keepPrevious/purge | `snapshotCommands.test.js` | [Snapshot protocol](/06-catalog-sync/snapshot-protocol-validation) |
 | lock lease fallback | `catalogSyncLock.test.js`, `catalogSyncLock.integration.test.js` | [Locks](/06-catalog-sync/locks-and-channels) |
+| demo frozen snapshot, без live `/meta` | `demoCatalogService.test.js`, `DemoCatalogHost.test.jsx`, `CatalogSyncHost.test.jsx` | [Autosync](/06-catalog-sync/frontend-autosync) |
 | index hint + post-filter | `catalogIdbQueries.test.js`, `searchFilters.test.js` | [Queries](/05-catalog-storage/queries-filters-facets) |
 
 ## Search & showcase
