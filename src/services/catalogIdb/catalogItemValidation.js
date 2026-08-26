@@ -2,15 +2,24 @@ export const isValidCatalogKey = (value) =>
   (typeof value === 'string' && value.trim().length > 0) ||
   (typeof value === 'number' && Number.isFinite(value));
 
-const isStructuredCloneableFallback = (value, seen = new Set()) => {
+/**
+ * IndexedDB structured-clone check without calling structuredClone.
+ * JSON.parse snapshot items are plain data; cloning tens of thousands of SKU
+ * on the main thread freezes the store PC during cold-start apply.
+ */
+export const isIndexedDbCloneable = (value, seen = new WeakSet()) => {
+  if (value === null || value === undefined) return true;
+  const type = typeof value;
   if (
-    value === null ||
-    value === undefined ||
-    ['string', 'number', 'boolean', 'bigint'].includes(typeof value)
+    type === 'string' ||
+    type === 'boolean' ||
+    type === 'bigint' ||
+    type === 'number'
   ) {
     return true;
   }
-  if (['function', 'symbol'].includes(typeof value)) return false;
+  if (type === 'function' || type === 'symbol') return false;
+  if (type !== 'object') return false;
   if (seen.has(value)) return true;
   if (
     value instanceof WeakMap ||
@@ -19,33 +28,29 @@ const isStructuredCloneableFallback = (value, seen = new Set()) => {
   ) {
     return false;
   }
+  if (value instanceof Date) return true;
 
   seen.add(value);
   try {
-    return Reflect.ownKeys(value).every(
-      (key) =>
-        typeof key !== 'symbol' &&
-        isStructuredCloneableFallback(value[key], seen)
-    );
+    if (Array.isArray(value)) {
+      for (let i = 0; i < value.length; i += 1) {
+        if (!isIndexedDbCloneable(value[i], seen)) return false;
+      }
+      return true;
+    }
+    const keys = Reflect.ownKeys(value);
+    for (let i = 0; i < keys.length; i += 1) {
+      const key = keys[i];
+      if (typeof key === 'symbol') return false;
+      if (!isIndexedDbCloneable(value[key], seen)) return false;
+    }
+    return true;
   } catch {
     return false;
   }
 };
 
-export const canBeStoredInIndexedDB = (value) => {
-  try {
-    if (
-      typeof window !== 'undefined' &&
-      typeof window.structuredClone === 'function'
-    ) {
-      window.structuredClone(value);
-      return true;
-    }
-    return isStructuredCloneableFallback(value);
-  } catch {
-    return false;
-  }
-};
+export const canBeStoredInIndexedDB = (value) => isIndexedDbCloneable(value);
 
 export const isValidCatalogItem = (item) =>
   item !== null &&

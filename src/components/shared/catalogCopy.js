@@ -152,6 +152,3 @@ export const resolveCatalogSpeedIndex = (item) => {
 
   return deriveIndicesFromTitle(item.title).speedIndex;
 };
-
-export const CATALOG_IMAGE_FALLBACK =
-  'https://via.placeholder.com/800x600?text=No+Image';

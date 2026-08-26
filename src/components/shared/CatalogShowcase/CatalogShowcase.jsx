@@ -29,6 +29,7 @@ const CatalogShowcase = ({
     catalogDataVersion = 0,
     catalogSnapshotVersion = '',
     workspaceResetKey = 'guest',
+    catalogBootstrapPhase,
     catalogBootstrap,
     notifyCatalogSurfaceReady,
   } = useAppShell();
@@ -93,7 +94,7 @@ const CatalogShowcase = ({
   // Cold-start пустого IDB закрывает шторка AppShell; здесь Empty не показываем.
   const showSkeleton =
     status === 'loading' || (status === 'ready' && showcase?.empty);
-  const bootstrapPhase = catalogBootstrap?.phase;
+  const bootstrapPhase = catalogBootstrapPhase ?? catalogBootstrap?.phase;
   const surfaceSettled =
     status === 'error' ||
     (status === 'ready' && !showcase?.empty) ||

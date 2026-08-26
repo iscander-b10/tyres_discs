@@ -6,7 +6,7 @@ jest.mock('../AddToCartControl/AddToCartControl', () => () => null);
 jest.mock('../CatalogPriceStrip/CatalogPriceStrip', () => () => null);
 jest.mock('../CatalogItemPromoBadges/CatalogItemPromoBadges', () => () => null);
 jest.mock('../../../utils/fetchSupplier', () => ({
-  resolvePhotoUrl: () => '',
+  resolvePhotoUrl: (url) => (url ? String(url) : ''),
 }));
 
 const tyreItem = {
@@ -109,5 +109,62 @@ describe('CatalogItemModalWindow meta fields', () => {
     ).find((node) => node.querySelector('dt')?.textContent === 'Цвет');
 
     expect(colorField?.querySelector('dd')?.textContent).toBe('—');
+  });
+});
+
+describe('CatalogItemModalWindow photo', () => {
+  let root;
+
+  beforeEach(() => {
+    global.IS_REACT_ACT_ENVIRONMENT = true;
+    root = createRoot(document.createElement('div'));
+  });
+
+  afterEach(async () => {
+    await act(async () => root.unmount());
+    document.body.innerHTML = '';
+  });
+
+  test('пустой photoUrl: рамка без img и без via.placeholder.com', async () => {
+    await act(async () => {
+      root.render(
+        <CatalogItemModalWindow
+          isOpen
+          onClose={() => {}}
+          item={{ ...tyreItem, photoUrl: '' }}
+          category="tyres"
+        />
+      );
+    });
+
+    expect(document.querySelector('.product-modal__frame')).not.toBeNull();
+    expect(document.querySelector('.product-modal__image')).toBeNull();
+    expect(document.body.innerHTML).not.toContain('via.placeholder.com');
+    expect(document.body.innerHTML).not.toContain('placeholder.com');
+  });
+
+  test('ошибка загрузки: убирает img, не ставит via.placeholder.com', async () => {
+    await act(async () => {
+      root.render(
+        <CatalogItemModalWindow
+          isOpen
+          onClose={() => {}}
+          item={tyreItem}
+          category="tyres"
+        />
+      );
+    });
+
+    const img = document.querySelector('.product-modal__image');
+    expect(img).not.toBeNull();
+    expect(img.getAttribute('src')).toBe(tyreItem.photoUrl);
+
+    await act(async () => {
+      img.dispatchEvent(new Event('error'));
+    });
+
+    expect(document.querySelector('.product-modal__image')).toBeNull();
+    expect(document.body.innerHTML).not.toContain('via.placeholder.com');
+    expect(document.querySelector('.product-modal__frame')).not.toBeNull();
   });
 });

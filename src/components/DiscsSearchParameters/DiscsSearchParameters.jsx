@@ -32,6 +32,7 @@ import {
   appLog,
   isExpectedOperationalError,
 } from '../../utils/appLog';
+import { filterDiscRangeSelectOptions } from './filterDiscRangeSelectOptions';
 import './DiscsSearchParameters.scss';
 
 const { Option } = Select;
@@ -67,6 +68,12 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
   const [availablePn, setAvailablePn] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
   const brandSelectCloseOnMouseLeave = useCatalogSelectCloseOnMouseLeave();
+  const cbFrom = Form.useWatch('cbFrom', form);
+  const cbTo = Form.useWatch('cbTo', form);
+  const widthFrom = Form.useWatch('widthFrom', form);
+  const widthTo = Form.useWatch('widthTo', form);
+  const etFrom = Form.useWatch('etFrom', form);
+  const etTo = Form.useWatch('etTo', form);
   const loadRequestIdRef = useRef(0);
   const searchRequestIdRef = useRef(0);
   const foregroundRequestIdRef = useRef(0);
@@ -402,6 +409,20 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
       : showSearchResults
         ? 'results'
         : 'none';
+  const cbFromOptions = filterDiscRangeSelectOptions(availableCb, 'from', cbTo);
+  const cbToOptions = filterDiscRangeSelectOptions(availableCb, 'to', cbFrom);
+  const widthFromOptions = filterDiscRangeSelectOptions(
+    availableWidths,
+    'from',
+    widthTo
+  );
+  const widthToOptions = filterDiscRangeSelectOptions(
+    availableWidths,
+    'to',
+    widthFrom
+  );
+  const etFromOptions = filterDiscRangeSelectOptions(availableEt, 'from', etTo);
+  const etToOptions = filterDiscRangeSelectOptions(availableEt, 'to', etFrom);
 
   return (
     <div className="discs-search-parameters">
@@ -514,7 +535,7 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
                   allowClear
                   loading={loadingOptions}
                 >
-                  {availableCb.map((cb) => (
+                  {cbFromOptions.map((cb) => (
                     <Option key={cb} value={cb}>
                       {cb}
                     </Option>
@@ -529,7 +550,7 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
                   allowClear
                   loading={loadingOptions}
                 >
-                  {availableCb.map((cb) => (
+                  {cbToOptions.map((cb) => (
                     <Option key={cb} value={cb}>
                       {cb}
                     </Option>
@@ -548,7 +569,7 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
                   allowClear
                   loading={loadingOptions}
                 >
-                  {availableWidths.map((width) => (
+                  {widthFromOptions.map((width) => (
                     <Option key={width} value={width}>
                       {width}
                     </Option>
@@ -563,7 +584,7 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
                   allowClear
                   loading={loadingOptions}
                 >
-                  {availableWidths.map((width) => (
+                  {widthToOptions.map((width) => (
                     <Option key={width} value={width}>
                       {width}
                     </Option>
@@ -582,7 +603,7 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
                   allowClear
                   loading={loadingOptions}
                 >
-                  {availableEt.map((et) => (
+                  {etFromOptions.map((et) => (
                     <Option key={et} value={et}>
                       {et}
                     </Option>
@@ -597,7 +618,7 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
                   allowClear
                   loading={loadingOptions}
                 >
-                  {availableEt.map((et) => (
+                  {etToOptions.map((et) => (
                     <Option key={et} value={et}>
                       {et}
                     </Option>

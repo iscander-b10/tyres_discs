@@ -150,6 +150,7 @@ export async function applyCatalogSnapshot(snapshot, options = {}) {
     normalizedOptions.generation ?? activateCatalogStore(storeId);
   assertCatalogStoreActive(storeId, generation);
 
+  await yieldToBrowserPaint();
   const { commands, report } = validateAndNormalizeCatalogSnapshot(snapshot);
   if (!report.valid) {
     const first = report.errors[0];
@@ -191,6 +192,18 @@ async function getPersistedCatalogVersion() {
   } catch {
     return '';
   }
+}
+
+/** Let the overlay paint «Читаем/Сохраняем каталог» before a long main-thread task. */
+export function yieldToBrowserPaint() {
+  return new Promise((resolve) => {
+    const finish = () => resolve();
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => setTimeout(finish, 0));
+      return;
+    }
+    setTimeout(finish, 0);
+  });
 }
 
 export const SYNC_PROGRESS = {
@@ -289,6 +302,8 @@ async function readSnapshotFromResponse(
       complete: true,
     });
     onParseStart?.();
+    await yieldToBrowserPaint();
+    if (signal?.aborted) throw createAbortError();
     return res.json();
   }
 
@@ -331,7 +346,13 @@ async function readSnapshotFromResponse(
 
   emitDownload(true);
   onParseStart?.();
-  const text = new TextDecoder('utf-8').decode(concatUint8Chunks(chunks));
+  await yieldToBrowserPaint();
+  if (signal?.aborted) {
+    throw createAbortError();
+  }
+  const bytes = concatUint8Chunks(chunks);
+  chunks.length = 0;
+  const text = new TextDecoder('utf-8').decode(bytes);
   if (!text) return null;
   return JSON.parse(text);
 }

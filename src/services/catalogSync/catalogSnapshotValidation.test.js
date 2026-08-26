@@ -501,6 +501,40 @@ describe('validateAndNormalizeCatalogSnapshot — tires', () => {
     expect(commands[0].items[0].promoBadge).toBe('sale');
     expect(commands[0].items[0].loadIndex).toBe('91');
   });
+
+  test('function-поле товара даёт NOT_CLONEABLE', () => {
+    const { report } = validateAndNormalizeCatalogSnapshot(
+      snapshotOf({
+        schemaVersion: 1,
+        tyres: replace([tyreItem({ toJSON: () => ({}) })]),
+      })
+    );
+    expect(report.valid).toBe(false);
+    expect(report.errors.some((problem) => problem.code === 'NOT_CLONEABLE')).toBe(
+      true
+    );
+  });
+
+  test('не вызывает structuredClone на JSON-товары snapshot', () => {
+    const original = global.structuredClone;
+    const spy = jest.fn();
+    global.structuredClone = spy;
+    try {
+      const items = Array.from({ length: 40 }, (_, index) =>
+        tyreItem({ id: `tyre-${index}`, code: `C-${index}` })
+      );
+      const { report } = validateAndNormalizeCatalogSnapshot(
+        snapshotOf({
+          schemaVersion: 1,
+          tyres: replace(items),
+        })
+      );
+      expect(report.valid).toBe(true);
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      global.structuredClone = original;
+    }
+  });
 });
 
 describe('validateAndNormalizeCatalogSnapshot — discs', () => {

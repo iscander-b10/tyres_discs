@@ -67,7 +67,7 @@ stateDiagram-v2
 **Путь:** [`src/components/TiresSearchParameters/TiresSearchParameters.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/components/TiresSearchParameters/TiresSearchParameters.jsx)  
 **Сигнатура:** `memo(({ isActive = true }) => ReactNode)`  
 **Prop:** `isActive: boolean`, default `true`; источник — `AppFrame`.  
-**Context:** `clientMode`, `catalogDataVersion`, `workspaceResetKey`, `catalogSurfaceHold` из AppShell. Cold-start шторка читает `catalogBootstrap` / `notifyCatalogSurfaceReady` в `CatalogShowcase`, но не меняет `isActive` скрытой панели.  
+**Context:** `clientMode`, `catalogDataVersion`, `workspaceResetKey`, `catalogSurfaceHold` из AppShell. Cold-start шторка читает `catalogBootstrapPhase` / `notifyCatalogSurfaceReady` в `CatalogShowcase`, но не меняет `isActive` скрытой панели. Progress шторки не входит в AppShell Context.  
 **Возвращает:** Ant Design Form, showcase либо paginated search results.
 
 ### Локальное состояние

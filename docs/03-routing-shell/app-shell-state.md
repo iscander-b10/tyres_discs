@@ -111,8 +111,8 @@ flowchart LR
 | `catalogSnapshotVersion` | string, `''` | applied notification/channel | reconciliation/showcase | RAM |
 | `bumpCatalogDataVersion` | callback | hosts/consumers | sync bridge | нет |
 | `notifyCatalogApplied` | callback | `CatalogSyncHost` | sync host | нет |
-| `catalogBootstrap` | `{ phase, progress, label, error?, waitForShowcase? }`; `phase`: `'idle' \| 'blocking' \| 'ready' \| 'error'`; старт `{ phase: 'idle', progress: 0, label: '' }` | `setCatalogBootstrap`, workspace layout reset | `CatalogBootstrapOverlay`, `CatalogShowcase`, `CatalogSyncHost` | RAM |
-| `setCatalogBootstrap` | callback | `CatalogSyncHost` | sync host | нет |
+| `catalogBootstrapPhase` | `'idle' \| 'blocking' \| 'ready' \| 'error'` | `setCatalogBootstrap`, если сменилась phase | `CatalogShowcase` | RAM |
+| `setCatalogBootstrap` | callback | `CatalogSyncHost` / `DemoCatalogHost` | sync host | нет |
 | `registerCatalogBootstrapRetry` | `(fn) => unsubscribe` | `CatalogSyncHost` | sync host | нет |
 | `retryCatalogBootstrap` | callback | overlay «Повторить» | overlay | нет |
 | `notifyCatalogSurfaceReady` | callback | активная `CatalogShowcase` после settled полок | overlay wait | нет |
@@ -269,7 +269,7 @@ Cleanup возвращает unsubscribe из `subscribeCatalogApplied`.
 
 ### Cold-start bootstrap
 
-`catalogBootstrap` — единственный источник, должен ли пользователь видеть рабочий сайт. Владелец — AppShell, не витрина.
+`catalogBootstrap` (phase, progress, label, error, waitForShowcase) — единственный источник, должен ли пользователь видеть рабочий сайт. Владелец — AppShell, не витрина. Объект живёт в state `AppShellProvider` и передаётся **пропом** в `CatalogBootstrapOverlay`. В `useAppShell()` публикуется только `catalogBootstrapPhase`: progress/label на каждый chunk download не перерисовывают dual-mount панели, header, basket и форму поиска. `setCatalogBootstrap` остаётся в Context — это стабильный callback.
 
 | `phase` | Шторка | Когда |
 | --- | --- | --- |
@@ -280,7 +280,7 @@ Cleanup возвращает unsubscribe из `subscribeCatalogApplied`.
 
 `CatalogSyncHost` **не** ставит `blocking` до ответа `isCatalogEmpty()`: иначе refresh с заполненным IDB мелькает шторкой. Пустой каталог получает `blocking` + `waitForShowcase: true`, качает **один** snapshot шин и дисков, затем прогревает RAM обеих категорий; непустой сразу переходит в `ready` без `waitForShowcase` и без единого кадра overlay, дальше синхронизируется тихо (слот, visibility, online). Stale store и abort не переводят phase в `error`. Ожидание lock на пустой базе — всё ещё `blocking`, не `error`.
 
-Прогресс монотонный 0–99, пока phase не `ready`. Числа и подпись приходят из `catalogBootstrap.progress` / `label` (новые поля в AppShell не заводятся): meta ≈ 0–3%, download — основная доля, затем parse, apply и `warmup` («Готовим витрину», шины затем диски). Если `Content-Length` виден и согласован со stream, бар следует байтам; если нет — крупно показываются мегабайты, а бар идёт коридором ≈ 5–80%, без «N% от файла». Вторая вкладка с пустой IDB ждёт writer: label «Каталог загружается в другой вкладке», progress 0, не error. `setInterval` и откат процента запрещены; 100 появляется только на `ready` после commit и прогрева RAM.
+Прогресс монотонный 0–99, пока phase не `ready`. Числа и подпись приходят из внутреннего `catalogBootstrap.progress` / `label` (шторка, не Context): meta ≈ 0–3%, download — основная доля, затем parse, apply и `warmup` («Готовим витрину», шины затем диски). Если `Content-Length` виден и согласован со stream, бар следует байтам; если нет — крупно показываются мегабайты, а бар идёт коридором ≈ 5–80%, без «N% от файла». Вторая вкладка с пустой IDB ждёт writer: label «Каталог загружается в другой вкладке», progress 0, не error. `setInterval` и откат процента запрещены; 100 появляется только на `ready` после commit и прогрева RAM.
 
 `CatalogBootstrapOverlay` рендерится из `AppShellProvider` порталом на `document.body`. Это не Ant Design Modal: клик по маске и Escape не закрывают шторку. z-index (`--z-catalog-bootstrap`: 1300) выше хедера и ModeToggle. Фон `--color-overlay-gate` темнее `--color-overlay-strong`. Бар и крупный процент используют `--color-accent`, не `--color-cta`. Ошибка cold start показывается в шторке, кнопка «Повторить» вызывает `retryCatalogBootstrap`. Focus trap, `inert` на `#root` и `overflow: hidden` на `body` держатся, пока шторка смонтирована, включая 50ms exit.
 

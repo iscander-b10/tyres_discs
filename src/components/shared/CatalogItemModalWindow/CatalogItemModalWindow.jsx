@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { Button } from 'antd';
 import { CloseOutlined } from '@ant-design/icons';
@@ -7,7 +7,6 @@ import AddToCartControl from '../AddToCartControl/AddToCartControl';
 import CatalogPriceStrip from '../CatalogPriceStrip/CatalogPriceStrip';
 import CatalogItemPromoBadges from '../CatalogItemPromoBadges/CatalogItemPromoBadges';
 import {
-  CATALOG_IMAGE_FALLBACK,
   formatCatalogSizeDisplay,
   formatCatalogStockDisplay,
   resolveCatalogLoadIndex,
@@ -26,6 +25,7 @@ const CatalogItemModalWindow = ({
   const dialogRef = useRef(null);
   const closeBtnRef = useRef(null);
   const previouslyFocusedRef = useRef(null);
+  const [imageFailed, setImageFailed] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -78,6 +78,10 @@ const CatalogItemModalWindow = ({
     () => (item ? resolvePhotoUrl(item.photoUrl, item.supplier) : ''),
     [item]
   );
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [photoSrc]);
 
   const model = useMemo(() => resolveCatalogModel(item), [item]);
   const sizeDisplay = useMemo(() => formatCatalogSizeDisplay(item), [item]);
@@ -150,16 +154,16 @@ const CatalogItemModalWindow = ({
               className="product-modal__frame"
               data-supplier={item.supplier || undefined}
             >
-              <img
-                src={photoSrc}
-                alt={item.title}
-                className="product-modal__image"
-                data-supplier={item.supplier || undefined}
-                referrerPolicy="no-referrer"
-                onError={(e) => {
-                  e.target.src = CATALOG_IMAGE_FALLBACK;
-                }}
-              />
+              {photoSrc && !imageFailed ? (
+                <img
+                  src={photoSrc}
+                  alt={item.title}
+                  className="product-modal__image"
+                  data-supplier={item.supplier || undefined}
+                  referrerPolicy="no-referrer"
+                  onError={() => setImageFailed(true)}
+                />
+              ) : null}
               <CatalogItemPromoBadges item={item} variant="modal" />
             </div>
           </div>

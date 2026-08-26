@@ -3,6 +3,10 @@
  * Не открывает IndexedDB и не мутирует исходный объект.
  */
 
+import { canBeStoredInIndexedDB } from '../catalogIdb/catalogItemValidation';
+
+export { canBeStoredInIndexedDB };
+
 export const SUPPORTED_WIRE_SCHEMA_VERSION = 1;
 export const VALIDATION_PROBLEM_LIMIT = 100;
 
@@ -19,65 +23,6 @@ const hasOwn = (object, key) =>
 
 export const isRecord = (value) =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
-
-const isStructuredCloneableFallback = (value, seen = new WeakSet()) => {
-  if (
-    value === null ||
-    value === undefined ||
-    ['string', 'number', 'boolean', 'bigint'].includes(typeof value)
-  ) {
-    return true;
-  }
-  if (['function', 'symbol'].includes(typeof value)) return false;
-  if (seen.has(value)) return true;
-  if (
-    value instanceof WeakMap ||
-    value instanceof WeakSet ||
-    value instanceof Promise
-  ) {
-    return false;
-  }
-
-  seen.add(value);
-  try {
-    return Reflect.ownKeys(value).every(
-      (key) =>
-        typeof key !== 'symbol' &&
-        isStructuredCloneableFallback(value[key], seen)
-    );
-  } catch {
-    return false;
-  }
-};
-
-export const canBeStoredInIndexedDB = (value) => {
-  try {
-    if (typeof structuredClone === 'function') {
-      structuredClone(value);
-      return true;
-    }
-    if (
-      typeof window !== 'undefined' &&
-      typeof window.structuredClone === 'function'
-    ) {
-      window.structuredClone(value);
-      return true;
-    }
-    return isStructuredCloneableFallback(value);
-  } catch {
-    return false;
-  }
-};
-
-const cloneCloneableFields = (item) => {
-  const result = {};
-  for (const [key, value] of Object.entries(item)) {
-    if (canBeStoredInIndexedDB(value)) {
-      result[key] = value;
-    }
-  }
-  return result;
-};
 
 /**
  * Строгое число: вся строка должна быть числом.
@@ -369,7 +314,7 @@ export function normalizeCommonCatalogItem(item, path, sectionSupplier, collecto
     collector
   );
 
-  const base = cloneCloneableFields(item);
+  const base = { ...item };
   return {
     ...base,
     id,

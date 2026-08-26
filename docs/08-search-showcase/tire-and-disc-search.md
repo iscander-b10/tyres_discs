@@ -177,14 +177,30 @@ Form (всегда)
 | Auto-resubmit | только `onlyAmountFrom4` |
 | Showcase chip | patch: diameter, pn, pcd, cbFrom/cbTo |
 | `handleResetFilters` | `invalidateCatalogSearchRequest` + `loadAvailableParameters()` без season default |
+| Связанные «от/до» | UI-only: `filterDiscRangeSelectOptions` режет опции Select по соседней границе |
+
+### Связанные опции «от / до»
+
+Три пары Select в `.filter-range` (ЦО `cbFrom/cbTo`, ширина `widthFrom/widthTo`, вылет `etFrom/etTo`) читают границы через `Form.useWatch` и показывают не сырой facet-список, а результат `filterDiscRangeSelectOptions` (`src/components/DiscsSearchParameters/filterDiscRangeSelectOptions.js`):
+
+- выбрали «от» = 67 → в «до» только значения **≥ 67** из текущего facet-списка;
+- выбрали «до» = 67 → в «от» только значения **≤ 67**;
+- обе границы заданы → каждая сторона режет по соседней;
+- соседнее поле пусто (`undefined` / `null` / `''`) → полный facet-список;
+- сравнение **включительное** через `Number(...)` (дробные ЦО вроде 67.1, отрицательный ET, равенство `от === до`);
+- `allowClear` одной границы снова открывает полный список в противоположном Select.
+
+Это **только фильтрация опций Select**. `getAvailableDiscParameterOptions` / `collectDiscFacetOptions` по-прежнему не сужают список ширины/ЦО/вылета собственным range того же измерения — иначе после выбора «от» из самого «от» пропали бы меньшие значения. `softInvalidateIncompatibleValues` сверяет выбранное с полным `availableCb` / `availableWidths` / `availableEt`, а не с урезанным списком соседнего Select. Поиск остаётся inclusive: `matchesDiscRange` проверяет `from <= value <= to`. Чип витрины может выставить `cbFrom === cbTo`. Противоположное поле форма не автосбрасывает: через UI пара `from > to` не появляется.
 
 ### Ant Design
 
-Те же + Select «Тип диска» с options `[Литой, Штампованный, Все]`.
+Те же + Select «Тип диска» с options `[Литой, Штампованный, Все]`. Placeholders «от»/«до», `aria-label`, `allowClear` и `catalogSearchSelectProps` у диапазонов сохраняются.
 
 ### Тесты
 
-`DiscsSearchParameters.searchRace.test.jsx` — stale request id, StaleCatalogStoreError, сброс во время in-flight, pending не blank, timeout, StrictMode settle «Найти».
+- `DiscsSearchParameters.searchRace.test.jsx` — stale request id, StaleCatalogStoreError, сброс во время in-flight, pending не blank, timeout, StrictMode settle «Найти».
+- `filterDiscRangeSelectOptions.test.js` — пустой other, inclusive `from`/`to`, дробные ЦО, отрицательный ET, `''`/`null`/`undefined`.
+- `DiscsSearchParameters.rangeSelect.test.jsx` — после выбора `cbFrom` в dropdown `cbTo` нет меньших значений; после clear полный список возвращается.
 
 ---
 

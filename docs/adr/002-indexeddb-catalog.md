@@ -43,7 +43,7 @@ IndexedDB database per `storeId`: `CatalogDatabase.<encodeURIComponent(storeId)>
 - Любое изменение schema → version bump + tests
 - Facade `indexedDBService.js` для stable import path
 - Legacy per-supplier save API сохранён, но не primary writer
-- Read-cache поиска/facets живёт в `catalogIdbSession` и сбрасывается с generation/snapshot; витрина и cart-read остаются IDB-cursor/get
+- Read-cache поиска/facets живёт в `catalogIdbSession` и сбрасывается с generation/snapshot; витрина после hydrate читает RAM (`collectShowcaseCandidatesFromItems`); cart-read остаётся IDB get
 
 ## Связанные файлы
 

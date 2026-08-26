@@ -214,17 +214,17 @@ snapshot пригодным для bootstrap. Пустой upstream-ответ �
 diameter тем же helper-ом, `color` в trim/null. `diskType` допускает только
 `Литой` или `Штампованный`; иное → `null` + warning. Отрицательный ET допустим.
 
-## Structured clone boundary
+## IndexedDB clone boundary
 
-`canBeStoredInIndexedDB` сначала пробует глобальный `structuredClone`, затем
-`window.structuredClone`, иначе рекурсивный fallback. Function, symbol,
-WeakMap, WeakSet и Promise считаются недопустимыми. Cyclic references не
-зацикливают fallback благодаря `WeakSet`.
+`canBeStoredInIndexedDB` / `isIndexedDbCloneable` — рекурсивный type-check без
+`structuredClone`. Function, symbol, WeakMap, WeakSet и Promise недопустимы.
+Cyclic references не зацикливают проверку благодаря `WeakSet`. Snapshot приходит
+из `JSON.parse`, поэтому cloneability — отсев случайных host-объектов, а не
+сериализация 30k+ SKU на main thread.
 
-Если весь item не cloneable — fatal `NOT_CLONEABLE`. После этого
-`cloneCloneableFields` переносит только cloneable собственные enumerable-поля.
-Fallback является приближением браузерного structured clone и не заменяет
-реальную IDB-транзакцию как последнюю границу.
+Если весь item не cloneable — fatal `NOT_CLONEABLE`. Иначе нормализатор делает
+shallow copy `{ ...item }` и перезаписывает канонические поля. Реальная
+IDB-транзакция остаётся последней границей записи.
 
 ## От validation до commit
 

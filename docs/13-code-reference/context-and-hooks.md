@@ -159,8 +159,8 @@ Sync; сначала ищет mapping по accountId, затем по normalized
 | `clientMode` / `setClientMode` | Режим клиента (скрытие B2B) |
 | `catalogDataVersion` | Bump → поиск/showcase перечитывают IDB |
 | `catalogSnapshotVersion` | Версия последнего apply |
-| `catalogBootstrap` | `{ phase: 'idle' \| 'blocking' \| 'ready' \| 'error', progress, label, error?, waitForShowcase? }` — cold-start шторка; `waitForShowcase` только на пустом IDB |
-| `setCatalogBootstrap` | Host выставляет blocking/ready/error |
+| `catalogBootstrapPhase` | `'idle' \| 'blocking' \| 'ready' \| 'error'` — phase шторки без progress; progress/label не входят в Context, чтобы download не перерисовывал dual-mount |
+| `setCatalogBootstrap` | Host выставляет blocking/ready/error; overlay читает полный объект из state провайдера |
 | `registerCatalogBootstrapRetry` / `retryCatalogBootstrap` | «Повторить» на шторке |
 | `notifyCatalogSurfaceReady` | Активная витрина сообщает, что полки settled |
 | `catalogSurfaceHold` | Держит opacity зоны результатов, пока cold-start шторка не начнёт exit |

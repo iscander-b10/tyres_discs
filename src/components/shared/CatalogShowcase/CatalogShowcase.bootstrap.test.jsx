@@ -87,7 +87,7 @@ describe('CatalogShowcase empty catalog', () => {
       catalogDataVersion: 1,
       catalogSnapshotVersion: 'v1',
       workspaceResetKey: 'store-a',
-      catalogBootstrap: { phase: 'ready', progress: 100, label: '' },
+      catalogBootstrapPhase: 'ready',
       notifyCatalogSurfaceReady,
     });
 
@@ -108,12 +108,7 @@ describe('CatalogShowcase empty catalog', () => {
       catalogDataVersion: 1,
       catalogSnapshotVersion: '',
       workspaceResetKey: 'store-a',
-      catalogBootstrap: {
-        phase: 'blocking',
-        progress: 10,
-        label: '',
-        waitForShowcase: true,
-      },
+      catalogBootstrapPhase: 'blocking',
       notifyCatalogSurfaceReady,
     });
 

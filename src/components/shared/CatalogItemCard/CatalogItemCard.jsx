@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Card, Divider, Flex, Image, Typography } from 'antd';
+import React, { useEffect, useMemo, useState, memo } from 'react';
+import { Card, Divider, Flex, Typography } from 'antd';
 import runflatIcon from '../../../icons/runflat.jpg';
 import { ReactComponent as VanIcon } from '../../../icons/Van.svg';
 import { resolvePhotoUrl } from '../../../utils/fetchSupplier';
@@ -8,7 +8,6 @@ import AddToCartControl from '../AddToCartControl/AddToCartControl';
 import CatalogPriceStrip from '../CatalogPriceStrip/CatalogPriceStrip';
 import CatalogItemPromoBadges from '../CatalogItemPromoBadges/CatalogItemPromoBadges';
 import {
-  CATALOG_IMAGE_FALLBACK,
   formatCatalogSizeDisplay,
   formatCatalogStockDisplay,
 } from '../catalogCopy';
@@ -26,6 +25,7 @@ const CatalogItemCard = ({
   modalItemPropName = 'item',
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
 
   const supplierName = item?.supplier || null;
   const supplierTooltip = supplierName ? `Поставщик: ${supplierName}` : null;
@@ -34,6 +34,10 @@ const CatalogItemCard = ({
     () => resolvePhotoUrl(item?.photoUrl, item?.supplier),
     [item?.photoUrl, item?.supplier]
   );
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [photoSrc]);
 
   const sizeDisplay = useMemo(() => formatCatalogSizeDisplay(item), [item]);
   const stockDisplay = useMemo(
@@ -76,14 +80,17 @@ const CatalogItemCard = ({
             }}
             aria-label={`Открыть ${item.title}`}
           >
-            <Image
-              className="item-image"
-              src={photoSrc}
-              alt={item.title}
-              fallback={CATALOG_IMAGE_FALLBACK}
-              preview={false}
-              referrerPolicy="no-referrer"
-            />
+            {photoSrc && !imageFailed ? (
+              <img
+                className="item-image"
+                src={photoSrc}
+                alt={item.title}
+                loading="lazy"
+                decoding="async"
+                referrerPolicy="no-referrer"
+                onError={() => setImageFailed(true)}
+              />
+            ) : null}
             {(item.code || item.runflat) ? (
               <Flex
                 className="item-code-overlay"
@@ -97,11 +104,10 @@ const CatalogItemCard = ({
                   </Text>
                 ) : null}
                 {item.runflat ? (
-                  <Image
+                  <img
                     className="item-runflat-icon"
                     src={runflatIcon}
                     alt="Runflat"
-                    preview={false}
                   />
                 ) : null}
               </Flex>
@@ -194,9 +200,9 @@ const CatalogItemCard = ({
         />
       </Card>
 
-      {ModalComponent ? <ModalComponent {...modalProps} /> : null}
+      {isModalOpen && ModalComponent ? <ModalComponent {...modalProps} /> : null}
     </>
   );
 };
 
-export default CatalogItemCard;
+export default memo(CatalogItemCard);

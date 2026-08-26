@@ -121,7 +121,7 @@ sequenceDiagram
 5. После каждого `await` проверить, что store/generation всё ещё активны.
 6. Прочитать persisted IDB version и проверить, пуст ли каталог.
 7. Если каталог не пуст и `meta.version <= local`, вернуть `up-to-date`.
-8. Скачать `/snapshot` через `ReadableStream`: копить `Uint8Array` чанки, затем один `TextDecoder` + `JSON.parse`. AbortSignal сохраняется. `Content-Length` не считается истиной, если его нет, стоит `Content-Encoding` кроме `identity`, или принятые байты превысили заявленный total.
+8. Скачать `/snapshot` через `ReadableStream`: копить `Uint8Array` чанки, затем `onParseStart` (шторка «Читаем каталог»), yield кадра UI, один `TextDecoder` + `JSON.parse`. Чанки сбрасываются после concat, чтобы не держать bytes+string+object одновременно дольше parse. AbortSignal сохраняется. `Content-Length` не считается истиной, если его нет, стоит `Content-Encoding` кроме `identity`, или принятые байты превысили заявленный total.
 9. Повторить version gate уже по версии snapshot.
 10. Валидировать и применить snapshot; `onProgress` переходит `parse` → `apply`.
 11. Вернуть классифицированный результат; залогировать ошибку.
@@ -180,7 +180,7 @@ await checkAndSyncCatalog({
 **Алгоритм и граница транзакции.**
 
 1. Разрешить store и generation, проверить активность.
-2. Синхронно провалидировать и нормализовать весь snapshot.
+2. Отдать кадр UI (`yieldToBrowserPaint`), затем синхронно провалидировать и нормализовать весь snapshot без `structuredClone` на каждый SKU.
 3. При fatal-проблеме бросить `Error` с полем `validationReport`; IDB ещё не вызван.
 4. Передать все команды и version в один `CatalogIdbSession.applyCatalogSnapshot`.
 5. Нижний слой открывает одну `readwrite`-транзакцию сразу на `tires`, `discs`, `metadata`.

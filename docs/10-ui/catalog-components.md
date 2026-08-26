@@ -59,6 +59,7 @@ flowchart TB
 ### Локальное состояние
 
 `isModalOpen: boolean` — видимость модалки.
+`imageFailed: boolean` — сброс при смене `photoSrc`; при `true` `<img>` не рендерится.
 
 ### Обработчики
 
@@ -68,17 +69,18 @@ flowchart TB
 ### Ветви рендеринга
 
 - `!item` → null
-- cover: Image + code overlay + runflat icon + promo badges
+- cover: `.item-image-frame` всегда; `<img class="item-image" loading="lazy" decoding="async">` только при непустом `photoSrc` и без ошибки загрузки; иначе пустая рамка (фон карточки), без внешнего placeholder
+- overlay: code + runflat icon + promo badges
 - Meta: title, size, color, supplier (manager only), stock, price, cart
-- `ModalComponent` рендерится всегда (controlled by isOpen)
+- `ModalComponent` монтируется только при `isModalOpen`
 
 ### Ant Design
 
-`Card`, `Meta`, `Image`, `Flex`, `Typography.Text`, `Divider`
+`Card`, `Meta`, `Flex`, `Typography.Text`, `Divider`. Фото — native `<img>`, не Ant Design `Image`.
 
 ### Связь с сервисами
 
-`resolvePhotoUrl(item.photoUrl, item.supplier)` — URL фото поставщика.
+`resolvePhotoUrl(item.photoUrl, item.supplier)` — URL фото поставщика. Пустой результат или `onError` у `<img>` → картинку не показывают; рамка остаётся.
 
 ### Пример
 
@@ -113,6 +115,7 @@ flowchart TB
 
 1. **Open/close:** `body.overflow`, focus на close button, restore focus on close.
 2. **Keydown:** Escape → close; Tab trap внутри dialog.
+3. **Photo:** сброс `imageFailed` при смене `photoSrc`.
 
 ### Вычисляемые данные
 
@@ -125,6 +128,8 @@ flowchart TB
 ### Loading / empty / error
 
 `!isOpen || !item` → null (ничего не рендерится).
+
+Нет `photoUrl` / пустой `resolvePhotoUrl` / ошибка `<img>` → `.product-modal__frame` без картинки, без внешнего placeholder и без текста «No Image».
 
 ### Async
 

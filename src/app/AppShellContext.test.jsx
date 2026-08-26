@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { AppShellProvider, useAppShell } from './AppShellContext';
-import { CATALOG_BOOTSTRAP_IDLE } from './catalogBootstrap';
 
 jest.mock('../auth/AuthContext', () => ({ useAuth: jest.fn() }));
 jest.mock('../services/indexedDBService', () => ({
@@ -69,7 +68,7 @@ describe('AppShell catalog bootstrap', () => {
     auth.workspace = null;
     await renderShell();
 
-    expect(shell.catalogBootstrap).toEqual(CATALOG_BOOTSTRAP_IDLE);
+    expect(shell.catalogBootstrapPhase).toBe('idle');
     expect(typeof shell.setCatalogBootstrap).toBe('function');
     expect(typeof shell.retryCatalogBootstrap).toBe('function');
     expect(typeof shell.registerCatalogBootstrapRetry).toBe('function');
@@ -86,11 +85,8 @@ describe('AppShell catalog bootstrap', () => {
       });
     });
 
-    expect(shell.catalogBootstrap).toEqual({
-      phase: 'blocking',
-      progress: 42,
-      label: 'Загружаем каталог шин и дисков',
-    });
+    expect(shell.catalogBootstrapPhase).toBe('blocking');
+    expect(shell.catalogBootstrap).toBeUndefined();
     expect(
       document.querySelector('[data-testid="catalog-bootstrap-overlay"]')
     ).not.toBeNull();
@@ -107,7 +103,7 @@ describe('AppShell catalog bootstrap', () => {
         error: 'Нет сети. Проверьте подключение.',
       });
     });
-    expect(shell.catalogBootstrap.phase).toBe('error');
+    expect(shell.catalogBootstrapPhase).toBe('error');
 
     auth = {
       ...auth,
@@ -115,11 +111,7 @@ describe('AppShell catalog bootstrap', () => {
     };
     await renderShell();
 
-    expect(shell.catalogBootstrap).toEqual({
-      phase: 'idle',
-      progress: 0,
-      label: '',
-    });
+    expect(shell.catalogBootstrapPhase).toBe('idle');
     expect(
       document.querySelector('[data-testid="catalog-bootstrap-overlay"]')
     ).toBeNull();
@@ -141,5 +133,49 @@ describe('AppShell catalog bootstrap', () => {
       shell.retryCatalogBootstrap();
     });
     expect(retry).toHaveBeenCalledTimes(1);
+  });
+
+  test('прогресс шторки не меняет identity AppShell context', async () => {
+    let renders = 0;
+    function Consumer() {
+      useAppShell();
+      renders += 1;
+      return null;
+    }
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <AppShellProvider>
+            <Probe onChange={(next) => { shell = next; }} />
+            <Consumer />
+          </AppShellProvider>
+        </MemoryRouter>
+      );
+    });
+    const afterMount = renders;
+
+    await act(async () => {
+      shell.setCatalogBootstrap({
+        phase: 'blocking',
+        progress: 10,
+        label: 'Загружаем каталог шин и дисков',
+      });
+    });
+    const afterPhase = renders;
+    expect(afterPhase).toBeGreaterThan(afterMount);
+
+    await act(async () => {
+      shell.setCatalogBootstrap({
+        phase: 'blocking',
+        progress: 55,
+        label: 'Загружаем каталог шин и дисков',
+      });
+    });
+    expect(renders).toBe(afterPhase);
+    expect(
+      document.querySelector('[data-testid="catalog-bootstrap-overlay"]')
+    ).not.toBeNull();
+    expect(document.body.textContent).toContain('55%');
   });
 });

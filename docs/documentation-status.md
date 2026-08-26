@@ -12,7 +12,7 @@
 | 4. Начало работы | `01-getting-started/**` | Проверено по коду | install (`demo:freeze`), config (`REACT_APP_DEMO_*_URL`), deploy |
 | 5. Архитектура | `02-architecture/**` | Проверено по коду | Demo URL + frozen snapshot, не stub |
 | 6–12 | Модульные разделы `03`–`10` | Проверено по коду | `/demo*` в маршрутах, AppShell, autosync, auth, shell UI |
-| 13. Справочник кода | `13-code-reference/**` | Проверено по коду | `isDemo(pathname)`, DemoCatalogHost, 58 root test-файлов |
+| 13. Справочник кода | `13-code-reference/**` | Проверено по коду | `isDemo(pathname)`, DemoCatalogHost, 60 root test-файлов |
 | 14. Dev guides | `14-development/**` | Проверено по коду | Включая `update-demo-snapshot.md` |
 | 11–12 | testing + operations | Проверено по коду | Deep link `/demo` на GitHub Pages |
 | 16. ADR | `adr/001`–`009` | Проверено по коду | ADR-009: demo URL + frozen snapshot |

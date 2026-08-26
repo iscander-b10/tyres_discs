@@ -42,7 +42,7 @@
 
 ### Context
 
-`useAppShell()`: `clientMode`, `catalogDataVersion`, `catalogSnapshotVersion`, `workspaceResetKey`, `catalogBootstrap`, `notifyCatalogSurfaceReady`.
+`useAppShell()`: `clientMode`, `catalogDataVersion`, `catalogSnapshotVersion`, `workspaceResetKey`, `catalogBootstrapPhase`, `notifyCatalogSurfaceReady`.
 
 ### Локальное состояние
 

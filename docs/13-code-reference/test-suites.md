@@ -1,7 +1,7 @@
 # Тестовые наборы
 
 ::: tip Статус: проверено по коду
-58 test-файлов под `src/` входят в корневой `npm test`. Ещё один тестовый файл `yandex/catalog-sync` запускается отдельной cloud-командой. Карта трассировки контрактов — [contract-catalog](/11-testing/contract-catalog).
+60 test-файлов под `src/` входят в корневой `npm test`. Ещё один тестовый файл `yandex/catalog-sync` запускается отдельной cloud-командой. Карта трассировки контрактов — [contract-catalog](/11-testing/contract-catalog).
 :::
 
 ## Инструменты
@@ -53,7 +53,7 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 | --- | --- |
 | `app/paths.test.js` | login redirect safety, `/demo*` prefix, unmatched → `/demo/tyres` |
 | `app/appMode.test.js` | `isDemo(pathname)`, `canUseApp` без глобального флага |
-| `app/AppShellContext.test.jsx` | catalogBootstrap, шторка, сброс workspace, retry |
+| `app/AppShellContext.test.jsx` | catalogBootstrapPhase, шторка, сброс workspace, retry; progress не меняет identity Context |
 | `app/catalogBootstrap.test.js` | label прогресса; `hideBytesLabel` без МБ |
 | `App.routing.test.jsx` | guards, login modal, guest `/demo` без login, guest `/tyres` → `/?login=1` |
 | `App.catalogDualMount.test.jsx` | hidden/inert panels |
@@ -75,7 +75,7 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 
 ---
 
-## Components (10 файлов)
+## Components (12 файлов)
 
 | Файл | Инварианты |
 | --- | --- |
@@ -85,6 +85,8 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 | `CatalogItemModalWindow.test.jsx` | лейбл «Размер»; у discs «Цвет» сразу после размера (пусто → «—»); у tyres поля «Цвет» нет |
 | `TiresSearchParameters.searchRace.test.jsx` | stale request discard, spinner, skip facets, reset during pending, pending не blank, timeout, StrictMode settle |
 | `DiscsSearchParameters.searchRace.test.jsx` | stale request discard, spinner, skip facets, reset during pending, pending не blank, timeout, StrictMode settle |
+| `DiscsSearchParameters.rangeSelect.test.jsx` | связанные Select ЦО от/до: после выбора «от» в «до» нет меньших; clear возвращает полный facet-список |
+| `filterDiscRangeSelectOptions.test.js` | UI-фильтр опций range: пустой other, inclusive ≥/≤, дробные ЦО, отрицательный ET |
 | `CatalogShowcase.appLog.test.jsx` | error logging on showcase fail |
 | `CatalogShowcase.bootstrap.test.jsx` | пустой store / loading → skeleton; Empty «Каталог ещё загружается» отсутствует; notify только на settled полках |
 | `CatalogBootstrapOverlay.test.jsx` | шторка на blocking/error, нет на idle/ready, Escape не закрывает, staff МБ при неизвестном Content-Length, demo % без МБ, waiting lock без 0%, waitForShowcase держит до витрины затем fade |

@@ -30,6 +30,27 @@ const formatMoney = (value) => {
   return `${Math.round(value).toLocaleString('ru-RU')}\u00A0руб.`;
 };
 
+function BasketLinePhoto({ photoSrc, supplier }) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [photoSrc]);
+
+  if (!photoSrc || failed) return null;
+
+  return (
+    <img
+      src={photoSrc}
+      alt=""
+      className="basket-line__image"
+      data-supplier={supplier || undefined}
+      referrerPolicy="no-referrer"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 function BasketPage() {
   const { clientMode: isClientMode, continueSelection } = useAppShell();
   const { isWorkspaceReady } = useAuth();
@@ -187,16 +208,9 @@ function BasketPage() {
                     onClick={() => setModalItemKey(item.key)}
                     aria-label={`Открыть ${item.title}`}
                   >
-                    <img
-                      src={photoSrc}
-                      alt=""
-                      className="basket-line__image"
-                      data-supplier={item.supplier || undefined}
-                      referrerPolicy="no-referrer"
-                      onError={(e) => {
-                        e.currentTarget.src =
-                          'https://via.placeholder.com/120x90?text=No+Image';
-                      }}
+                    <BasketLinePhoto
+                      photoSrc={photoSrc}
+                      supplier={item.supplier}
                     />
                   </button>
 

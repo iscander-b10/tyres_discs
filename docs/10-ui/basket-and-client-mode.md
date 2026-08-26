@@ -36,7 +36,7 @@
 1. Пока `!isWorkspaceReady || !isLoaded` → Spin «Загружаем корзину».
 2. Пустой `items` → empty state + CTA продолжить подбор.
 3. При входе на `/basket` и смене набора ключей → select all.
-4. Строки: фото, title, qty controls, цены, чекбоксы, удаление.
+4. Строки: фото, title, qty controls, цены, чекбоксы, удаление. Нет/битое фото → пустая ячейка `.basket-line__media` без `<img>` и без внешнего placeholder.
 5. Summary: `totals.selling` как «Итого»; `totals.b2b` только не в client mode; кнопка очистить.
 
 ### Client mode (`basket-page--client`)
