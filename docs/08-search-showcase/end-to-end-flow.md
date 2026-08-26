@@ -100,7 +100,7 @@ flowchart LR
 
 **Диски — поля формы:**
 
-- `diskType`: `'Литой'`, `'Штампованный'` или «Все» (`undefined`)
+- `diskType`: `'Литой'` или `'Штампованный'`, default `'Литой'` (как сезон у шин — всегда выбран один тип)
 - `diameter`, `pn`, `pcd`
 - диапазоны: `cbFrom/cbTo`, `widthFrom/widthTo`, `etFrom/etTo`
 - `brand[]`, `supplier`, `onlyAmountFrom4`

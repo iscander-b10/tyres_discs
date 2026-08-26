@@ -357,13 +357,19 @@ $close-size: 40px;
     border-radius: 0;
   }
 
+  /* One scroll: photo + meta as a single column (no nested meta scrollbar). */
   .product-modal__layout {
     display: flex;
     flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .product-modal__stage {
-    flex: 1 1 52%;
+    flex: 0 0 auto;
     width: 100%;
     height: auto;
     min-height: 0;
@@ -377,7 +383,7 @@ $close-size: 40px;
     width: 100%;
     height: auto;
     max-width: 100%;
-    max-height: 100%;
+    max-height: none;
     aspect-ratio: 1 / 1;
     border-start-start-radius: 0;
     border-end-start-radius: 0;
@@ -387,19 +393,29 @@ $close-size: 40px;
     border-block-end: 0;
   }
 
+  /* Right side, inset past the layout scrollbar track. */
   .product-modal__close {
     top: max($space-2, env(safe-area-inset-top, 0px));
-    inset-inline-end: max($space-2, env(safe-area-inset-right, 0px));
+    inset-inline-end: max(
+      calc(#{$space-2} + 14px),
+      calc(env(safe-area-inset-right, 0px) + 14px)
+    );
+    inset-inline-start: auto;
   }
 
   .product-modal__meta {
     flex: 0 0 auto;
     width: 100%;
-    max-height: 48dvh;
+    max-height: none;
+    overflow: visible;
     border-inline-start: 0;
     border-block-start: 1px solid $color-border;
     padding: $space-3 $space-3 calc($space-3 + env(safe-area-inset-bottom, 0px));
     gap: $space-2;
+  }
+
+  .product-modal__header {
+    padding-inline-end: $close-size + $space-1;
   }
 
   .product-modal__title {

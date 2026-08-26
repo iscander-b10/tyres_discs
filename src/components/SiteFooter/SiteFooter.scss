@@ -205,21 +205,37 @@
 
 @media (max-width: 768px) {
   .site-footer__inner {
-    padding-block: $space-5;
+    padding-block: $space-4;
     /* Clear floating mode toggle / mobile chrome over the credit strip */
-    padding-bottom: calc(#{$space-5} + 72px);
+    padding-bottom: calc(#{$space-4} + 64px);
   }
 
+  /* Same 2×2 as mid width: Каталог|Услуги, Контакты|Аккаунт — not a tall stack. */
   .site-footer__grid {
-    grid-template-columns: 1fr;
-    gap: $space-5;
+    grid-template-columns: 1fr 1fr;
+    gap: $space-4 $space-3;
   }
 
   .site-footer__col--brand {
-    grid-column: auto;
+    grid-column: 1 / -1;
   }
 
   .site-footer__brand-mark {
     font-size: 18px;
+  }
+
+  .site-footer__heading {
+    margin-bottom: $space-2;
+  }
+
+  .site-footer__link,
+  .site-footer__contact-link {
+    padding-block: 4px;
+  }
+
+  .site-footer__credit {
+    margin-top: $space-3;
+    padding-top: $space-2;
+    justify-content: flex-start;
   }
 }

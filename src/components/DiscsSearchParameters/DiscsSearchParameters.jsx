@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, memo } from 'react';
-import { Form, Select, Button, Checkbox, Alert } from 'antd';
+import { Form, Select, Button, Radio, Checkbox, Alert } from 'antd';
 import { ReactComponent as ResetIcon } from '../../icons/Reset.svg';
 import { ReactComponent as SearchIcon } from '../../icons/Search.svg';
 import indexedDBService from '../../services/indexedDBService';
@@ -9,6 +9,7 @@ import PaginatedCardsList from '../shared/PaginatedCardsList/PaginatedCardsList'
 import CatalogShowcase from '../shared/CatalogShowcase';
 import CatalogSearchEmptyHint from '../shared/CatalogShowcase/CatalogSearchEmptyHint';
 import CatalogResultsFade from '../shared/CatalogResultsFade/CatalogResultsFade';
+import { CATALOG_SURFACE_FADE_MS } from '../shared/CatalogResultsFade/catalogSurfaceFade';
 import HoverTooltip from '../shared/HoverTooltip';
 import SupplierFilterSelect from '../shared/SupplierFilterSelect';
 import {
@@ -20,7 +21,10 @@ import {
   useCatalogSearchFormLayout,
 } from '../shared/useCatalogSearchFormLayout';
 import { useAppShell } from '../../app/AppShellContext';
-import { scrollWindowToTop } from '../../utils/scrollWindowToTop';
+import {
+  scheduleScrollIntoView,
+  scrollWindowToTop,
+} from '../../utils/scrollWindowToTop';
 import { mapDiscFormValuesToSearchFilters } from '../../catalog/search/searchFormFilters';
 import {
   DISC_FACET_IRRELEVANT_FIELDS,
@@ -41,6 +45,8 @@ import { filterDiscRangeSelectOptions } from './filterDiscRangeSelectOptions';
 import './DiscsSearchParameters.scss';
 
 const { Option } = Select;
+
+const DEFAULT_DISK_TYPE = 'Литой';
 
 const isActiveFilterValue = (value) =>
   value !== undefined && value !== null && value !== '';
@@ -73,6 +79,8 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
   const [availablePn, setAvailablePn] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
   const rootRef = useRef(null);
+  const catalogMainRef = useRef(null);
+  const cancelCatalogScrollRef = useRef(() => {});
   const searchFormLayout = useCatalogSearchFormLayout(rootRef);
   const isHorizontalLayout =
     searchFormLayout === CATALOG_SEARCH_LAYOUT.HORIZONTAL;
@@ -133,16 +141,19 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
       loadRequestIdRef.current += 1;
       searchRequestIdRef.current += 1;
       clearDebounced(cascadeTimerRef);
+      cancelCatalogScrollRef.current();
+      cancelCatalogScrollRef.current = () => {};
     };
   }, []);
 
   const buildFiltersFromFormValues = (allValues = {}) => {
-    const filters = {};
+    const filters = {
+      diskType: allValues.diskType ?? DEFAULT_DISK_TYPE,
+    };
     if (isActiveFilterValue(allValues.supplier)) filters.supplier = allValues.supplier;
     if (isActiveFilterValue(allValues.diameter)) filters.diameter = allValues.diameter;
     if (isActiveFilterValue(allValues.pcd)) filters.pcd = allValues.pcd;
     if (isActiveFilterValue(allValues.pn)) filters.pn = allValues.pn;
-    if (isActiveFilterValue(allValues.diskType)) filters.diskType = allValues.diskType;
     if (isActiveFilterValue(allValues.widthFrom)) filters.widthFrom = allValues.widthFrom;
     if (isActiveFilterValue(allValues.widthTo)) filters.widthTo = allValues.widthTo;
     if (isActiveFilterValue(allValues.cbFrom)) filters.cbFrom = allValues.cbFrom;
@@ -295,6 +306,14 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
       setSearchResetKey((key) => key + 1);
       setSearchLoading(true);
       setErrorSearch(null);
+      // Stacked (mobile): after fade delay, smooth-scroll to catalog zone.
+      if (searchFormLayout === CATALOG_SEARCH_LAYOUT.STACKED) {
+        cancelCatalogScrollRef.current();
+        cancelCatalogScrollRef.current = scheduleScrollIntoView(
+          catalogMainRef.current,
+          { delayMs: CATALOG_SURFACE_FADE_MS }
+        );
+      }
     }
 
     try {
@@ -376,7 +395,7 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
     setErrorSearch(null);
     setSearchResults(null);
     form.resetFields();
-    loadAvailableParameters();
+    loadAvailableParameters({ diskType: DEFAULT_DISK_TYPE });
   };
 
   const renderCatalogCard = (disc, { isClientMode: clientMode }) => (
@@ -453,7 +472,7 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
           diameter: undefined,
           pcd: undefined,
           pn: undefined,
-          diskType: undefined,
+          diskType: DEFAULT_DISK_TYPE,
           widthFrom: undefined,
           widthTo: undefined,
           cbFrom: undefined,
@@ -468,26 +487,15 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
         <div className="search-form__toolbar">
           <div className="search-form__row">
             <div className="filter-group filter-group--disk-type">
-              <Form.Item
-                name="diskType"
-                label={isHorizontalLayout ? undefined : 'Тип диска'}
-                className="form-item-disk-type"
-                getValueFromEvent={(value) => {
-                  if (value === 'all' || value == null) return undefined;
-                  return value;
-                }}
-              >
-                <Select
-                  {...catalogSearchSelectProps}
-                  aria-label="Тип диска"
-                  className="filter-select--disk-type"
-                  placeholder={fieldPlaceholder('Тип диска')}
-                  options={[
-                    { value: 'Литой', label: 'Литой' },
-                    { value: 'Штампованный', label: 'Штампованный' },
-                    { value: 'all', label: 'Все' },
-                  ]}
-                />
+              <Form.Item name="diskType" className="form-item-disk-type">
+                <Radio.Group aria-label="Тип диска">
+                  <Radio value="Литой" className="radio-cast">
+                    <span className="season-radio-label">Литой</span>
+                  </Radio>
+                  <Radio value="Штампованный" className="radio-stamped">
+                    <span className="season-radio-label">Штампованный</span>
+                  </Radio>
+                </Radio.Group>
               </Form.Item>
             </div>
 
@@ -733,7 +741,7 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
         </div>
       </Form>
 
-      <div className="catalog-search-main">
+      <div className="catalog-search-main" ref={catalogMainRef}>
         {errorSearch ? (
           <Alert
             data-testid="search-error"

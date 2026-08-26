@@ -29,8 +29,9 @@
 | Export | Назначение | Async |
 | --- | --- | --- |
 | `scrollWindowToTop({ behavior }?)` | `window.scrollTo(top: 0)`; без `behavior` — `smooth`, при `prefers-reduced-motion: reduce` — `auto` | sync |
+| `scheduleScrollIntoView(el, { behavior, block, inline, delayMs }?)` | `el.scrollIntoView` после опциональной задержки; тот же выбор `behavior`; возвращает cancel для timeout | sync (+ timer) |
 
-**Кто вызывает:** `TiresSearchParameters` / `DiscsSearchParameters` (`handleShowcaseChipClick`).
+**Кто вызывает:** `TiresSearchParameters` / `DiscsSearchParameters` (`handleShowcaseChipClick` → `scrollWindowToTop`; foreground «Найти» в `stacked` → `scheduleScrollIntoView`).
 
 ---
 

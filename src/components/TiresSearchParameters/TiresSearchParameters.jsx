@@ -11,6 +11,7 @@ import PaginatedCardsList from '../shared/PaginatedCardsList/PaginatedCardsList'
 import CatalogShowcase from '../shared/CatalogShowcase';
 import CatalogSearchEmptyHint from '../shared/CatalogShowcase/CatalogSearchEmptyHint';
 import CatalogResultsFade from '../shared/CatalogResultsFade/CatalogResultsFade';
+import { CATALOG_SURFACE_FADE_MS } from '../shared/CatalogResultsFade/catalogSurfaceFade';
 import HoverTooltip from '../shared/HoverTooltip';
 import SupplierFilterSelect from '../shared/SupplierFilterSelect';
 import {
@@ -22,7 +23,10 @@ import {
   useCatalogSearchFormLayout,
 } from '../shared/useCatalogSearchFormLayout';
 import { useAppShell } from '../../app/AppShellContext';
-import { scrollWindowToTop } from '../../utils/scrollWindowToTop';
+import {
+  scheduleScrollIntoView,
+  scrollWindowToTop,
+} from '../../utils/scrollWindowToTop';
 import { mapTireFormValuesToSearchFilters } from '../../catalog/search/searchFormFilters';
 import {
   SEARCH_FACET_DEBOUNCE_MS,
@@ -73,6 +77,8 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
   const [availableSuppliers, setAvailableSuppliers] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
   const rootRef = useRef(null);
+  const catalogMainRef = useRef(null);
+  const cancelCatalogScrollRef = useRef(() => {});
   const searchFormLayout = useCatalogSearchFormLayout(rootRef);
   const isHorizontalLayout =
     searchFormLayout === CATALOG_SEARCH_LAYOUT.HORIZONTAL;
@@ -140,6 +146,8 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
       loadRequestIdRef.current += 1;
       searchRequestIdRef.current += 1;
       clearDebounced(cascadeTimerRef);
+      cancelCatalogScrollRef.current();
+      cancelCatalogScrollRef.current = () => {};
     };
   }, []);
 
@@ -270,6 +278,14 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
       setSearchResetKey((key) => key + 1);
       setSearchLoading(true);
       setErrorSearch(null);
+      // Stacked (mobile): after fade delay, smooth-scroll to catalog zone.
+      if (searchFormLayout === CATALOG_SEARCH_LAYOUT.STACKED) {
+        cancelCatalogScrollRef.current();
+        cancelCatalogScrollRef.current = scheduleScrollIntoView(
+          catalogMainRef.current,
+          { delayMs: CATALOG_SURFACE_FADE_MS }
+        );
+      }
     }
 
     try {
@@ -628,7 +644,7 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
         </div>
       </Form>
 
-      <div className="catalog-search-main">
+      <div className="catalog-search-main" ref={catalogMainRef}>
         {errorSearch ? (
           <Alert
             data-testid="search-error"

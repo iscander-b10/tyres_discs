@@ -86,14 +86,14 @@ showSpikesFilter = selectedSeason === 'w'
 ### Effects
 
 1. **`[workspaceResetKey]`** — полный reset: форма, результаты, опции, инкремент request ids.
-2. **Mounted flag** — setup: `mountedRef.current = true`; cleanup: `false` + инкремент load/search ids + сброс debounce каскада. Без `true` в setup development StrictMode оставляет флаг ложным → «Найти» не settle’ит.
+2. **Mounted flag** — setup: `mountedRef.current = true`; cleanup: `false` + инкремент load/search ids + сброс debounce каскада + отмена отложенного scroll к каталогу. Без `true` в setup development StrictMode оставляет флаг ложным → «Найти» не settle’ит.
 3. **`[catalogDataVersion, workspaceResetKey, isActive]`** — catch-up при активации или обновлении каталога: reload facets + background search если уже были результаты.
 
 ### Обработчики событий
 
 | Handler | Триггер | Действие |
 | --- | --- | --- |
-| `handleSearch(values, { background })` | submit / chip / catch-up | map → IDB → setSearchResults. Foreground **не** обнуляет `searchResults` до await: витрина или прошлые результаты остаются. Таймаут 30 с → `errorSearch`
+| `handleSearch(values, { background })` | submit / chip / catch-up | map → IDB → setSearchResults. Foreground **не** обнуляет `searchResults` до await: витрина или прошлые результаты остаются. Таймаут 30 с → `errorSearch`. В `stacked` после `CATALOG_SURFACE_FADE_MS` — `scheduleScrollIntoView` к `.catalog-search-main`
 | `handleFormChange(changed, all)` | onValuesChange | season/spikes sync; debounce каскада; skip brand/supplier/чекбоксы/spikes (они не меняют size options); auto-resubmit чекбоксов |
 | `handleResetFilters` | кнопка сброса | reset form, `searchResults=null`, `loadingSearch=false`, bump `searchRequestIdRef` (in-flight поиск stale), reload facets. **Не** вызывает `searchTires` |
 | `handleShowcaseChipClick(chip)` | чип витрины / empty-hint | set width/profile/diameter + `scrollWindowToTop` + search |
@@ -118,7 +118,7 @@ div.tires-search-parameters[data-layout]
 | --- | --- | --- | --- |
 | `horizontal` | ширина ≥ 1100px | форма сверху на всю ширину, каталог ниже; compact toolbar 32px, подписи скрыты, wrap максимум в ~2 ряда, иконки «Найти»/«Сбросить» | `horizontal` |
 | `sidebar` | 769–1099px | вертикальная форма слева (`position: sticky`, ~20.5rem), каталог справа; подписи над полями, размер в 3 колонки, чекбоксы в 2, кнопки на всю ширину | `vertical` |
-| `stacked` | ≤ 768px | та же вертикальная форма сверху, каталог ниже | `vertical` |
+| `stacked` | ≤ 768px | та же вертикальная форма сверху, каталог ниже; foreground «Найти» плавно скроллит к `.catalog-search-main` после fade 50ms | `vertical` |
 
 В третью строку горизонтальный toolbar не переваливается: как только две строки уже не влезают, включается `sidebar`. На широком десктопе формы слева быть не должно.
 
@@ -150,7 +150,7 @@ div.tires-search-parameters[data-layout]
 
 ### Пример взаимодействия
 
-Пользователь выбирает «Зимние» → появляется Select шипов → выбирает 205/55/R16 → жмёт «Найти» → витрина на месте (кнопка `loading`) → `searchResults` становится массивом → витрина скрывается → PaginatedCardsList.
+Пользователь выбирает «Зимние» → появляется Select шипов → выбирает 205/55/R16 → жмёт «Найти» → витрина на месте (кнопка `loading`) → на stacked через 50ms страница плавно съезжает к зоне каталога → `searchResults` становится массивом → витрина скрывается → PaginatedCardsList.
 
 ### Типичные ошибки при изменении
 
@@ -177,19 +177,19 @@ div.tires-search-parameters[data-layout]
 
 ### Поля формы (initialValues)
 
-`diskType`, `diameter`, `pn`, `pcd`, `cbFrom/To`, `widthFrom/To`, `etFrom/To`, `brand[]`, `supplier`, `onlyAmountFrom4`.
+`diskType` (default `'Литой'`), `diameter`, `pn`, `pcd`, `cbFrom/To`, `widthFrom/To`, `etFrom/To`, `brand[]`, `supplier`, `onlyAmountFrom4`.
 
 ### Отличия в логике
 
 | Аспект | Поведение дисков |
 | --- | --- |
-| `buildFiltersFromFormValues` | диапазоны и diskType, без season |
+| `buildFiltersFromFormValues` | всегда `diskType` (default `'Литой'`) + диапазоны; без season |
 | `loadAvailableParameters` | `getAvailableDiscParameterOptions` |
 | `handleSearch` | `mapDiscFormValuesToSearchFilters` → `searchDiscs` |
 | `handleFormChange` | skip если изменились только `brand` или `onlyAmountFrom4`; при `diskType` — soft invalidate с `{ diskType }`; debounce ~16 ms |
 | Auto-resubmit | только `onlyAmountFrom4` |
 | Showcase chip | patch: diameter, pn, pcd, cbFrom/cbTo; `scrollWindowToTop` перед search |
-| `handleResetFilters` | `invalidateCatalogSearchRequest` + `loadAvailableParameters()` без season default |
+| `handleResetFilters` | `invalidateCatalogSearchRequest` + `loadAvailableParameters({ diskType: DEFAULT_DISK_TYPE })` |
 | Связанные «от/до» | UI-only: `filterDiscRangeSelectOptions` режет опции Select по соседней границе |
 
 ### Связанные опции «от / до»
@@ -207,7 +207,7 @@ div.tires-search-parameters[data-layout]
 
 ### Ant Design
 
-Те же + Select «Тип диска» с options `[Литой, Штампованный, Все]`. Placeholders «от»/«до», `aria-label`, `allowClear` и `catalogSearchSelectProps` у диапазонов сохраняются.
+Те же: `Radio.Group` «Тип диска» (`Литой` / `Штампованный`, default `'Литой'`) — тот же segmented control, что сезон у шин, без лейбла сверху и без опции «Все». Placeholders «от»/«до», `aria-label`, `allowClear` и `catalogSearchSelectProps` у диапазонов сохраняются.
 
 ### Тесты
 

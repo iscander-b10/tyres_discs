@@ -737,11 +737,19 @@ $catalog-text: $color-text;
     flex: 0 0 auto;
   }
 
+  // Two equal segments sized to the longer label («Штампованный»), not content.
   .filter-group--disk-type {
     flex: 0 0 auto;
-    // Fits longest option label «Штампованный».
-    width: 9.5rem;
-    min-width: 9.5rem;
+
+    .ant-radio-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .ant-radio-wrapper {
+      width: 100%;
+      min-width: 0;
+    }
   }
 
   .filter-group--spikes {
@@ -850,11 +858,6 @@ $catalog-text: $color-text;
     width: 100%;
   }
 
-  .ant-select.filter-select--disk-type,
-  .form-item-disk-type .ant-select {
-    width: 100%;
-  }
-
   // Unified from–to cluster: label | от | до
   .filter-range {
     display: inline-flex;
@@ -902,8 +905,8 @@ $catalog-text: $color-text;
     .ant-select {
       // Fits typical ЦО/вылет/ширина values (e.g. 110.1) without ellipsis.
       // Must beat catalog-green-ant-select's fixed 32px !important — the cluster
-      // already has a 1px border, so the select fills the inner 30px (or 38px in
-      // vertical layouts) or placeholders sit optically off-center.
+      // already has a 1px border, so the select fills the inner 30px or
+      // placeholders sit optically off-center.
       width: 5.75rem;
       height: 100% !important;
       min-height: 0 !important;
@@ -1062,16 +1065,12 @@ $catalog-text: $color-text;
     }
   }
 
-  .form-item-season .ant-radio-group {
+  .form-item-season .ant-radio-group,
+  .form-item-disk-type .ant-radio-group {
     min-width: 0;
   }
 
   .form-item-spikes {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .form-item-disk-type {
     width: 100%;
     min-width: 0;
   }
@@ -1116,7 +1115,6 @@ $catalog-text: $color-text;
     max-height: none;
   }
 
-  .filter-group--disk-type,
   .filter-group--spikes,
   .filter-group--brand,
   .filter-group--supplier {
@@ -1133,10 +1131,12 @@ $catalog-text: $color-text;
     max-height: none !important;
   }
 
-  .filter-group--season {
+  .filter-group--season,
+  .filter-group--disk-type {
     width: 100%;
 
     .form-item-season,
+    .form-item-disk-type,
     .ant-radio-group {
       width: 100%;
     }
@@ -1211,11 +1211,24 @@ $catalog-text: $color-text;
 
   .filter-range {
     width: 100%;
-    height: 40px;
+    // Same 32px control box as diameter/PN/PCD selects (sidebar + stacked).
+    height: 32px;
+    min-height: 32px;
+    max-height: 32px;
+
+    .filter-range__label {
+      // Fits longest range label «Ширина» so ЦО / Вылет line up with it.
+      flex: 0 0 4.5rem;
+      width: 4.5rem;
+    }
 
     .filter-range__item {
       flex: 1 1 0;
       min-width: 0;
+      height: 100%;
+      min-height: 0;
+      max-height: none;
+      flex-direction: row;
     }
 
     .filter-range__item .ant-select {
@@ -1269,7 +1282,8 @@ $catalog-text: $color-text;
     height: 32px;
   }
 
-  .form-item-season {
+  .form-item-season,
+  .form-item-disk-type {
     height: auto;
     min-height: 40px;
 
@@ -1293,8 +1307,7 @@ $catalog-text: $color-text;
 
   .form-item-brand,
   .form-item-supplier,
-  .form-item-spikes,
-  .form-item-disk-type {
+  .form-item-spikes {
     // Compact toolbar sets height: 32px !important on brand/supplier trees —
     // without !important here the label collapses onto the same 32px strip.
     height: auto !important;
