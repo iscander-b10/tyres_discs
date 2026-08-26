@@ -75,13 +75,14 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 
 ---
 
-## Components (9 файлов)
+## Components (10 файлов)
 
 | Файл | Инварианты |
 | --- | --- |
 | `SiteHeader.test.jsx` | cart badge, auth links, нет «Войти»/«Выйти» на `/demo*` |
 | `SiteFooter.test.jsx` | нет «Войти»/«Выйти» на `/demo*`; на `/` «Войти» есть |
 | `LandingPage.test.jsx` | «Посмотреть демо» enabled → `/demo` |
+| `CatalogItemModalWindow.test.jsx` | лейбл «Размер»; у discs «Цвет» сразу после размера (пусто → «—»); у tyres поля «Цвет» нет |
 | `TiresSearchParameters.searchRace.test.jsx` | stale request discard, spinner, skip facets, reset during pending, pending не blank, timeout, StrictMode settle |
 | `DiscsSearchParameters.searchRace.test.jsx` | stale request discard, spinner, skip facets, reset during pending, pending не blank, timeout, StrictMode settle |
 | `CatalogShowcase.appLog.test.jsx` | error logging on showcase fail |

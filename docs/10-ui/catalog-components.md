@@ -116,7 +116,7 @@ flowchart TB
 
 ### Вычисляемые данные
 
-`metaFields` — массив `{ key, label, value }` из item: brand, model, size, load/speed index, code, stock, supplier.
+`metaFields` — массив `{ key, label, value }` из item: brand, model, size (лейбл «Размер»), для `category === 'discs'` — color (лейбл «Цвет», пустое значение → «—»), load/speed index, code, stock, supplier.
 
 ### Ant Design
 

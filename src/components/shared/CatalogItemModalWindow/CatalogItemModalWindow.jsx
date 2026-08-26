@@ -91,7 +91,12 @@ const CatalogItemModalWindow = ({
     if (item.brand) fields.push({ key: 'brand', label: 'Бренд', value: item.brand });
     if (model) fields.push({ key: 'model', label: 'Модель', value: model });
     if (sizeDisplay) {
-      fields.push({ key: 'size', label: 'Типоразмер', value: sizeDisplay });
+      fields.push({ key: 'size', label: 'Размер', value: sizeDisplay });
+    }
+    if (category === 'discs') {
+      const color =
+        typeof item.color === 'string' ? item.color.trim() : '';
+      fields.push({ key: 'color', label: 'Цвет', value: color || '—' });
     }
     if (loadIndex) {
       fields.push({ key: 'loadIndex', label: 'Индекс нагрузки', value: loadIndex });
@@ -108,7 +113,7 @@ const CatalogItemModalWindow = ({
       fields.push({ key: 'supplier', label: 'Поставщик', value: item.supplier });
     }
     return fields;
-  }, [item, isClientMode, model, sizeDisplay, loadIndex, speedIndex]);
+  }, [item, category, isClientMode, model, sizeDisplay, loadIndex, speedIndex]);
 
   const handleOverlayClick = (e) => {
     if (e.target === e.currentTarget) onClose();
