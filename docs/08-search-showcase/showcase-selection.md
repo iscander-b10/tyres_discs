@@ -38,7 +38,7 @@
 | --- | --- | --- | --- |
 | `kind` | `'tires' \| 'discs'` | `'tires'` | тип каталога |
 | `renderCard` | `(item, { isClientMode }) => ReactNode` | — | рендер карточки (из SearchParameters) |
-| `onChipClick` | `(chip) => void` | — | клик по чипу размера → заполнить форму и искать |
+| `onChipClick` | `(chip) => void` | — | клик по чипу размера → заполнить форму, прокрутить окно наверх и искать |
 
 ### Context
 

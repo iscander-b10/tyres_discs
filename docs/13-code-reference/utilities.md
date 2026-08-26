@@ -24,6 +24,16 @@
 
 ---
 
+### scrollWindowToTop — `src/utils/scrollWindowToTop.js`
+
+| Export | Назначение | Async |
+| --- | --- | --- |
+| `scrollWindowToTop({ behavior }?)` | `window.scrollTo(top: 0)`; без `behavior` — `smooth`, при `prefers-reduced-motion: reduce` — `auto` | sync |
+
+**Кто вызывает:** `TiresSearchParameters` / `DiscsSearchParameters` (`handleShowcaseChipClick`).
+
+---
+
 ### fetchSupplier — `src/utils/fetchSupplier.js`
 
 ::: warning Legacy / dev

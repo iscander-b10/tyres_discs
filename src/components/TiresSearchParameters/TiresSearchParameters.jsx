@@ -18,6 +18,7 @@ import {
   useCatalogSelectCloseOnMouseLeave,
 } from '../shared/catalogSearchSelectProps';
 import { useAppShell } from '../../app/AppShellContext';
+import { scrollWindowToTop } from '../../utils/scrollWindowToTop';
 import { mapTireFormValuesToSearchFilters } from '../../catalog/search/searchFormFilters';
 import {
   SEARCH_FACET_DEBOUNCE_MS,
@@ -379,6 +380,7 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
       profile: chip.profile,
       diameter: chip.diameter,
     });
+    scrollWindowToTop();
     handleSearch(nextValues);
   };
 

@@ -16,6 +16,7 @@ import {
   useCatalogSelectCloseOnMouseLeave,
 } from '../shared/catalogSearchSelectProps';
 import { useAppShell } from '../../app/AppShellContext';
+import { scrollWindowToTop } from '../../utils/scrollWindowToTop';
 import { mapDiscFormValuesToSearchFilters } from '../../catalog/search/searchFormFilters';
 import {
   DISC_FACET_IRRELEVANT_FIELDS,
@@ -394,6 +395,7 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
       ...patch,
     };
     form.setFieldsValue(patch);
+    scrollWindowToTop();
     handleSearch(nextValues);
   };
 

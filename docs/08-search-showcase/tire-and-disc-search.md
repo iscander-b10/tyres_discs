@@ -95,7 +95,7 @@ showSpikesFilter = selectedSeason === 'w'
 | `handleSearch(values, { background })` | submit / chip / catch-up | map → IDB → setSearchResults. Foreground **не** обнуляет `searchResults` до await: витрина или прошлые результаты остаются. Таймаут 30 с → `errorSearch`
 | `handleFormChange(changed, all)` | onValuesChange | season/spikes sync; debounce каскада; skip brand/supplier/чекбоксы/spikes (они не меняют size options); auto-resubmit чекбоксов |
 | `handleResetFilters` | кнопка сброса | reset form, `searchResults=null`, `loadingSearch=false`, bump `searchRequestIdRef` (in-flight поиск stale), reload facets. **Не** вызывает `searchTires` |
-| `handleShowcaseChipClick(chip)` | чип витрины | set width/profile/diameter + search |
+| `handleShowcaseChipClick(chip)` | чип витрины / empty-hint | set width/profile/diameter + `scrollWindowToTop` + search |
 | `softInvalidateIncompatibleSizeValues` | cascade | drop несовместимых width/profile/diameter |
 
 ### Ветви рендеринга
@@ -175,7 +175,7 @@ Form (всегда)
 | `handleSearch` | `mapDiscFormValuesToSearchFilters` → `searchDiscs` |
 | `handleFormChange` | skip если изменились только `brand` или `onlyAmountFrom4`; при `diskType` — soft invalidate с `{ diskType }`; debounce ~16 ms |
 | Auto-resubmit | только `onlyAmountFrom4` |
-| Showcase chip | patch: diameter, pn, pcd, cbFrom/cbTo |
+| Showcase chip | patch: diameter, pn, pcd, cbFrom/cbTo; `scrollWindowToTop` перед search |
 | `handleResetFilters` | `invalidateCatalogSearchRequest` + `loadAvailableParameters()` без season default |
 | Связанные «от/до» | UI-only: `filterDiscRangeSelectOptions` режет опции Select по соседней границе |
 
