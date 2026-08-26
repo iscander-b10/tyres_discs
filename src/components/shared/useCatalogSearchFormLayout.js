@@ -17,7 +17,7 @@ export const CATALOG_SEARCH_LAYOUT = {
 };
 
 /** Panel width at/above which a 2-row horizontal discs toolbar fits. */
-export const CATALOG_SEARCH_HORIZONTAL_MIN_PX = 960;
+export const CATALOG_SEARCH_HORIZONTAL_MIN_PX = 1100;
 
 /** Inclusive max width for stacked (mobile) layout. */
 export const CATALOG_SEARCH_MOBILE_MAX_PX = 768;

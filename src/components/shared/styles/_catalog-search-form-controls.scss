@@ -650,6 +650,13 @@ $catalog-text: $color-text;
       width: auto;
       min-width: 0;
       flex: 1 1 0;
+
+      // Lock showcase header to the form card top (same Y as the filter panel).
+      .catalog-showcase {
+        padding-block-start: 0;
+        padding-block-end: $space-5;
+        gap: $space-5;
+      }
     }
   }
 
@@ -894,26 +901,60 @@ $catalog-text: $color-text;
 
     .ant-select {
       // Fits typical ЦО/вылет/ширина values (e.g. 110.1) without ellipsis.
+      // Must beat catalog-green-ant-select's fixed 32px !important — the cluster
+      // already has a 1px border, so the select fills the inner 30px (or 38px in
+      // vertical layouts) or placeholders sit optically off-center.
       width: 5.75rem;
-      height: 100%;
+      height: 100% !important;
+      min-height: 0 !important;
+      max-height: 100% !important;
     }
 
     .ant-select .ant-select-selector {
       height: 100% !important;
-      min-height: 30px !important;
+      min-height: 0 !important;
+      max-height: none !important;
       border: 0 !important;
       border-radius: 0 !important;
       background: transparent !important;
       box-shadow: none !important;
       // Equal inset so «от»/«до» sit on the visual midline; arrow overlays end.
       padding-inline: 6px !important;
+      display: flex !important;
+      align-items: center !important;
+    }
+
+    .ant-select.ant-select-single .ant-select-selector::after,
+    .ant-select.ant-select-single .ant-select-selection-wrap::after {
+      // Drop Ant's fixed controlHeight strut — height comes from the cluster.
+      line-height: 0 !important;
+      content: none !important;
+    }
+
+    .ant-select .ant-select-selection-wrap {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
     }
 
     .ant-select .ant-select-selection-item,
     .ant-select .ant-select-selection-placeholder {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: 100%;
+      height: 100%;
+      line-height: 1.2 !important;
       text-align: center !important;
-      inset-inline-start: 0 !important;
-      inset-inline-end: 0 !important;
+      inset-inline-start: auto !important;
+      inset-inline-end: auto !important;
+    }
+
+    .ant-select.ant-select-single .ant-select-selection-search-input {
+      height: 100% !important;
     }
 
     .ant-select.ant-select-outlined:not(.ant-select-disabled):hover .ant-select-selector,
@@ -1086,6 +1127,10 @@ $catalog-text: $color-text;
     flex-direction: column;
     align-items: stretch;
     gap: 6px;
+    // Beat compact-toolbar 32px lock (!important) so label can sit above the control.
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
   }
 
   .filter-group--season {
@@ -1129,15 +1174,26 @@ $catalog-text: $color-text;
     height: auto;
     min-height: 0;
     max-height: none;
+
+    // Align label start with select placeholder text.
+    .ant-form-item-label {
+      text-align: start;
+      padding-inline-start: 9px;
+
+      > label {
+        width: auto;
+        justify-content: flex-start;
+      }
+    }
   }
 
   .filter-group--checks {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 4px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
     height: auto;
     max-height: none;
-    align-items: start;
   }
 
   .filter-group--actions {
@@ -1239,26 +1295,48 @@ $catalog-text: $color-text;
   .form-item-supplier,
   .form-item-spikes,
   .form-item-disk-type {
-    height: auto;
-    min-height: 0;
-    max-height: none;
+    // Compact toolbar sets height: 32px !important on brand/supplier trees —
+    // without !important here the label collapses onto the same 32px strip.
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    width: 100%;
+    align-items: stretch;
 
-    .ant-form-item-row,
+    .ant-form-item-row {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+    }
+
+    .ant-form-item-label {
+      display: block !important;
+      width: 100%;
+      max-width: 100%;
+      flex: 0 0 auto;
+      // Same inset as select placeholder / selection text.
+      padding-inline-start: 9px;
+    }
+
     .ant-form-item-control,
-    .ant-form-item-control-input,
     .ant-form-item-control-input-content {
-      height: auto;
-      min-height: 0;
-      max-height: none;
+      width: 100%;
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
     }
 
     .ant-form-item-control-input {
-      height: 32px;
-      min-height: 32px;
-      max-height: 32px;
+      width: 100%;
+      height: 32px !important;
+      min-height: 32px !important;
+      max-height: 32px !important;
     }
 
     .ant-select {
+      width: 100% !important;
       height: 32px !important;
       min-height: 32px !important;
       max-height: 32px !important;
@@ -1282,19 +1360,19 @@ $catalog-text: $color-text;
   }
 
   .filter-action-btn--search.ant-btn {
-    background: $catalog-accent !important;
-    border-color: $catalog-accent !important;
-    color: $color-on-accent !important;
+    background: $color-cta-hover !important;
+    border-color: $color-cta-hover !important;
+    color: $color-cta-on !important;
 
     &:not(:disabled):hover,
     &:not(:disabled):active {
-      background: $catalog-accent-hover !important;
-      border-color: $catalog-accent-hover !important;
-      color: $color-on-accent !important;
+      background: $color-text !important;
+      border-color: $color-text !important;
+      color: $color-cta-on !important;
     }
 
     &:focus-visible {
-      outline-color: $catalog-accent;
+      outline-color: $color-cta-hover;
     }
   }
 

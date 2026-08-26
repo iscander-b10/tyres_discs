@@ -12,11 +12,11 @@ describe('resolveCatalogSearchFormLayout', () => {
   it('uses sidebar when discs 2-row horizontal toolbar would overflow', () => {
     expect(resolveCatalogSearchFormLayout(769)).toBe(CATALOG_SEARCH_LAYOUT.SIDEBAR);
     expect(resolveCatalogSearchFormLayout(866)).toBe(CATALOG_SEARCH_LAYOUT.SIDEBAR);
-    expect(resolveCatalogSearchFormLayout(959)).toBe(CATALOG_SEARCH_LAYOUT.SIDEBAR);
+    expect(resolveCatalogSearchFormLayout(1099)).toBe(CATALOG_SEARCH_LAYOUT.SIDEBAR);
   });
 
   it('uses horizontal layout when panel is wide enough for two rows', () => {
-    expect(resolveCatalogSearchFormLayout(960)).toBe(CATALOG_SEARCH_LAYOUT.HORIZONTAL);
+    expect(resolveCatalogSearchFormLayout(1100)).toBe(CATALOG_SEARCH_LAYOUT.HORIZONTAL);
     expect(resolveCatalogSearchFormLayout(1380)).toBe(CATALOG_SEARCH_LAYOUT.HORIZONTAL);
   });
 

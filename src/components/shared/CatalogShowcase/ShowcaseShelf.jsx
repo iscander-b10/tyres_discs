@@ -232,16 +232,25 @@ const ShowcaseShelf = ({
     updateThumbDom(metricsRef.current);
   }, [showProgress, updateThumbDom]);
 
+  /* Start-snap: цель = левый край слайда. Center-snap: цель = слайд по центру ряда. */
   const getSlideTargets = useCallback(() => {
     const el = rowRef.current;
     if (!el) return [];
 
-    const rowLeft = el.getBoundingClientRect().left;
-    const scrollLeft = el.scrollLeft;
+    const rowRect = el.getBoundingClientRect();
+    const { scrollLeft, clientWidth } = el;
+    const maxScroll = Math.max(0, el.scrollWidth - clientWidth);
 
     return Array.from(el.querySelectorAll('.catalog-showcase__slide')).map(
-      (slide) =>
-        slide.getBoundingClientRect().left - rowLeft + scrollLeft
+      (slide) => {
+        const rect = slide.getBoundingClientRect();
+        const slideLeft = rect.left - rowRect.left + scrollLeft;
+        const snapAlign = getComputedStyle(slide).scrollSnapAlign || '';
+        const raw = snapAlign.includes('center')
+          ? slideLeft - (clientWidth - rect.width) / 2
+          : slideLeft;
+        return Math.min(maxScroll, Math.max(0, raw));
+      }
     );
   }, []);
 
@@ -400,42 +409,62 @@ const ShowcaseShelf = ({
     .filter(Boolean)
     .join(' ');
 
+  const showViewAll = Boolean(viewAllLabel && typeof onViewAll === 'function');
+  const showHeader = Boolean(title || showViewAll);
+
+  const navButtons = reserveNav ? (
+    <div className="catalog-showcase__shelf-nav" role="group" aria-label="Листать полку">
+      <button
+        type="button"
+        className="catalog-showcase__nav catalog-showcase__nav--prev"
+        aria-label="Предыдущие позиции"
+        disabled={!canPrev || !hasOverflow}
+        aria-hidden={!hasOverflow ? true : undefined}
+        tabIndex={hasOverflow ? 0 : -1}
+        onClick={() => scrollByDir(-1)}
+      >
+        <LeftOutlined aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        className="catalog-showcase__nav catalog-showcase__nav--next"
+        aria-label="Следующие позиции"
+        disabled={!canNext || !hasOverflow}
+        aria-hidden={!hasOverflow ? true : undefined}
+        tabIndex={hasOverflow ? 0 : -1}
+        onClick={() => scrollByDir(1)}
+      >
+        <RightOutlined aria-hidden="true" />
+      </button>
+    </div>
+  ) : null;
+
   return (
     <section className={shelfClassName} aria-label={title}>
-      {title || (viewAllLabel && onViewAll) ? (
+      {showHeader ? (
         <div className="catalog-showcase__shelf-header">
           {title ? (
             <h3 className="catalog-showcase__shelf-title">{title}</h3>
           ) : (
             <span />
           )}
-          {viewAllLabel && typeof onViewAll === 'function' ? (
-            <button
-              type="button"
-              className="catalog-showcase__shelf-all"
-              onClick={onViewAll}
-            >
-              {viewAllLabel}
-            </button>
+          {showViewAll ? (
+            <div className="catalog-showcase__shelf-tools">
+              <button
+                type="button"
+                className="catalog-showcase__shelf-all"
+                onClick={onViewAll}
+              >
+                {viewAllLabel}
+              </button>
+            </div>
           ) : null}
         </div>
       ) : null}
 
-      <div className="catalog-showcase__viewport">
-        {reserveNav ? (
-          <button
-            type="button"
-            className="catalog-showcase__nav catalog-showcase__nav--prev"
-            aria-label="Предыдущие позиции"
-            disabled={!canPrev || !hasOverflow}
-            aria-hidden={!hasOverflow ? true : undefined}
-            tabIndex={hasOverflow ? 0 : -1}
-            onClick={() => scrollByDir(-1)}
-          >
-            <LeftOutlined aria-hidden="true" />
-          </button>
-        ) : null}
+      {navButtons}
 
+      <div className="catalog-showcase__viewport">
         <div
           ref={rowRef}
           className={[
@@ -465,20 +494,6 @@ const ShowcaseShelf = ({
                 </div>
               ))}
         </div>
-
-        {reserveNav ? (
-          <button
-            type="button"
-            className="catalog-showcase__nav catalog-showcase__nav--next"
-            aria-label="Следующие позиции"
-            disabled={!canNext || !hasOverflow}
-            aria-hidden={!hasOverflow ? true : undefined}
-            tabIndex={hasOverflow ? 0 : -1}
-            onClick={() => scrollByDir(1)}
-          >
-            <RightOutlined aria-hidden="true" />
-          </button>
-        ) : null}
       </div>
 
       {showProgress ? (

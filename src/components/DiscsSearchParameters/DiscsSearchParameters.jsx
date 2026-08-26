@@ -644,12 +644,6 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
               </Form.Item>
             </div>
 
-            <div className="filter-group filter-group--checks">
-              <Form.Item name="onlyAmountFrom4" valuePropName="checked" className="form-item form-item-check">
-                <Checkbox>от 4 шт</Checkbox>
-              </Form.Item>
-            </div>
-
             <div className="filter-group filter-group--brand">
               <Form.Item name="brand" label={isHorizontalLayout ? undefined : 'Бренд'} className="form-item form-item-brand">
                 <Select
@@ -679,6 +673,12 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
                   loading={loadingOptions}
                   options={availableSuppliers}
                 />
+              </Form.Item>
+            </div>
+
+            <div className="filter-group filter-group--checks">
+              <Form.Item name="onlyAmountFrom4" valuePropName="checked" className="form-item form-item-check">
+                <Checkbox>от 4 шт</Checkbox>
               </Form.Item>
             </div>
 

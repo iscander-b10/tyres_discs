@@ -91,64 +91,66 @@ function SiteHeader({
               </a>
             </div>
 
-            {demo ? null : isAuthenticated ? (
-              <button
-                type="button"
-                className="site-header__icon-btn"
-                aria-label="Выйти"
-                onClick={logout}
-              >
-                <UserIcon className="site-header__icon-btn-icon" aria-hidden />
-                <span className="site-header__icon-label">Выйти</span>
-              </button>
-            ) : (
-              <NavLink
-                className={({ isActive }) =>
-                  [
-                    'site-header__icon-btn',
-                    isActive ? 'is-active' : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' ')
-                }
-                to={loginTarget}
-                end
-                aria-label="Войти"
-              >
-                <UserIcon className="site-header__icon-btn-icon" aria-hidden />
-                <span className="site-header__icon-label">Войти</span>
-              </NavLink>
-            )}
+            <div className="site-header__account">
+              {demo ? null : isAuthenticated ? (
+                <button
+                  type="button"
+                  className="site-header__icon-btn"
+                  aria-label="Выйти"
+                  onClick={logout}
+                >
+                  <UserIcon className="site-header__icon-btn-icon" aria-hidden />
+                  <span className="site-header__icon-label">Выйти</span>
+                </button>
+              ) : (
+                <NavLink
+                  className={({ isActive }) =>
+                    [
+                      'site-header__icon-btn',
+                      isActive ? 'is-active' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')
+                  }
+                  to={loginTarget}
+                  end
+                  aria-label="Войти"
+                >
+                  <UserIcon className="site-header__icon-btn-icon" aria-hidden />
+                  <span className="site-header__icon-label">Войти</span>
+                </NavLink>
+              )}
 
-            {appEnabled ? (
-              <NavLink
-                className={({ isActive }) =>
-                  [
-                    'site-header__icon-btn',
-                    isActive ? 'is-active' : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' ')
-                }
-                to={toAppPath(location.pathname, PATHS.basket)}
-                end
-                aria-label={
-                  visibleQuantity > 0
-                    ? `Корзина, ${visibleQuantity}`
-                    : 'Корзина'
-                }
-              >
-                <span className="site-header__cart-icon-wrap">
-                  <ShoppingCartOutlined aria-hidden />
-                  {badgeLabel ? (
-                    <span className="site-header__cart-badge" aria-hidden>
-                      {badgeLabel}
-                    </span>
-                  ) : null}
-                </span>
-                <span className="site-header__icon-label">Корзина</span>
-              </NavLink>
-            ) : null}
+              {appEnabled ? (
+                <NavLink
+                  className={({ isActive }) =>
+                    [
+                      'site-header__icon-btn',
+                      isActive ? 'is-active' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')
+                  }
+                  to={toAppPath(location.pathname, PATHS.basket)}
+                  end
+                  aria-label={
+                    visibleQuantity > 0
+                      ? `Корзина, ${visibleQuantity}`
+                      : 'Корзина'
+                  }
+                >
+                  <span className="site-header__cart-icon-wrap">
+                    <ShoppingCartOutlined aria-hidden />
+                    {badgeLabel ? (
+                      <span className="site-header__cart-badge" aria-hidden>
+                        {badgeLabel}
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="site-header__icon-label">Корзина</span>
+                </NavLink>
+              ) : null}
+            </div>
           </div>
         </div>
 

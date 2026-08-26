@@ -2,7 +2,7 @@ import { theme as antdTheme } from 'antd';
 
 export const THEME_STORAGE_KEY = 'ivanor-appearance';
 /**
- * ThemeSwitch pending-lock only (Galahhad scene `--transition: 0.5s`).
+ * ThemeSwitch pending-lock only (quiet icon crossfade).
  * Page theme itself snaps instantly — no global color morph.
  */
 export const THEME_TRANSITION_MS = 500;

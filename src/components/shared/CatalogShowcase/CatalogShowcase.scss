@@ -1,6 +1,8 @@
 @use '../../../styles/tokens' as *;
 
 .catalog-showcase {
+  container-type: inline-size;
+  container-name: catalog-showcase;
   display: flex;
   flex-direction: column;
   gap: $space-6;
@@ -37,16 +39,47 @@
 }
 
 .catalog-showcase__shelf {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'header header header'
+    'prev row next'
+    '. progress .';
+  column-gap: $space-3;
+  row-gap: $space-3;
+  align-items: center;
   min-width: 0;
 }
 
 .catalog-showcase__shelf-header {
+  grid-area: header;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: $space-3;
-  margin-bottom: $space-3;
+  min-height: 40px;
   padding-inline: 2px;
+}
+
+.catalog-showcase__shelf-tools {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: $space-2;
+}
+
+.catalog-showcase__shelf-nav {
+  display: contents;
+}
+
+/* Sidebar: форма слева — стрелки в шапке рядом с заголовком. */
+[data-layout='sidebar'] .catalog-showcase__shelf {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    'header prev next'
+    'row row row'
+    'progress progress progress';
+  column-gap: $space-2;
 }
 
 .catalog-showcase__shelf-title {
@@ -102,21 +135,20 @@
 }
 
 .catalog-showcase__viewport {
+  grid-area: row;
   display: flex;
-  align-items: center;
-  gap: $space-2;
+  align-items: stretch;
   min-width: 0;
 }
 
 .catalog-showcase__nav {
   appearance: none;
   flex: 0 0 auto;
-  align-self: center;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   margin: 0;
   padding: 0;
   border: 1px solid $color-border;
@@ -163,17 +195,20 @@
     line-height: 0;
   }
 
-  &--prev .anticon {
-    transform: translateX(-0.5px);
+  &--prev {
+    grid-area: prev;
+
+    .anticon {
+      transform: translateX(-0.5px);
+    }
   }
 
-  &--next .anticon {
-    transform: translateX(0.5px);
-  }
+  &--next {
+    grid-area: next;
 
-  @media (max-width: 720px) {
-    width: 36px;
-    height: 36px;
+    .anticon {
+      transform: translateX(0.5px);
+    }
   }
 
   @media (max-width: 560px) {
@@ -199,7 +234,7 @@
   min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
-  padding-block: $space-1 $space-3;
+  padding-block: $space-1 $space-2;
   padding-inline: 2px calc(28px + env(safe-area-inset-right, 0px));
   scroll-snap-type: x mandatory;
   scroll-padding-inline: 2px;
@@ -312,10 +347,10 @@
 }
 
 .catalog-showcase__progress {
+  grid-area: progress;
   display: flex;
   justify-content: center;
-  margin-top: $space-1;
-  padding-inline: $space-4;
+  padding-inline: 2px;
 }
 
 .catalog-showcase__progress-track {
@@ -331,7 +366,7 @@
   &::before {
     content: '';
     display: block;
-    height: 3px;
+    height: 4px;
     border-radius: 999px;
     background: $color-border;
   }
@@ -351,7 +386,7 @@
   top: 6px;
   left: 0;
   width: 14%;
-  height: 3px;
+  height: 4px;
   border-radius: 999px;
   background: $color-accent;
   pointer-events: none;
@@ -382,10 +417,7 @@
   .catalog-showcase__row {
     grid-auto-columns: minmax(320px, 340px);
     gap: $space-4;
-
-    @media (max-width: 560px) {
-      grid-auto-columns: minmax(85vw, 300px);
-    }
+    padding-inline-end: calc(20px + env(safe-area-inset-right, 0px));
   }
 
   .catalog-showcase__skeleton-card {
@@ -408,6 +440,58 @@
 
   .item-price-strip {
     font-variant-numeric: tabular-nums;
+  }
+}
+
+/*
+ * Узкая колонка каталога (sidebar / dual-mount): ширина слайда как на широкой полке.
+ * Snap к центру — первая карточка у старта с peek справа; при листании центр и обрезанные соседи.
+ * Fade-mask общий с десктопом (row--fade-*). Ползунок на всю ширину колонки.
+ */
+@container catalog-showcase (max-width: 680px) {
+  .catalog-showcase__shelf--featured,
+  .catalog-showcase__shelf--hits {
+    .catalog-showcase__slide {
+      scroll-snap-align: center;
+    }
+
+    .catalog-showcase__progress {
+      justify-content: stretch;
+      padding-inline: 0;
+    }
+
+    .catalog-showcase__progress-track {
+      width: 100%;
+      max-width: none;
+    }
+  }
+}
+
+/* Мобилка: одна крупная карточка + peek, свайп без стрелок и без fade-mask. */
+@media (max-width: 560px) {
+  .catalog-showcase__shelf--featured,
+  .catalog-showcase__shelf--hits {
+    .catalog-showcase__row {
+      grid-auto-columns: calc(100cqi - 72px);
+      gap: $space-3;
+      padding-block: 0 $space-2;
+      padding-inline: 0;
+      scroll-padding-inline: 0;
+      -webkit-mask-image: none;
+      mask-image: none;
+    }
+
+    .catalog-showcase__slide {
+      scroll-snap-align: start;
+    }
+
+    .catalog-showcase__skeleton-card {
+      height: 480px;
+    }
+
+    .item-image-frame {
+      height: clamp(280px, 48cqw, 360px);
+    }
   }
 }
 
