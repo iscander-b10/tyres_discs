@@ -125,7 +125,7 @@ $close-size: 40px;
   max-height: 100%;
   min-width: 0;
   min-height: 0;
-  background: $color-bg;
+  background: $color-photo-canvas;
   border-start-start-radius: $radius-lg;
   border-end-start-radius: $radius-lg;
   border-start-end-radius: 0;
@@ -133,57 +133,24 @@ $close-size: 40px;
   border: 1px solid $color-border;
   border-inline-end: 0;
   overflow: hidden;
-
-  @each $supplier in $photo-canvas-suppliers {
-    &[data-supplier='#{$supplier}'] {
-      background: $color-photo-canvas;
-    }
-  }
 }
 
 /*
-  Absolute fill + contain centers the bitmap in the frame reliably.
-  Grid place-items + % sizing on replaced <img> can leave subject optically low
-  when assets have asymmetric padding (common in supplier studio shots).
+  Whole subject in the square slot. Same contain scheme for every supplier —
+  no cover, no width/height:auto pin, no per-supplier fit.
 */
 .product-modal__image {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  margin: auto;
   object-fit: contain;
-  object-position: center center;
+  object-position: center;
   display: block;
+  background: $color-photo-canvas;
   border-radius: inherit;
   outline: 1px solid oklch(0 0 0 / 0.1);
   outline-offset: -1px;
-}
-
-/*
-  ШинаСу PNGs often leave extra empty headroom (subject sits low).
-  Nudge the contained image up slightly; do not use cover (would crop the rim).
-*/
-.product-modal__image[data-supplier='ШинаСу'] {
-  object-position: center 40%;
-}
-
-// Transparent alpha — force light canvas (+ dark outline on light stage) in both themes
-@each $supplier in $photo-canvas-suppliers {
-  .product-modal__image[data-supplier='#{$supplier}'] {
-    background: $color-photo-canvas;
-    outline-color: oklch(0 0 0 / 0.1);
-  }
-}
-
-[data-theme='dark'] .product-modal__image {
-  outline-color: oklch(1 0 0 / 0.1);
-}
-
-@each $supplier in $photo-canvas-suppliers {
-  [data-theme='dark'] .product-modal__image[data-supplier='#{$supplier}'] {
-    outline-color: oklch(0 0 0 / 0.1);
-  }
 }
 
 .product-modal__meta {

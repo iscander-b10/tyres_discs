@@ -149,3 +149,41 @@ describe('SiteHeader auth actions', () => {
     expect(container.querySelector('[aria-label="Выйти"]')).toBeNull();
   });
 });
+
+describe('SiteHeader phone', () => {
+  let container;
+  let root;
+
+  beforeEach(() => {
+    global.IS_REACT_ACT_ENVIRONMENT = true;
+    mockLocationPathname = '/';
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    useAppShell.mockReturnValue({ handleBrandClick: jest.fn() });
+    useAuth.mockReturnValue({
+      isAuthenticated: false,
+      isWorkspaceReady: false,
+    });
+    useCart.mockReturnValue({ isLoaded: true, totalQuantity: 0 });
+  });
+
+  afterEach(async () => {
+    await act(async () => root.unmount());
+    container.remove();
+    jest.clearAllMocks();
+  });
+
+  test('ссылка телефона сохраняет номер в accessible name', async () => {
+    await act(async () => {
+      root.render(<SiteHeader />);
+    });
+
+    const phone = container.querySelector('.site-header__phone');
+    expect(phone.getAttribute('href')).toBe('tel:+78002508850');
+    expect(phone.getAttribute('aria-label')).toBe('8 800 250 88 50');
+    expect(
+      container.querySelector('.site-header__phone-text')?.textContent
+    ).toBe('8 800 250 88 50');
+  });
+});

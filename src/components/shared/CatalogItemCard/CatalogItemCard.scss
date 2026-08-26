@@ -63,39 +63,27 @@
 
   .item-image-frame {
     position: relative;
-    background: $color-bg;
+    // Light scene under the bitmap so contain gutters are not $color-bg.
+    background: $color-photo-canvas;
     width: 100%;
     height: clamp(220px, 18vw, 280px);
     overflow: hidden;
     border-bottom: 1px solid $color-border-soft;
     cursor: pointer;
-
-    // Transparent supplier PNGs — fixed light canvas in both themes
-    @each $supplier in $photo-canvas-suppliers {
-      &[data-supplier='#{$supplier}'] {
-        background: $color-photo-canvas;
-
-        .item-image {
-          background: $color-photo-canvas;
-          outline-color: oklch(0 0 0 / 0.1);
-        }
-      }
-    }
   }
 
   .item-image {
+    // Whole subject in the slot, both axes. Same scheme for every supplier.
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
-    display: block;
     object-fit: contain;
     object-position: center;
-    background: $color-bg;
+    display: block;
+    background: $color-photo-canvas;
     outline: 1px solid oklch(0 0 0 / 0.1);
     outline-offset: -1px;
-  }
-
-  [data-theme='dark'] & .item-image {
-    outline-color: oklch(1 0 0 / 0.1);
   }
 
   .item-code-overlay {

@@ -284,13 +284,15 @@
 
 @media (max-width: 768px) {
   .theme-switch {
-    --toggle-size: 10px;
-    min-width: 44px;
-    min-height: 44px;
+    --toggle-size: 7px;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
 
     &::before {
-      width: 44px;
-      height: 44px;
+      width: 40px;
+      height: 40px;
     }
   }
 }

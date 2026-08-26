@@ -71,9 +71,15 @@ function SiteHeader({
                 onAppearanceChange={onAppearanceChange}
               />
 
-              <a className="site-header__phone" href={SITE_PHONE.href}>
+              <a
+                className="site-header__phone"
+                href={SITE_PHONE.href}
+                aria-label={SITE_PHONE.display}
+              >
                 <PhoneIcon className="site-header__phone-icon" aria-hidden />
-                <span>{SITE_PHONE.display}</span>
+                <span className="site-header__phone-text">
+                  {SITE_PHONE.display}
+                </span>
               </a>
             </div>
 
