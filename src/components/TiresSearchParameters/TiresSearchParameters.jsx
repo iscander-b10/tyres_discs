@@ -17,6 +17,10 @@ import {
   catalogSearchSelectProps,
   useCatalogSelectCloseOnMouseLeave,
 } from '../shared/catalogSearchSelectProps';
+import {
+  CATALOG_SEARCH_LAYOUT,
+  useCatalogSearchFormLayout,
+} from '../shared/useCatalogSearchFormLayout';
 import { useAppShell } from '../../app/AppShellContext';
 import { scrollWindowToTop } from '../../utils/scrollWindowToTop';
 import { mapTireFormValuesToSearchFilters } from '../../catalog/search/searchFormFilters';
@@ -68,6 +72,11 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
   const [availableBrands, setAvailableBrands] = useState([]);
   const [availableSuppliers, setAvailableSuppliers] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
+  const rootRef = useRef(null);
+  const searchFormLayout = useCatalogSearchFormLayout(rootRef);
+  const isHorizontalLayout =
+    searchFormLayout === CATALOG_SEARCH_LAYOUT.HORIZONTAL;
+  const fieldPlaceholder = (name) => (isHorizontalLayout ? name : 'Все');
   const loadRequestIdRef = useRef(0);
   const searchRequestIdRef = useRef(0);
   const foregroundRequestIdRef = useRef(0);
@@ -398,10 +407,15 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
         : 'none';
 
   return (
-    <div className="tires-search-parameters">
+    <div
+      ref={rootRef}
+      className="tires-search-parameters"
+      data-layout={searchFormLayout}
+    >
       <Form
         form={form}
-        layout="horizontal"
+        layout={isHorizontalLayout ? 'horizontal' : 'vertical'}
+        requiredMark={false}
         onFinish={handleSearch}
         onValuesChange={handleFormChange}
         initialValues={{
@@ -443,6 +457,7 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
               <div className="filter-group filter-group--spikes">
                 <Form.Item
                   name="spikes"
+                  label={isHorizontalLayout ? undefined : 'Шипы'}
                   className="form-item-spikes"
                   getValueProps={(value) => ({
                     value:
@@ -471,11 +486,11 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
             ) : null}
 
             <div className="filter-group filter-group--size" role="group" aria-label="Размер шины">
-              <Form.Item name="width" className="form-item">
+              <Form.Item name="width" label={isHorizontalLayout ? undefined : 'Ширина, мм'} className="form-item">
                 <Select
                   {...catalogSearchSelectProps}
                   allowClear
-                  placeholder="Ширина"
+                  placeholder={fieldPlaceholder('Ширина')}
                   aria-label="Ширина"
                   loading={loadingOptions}
                   className="filter-select--size"
@@ -487,11 +502,11 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
                   ))}
                 </Select>
               </Form.Item>
-              <Form.Item name="profile" className="form-item">
+              <Form.Item name="profile" label={isHorizontalLayout ? undefined : 'Профиль'} className="form-item">
                 <Select
                   {...catalogSearchSelectProps}
                   allowClear
-                  placeholder="Профиль"
+                  placeholder={fieldPlaceholder('Профиль')}
                   aria-label="Профиль"
                   loading={loadingOptions}
                   className="filter-select--size"
@@ -503,11 +518,11 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
                   ))}
                 </Select>
               </Form.Item>
-              <Form.Item name="diameter" className="form-item">
+              <Form.Item name="diameter" label={isHorizontalLayout ? undefined : 'Диаметр'} className="form-item">
                 <Select
                   {...catalogSearchSelectProps}
                   allowClear
-                  placeholder="Диаметр"
+                  placeholder={fieldPlaceholder('Диаметр')}
                   aria-label="Диаметр"
                   loading={loadingOptions}
                   className="filter-select--size"
@@ -521,13 +536,22 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
               </Form.Item>
             </div>
 
+            <div className="filter-group filter-group--checks">
+              <Form.Item name="onlyRunflat" valuePropName="checked" className="form-item form-item-check">
+                <Checkbox>RunFlat</Checkbox>
+              </Form.Item>
+              <Form.Item name="onlyAmountFrom4" valuePropName="checked" className="form-item form-item-check">
+                <Checkbox>от 4 шт</Checkbox>
+              </Form.Item>
+            </div>
+
             <div className="filter-group filter-group--brand">
-              <Form.Item name="brand" className="form-item form-item-brand">
+              <Form.Item name="brand" label={isHorizontalLayout ? undefined : 'Бренд'} className="form-item form-item-brand">
                 <Select
                   {...catalogSearchSelectProps}
                   {...brandSelectCloseOnMouseLeave}
                   mode="multiple"
-                  placeholder="Бренд"
+                  placeholder={fieldPlaceholder('Бренд')}
                   aria-label="Бренд"
                   allowClear
                   maxTagCount="responsive"
@@ -544,7 +568,7 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
             </div>
 
             <div className="filter-group filter-group--supplier">
-              <Form.Item name="supplier" className="form-item form-item-supplier">
+              <Form.Item name="supplier" label={isHorizontalLayout ? undefined : 'Поставщик'} className="form-item form-item-supplier">
                 <SupplierFilterSelect
                   isClientMode={isClientMode}
                   loading={loadingOptions}
@@ -553,80 +577,99 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
               </Form.Item>
             </div>
 
-            <div className="filter-group filter-group--checks">
-              <Form.Item name="onlyAmountFrom4" valuePropName="checked" className="form-item form-item-check">
-                <Checkbox>от 4 шт</Checkbox>
-              </Form.Item>
-              <Form.Item name="onlyRunflat" valuePropName="checked" className="form-item form-item-check">
-                <Checkbox>RunFlat</Checkbox>
-              </Form.Item>
-            </div>
-
             <div className="filter-group filter-group--actions">
-              <HoverTooltip title="Найти">
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  className="filter-action-btn filter-action-btn--search"
-                  icon={<SearchIcon aria-hidden />}
-                  loading={loadingSearch}
-                  aria-label="Найти"
-                />
-              </HoverTooltip>
-              <HoverTooltip title="Сбросить фильтры">
-                <Button
-                  htmlType="button"
-                  className="filter-action-btn filter-action-btn--reset"
-                  icon={<ResetIcon aria-hidden />}
-                  onClick={handleResetFilters}
-                  aria-label="Сбросить фильтры"
-                />
-              </HoverTooltip>
+              {isHorizontalLayout ? (
+                <>
+                  <HoverTooltip title="Найти">
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      className="filter-action-btn filter-action-btn--search"
+                      icon={<SearchIcon aria-hidden />}
+                      loading={loadingSearch}
+                      aria-label="Найти"
+                    />
+                  </HoverTooltip>
+                  <HoverTooltip title="Сбросить фильтры">
+                    <Button
+                      htmlType="button"
+                      className="filter-action-btn filter-action-btn--reset"
+                      icon={<ResetIcon aria-hidden />}
+                      onClick={handleResetFilters}
+                      aria-label="Сбросить фильтры"
+                    />
+                  </HoverTooltip>
+                </>
+              ) : (
+                <>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    className="filter-action-btn filter-action-btn--search"
+                    icon={<SearchIcon aria-hidden />}
+                    loading={loadingSearch}
+                    aria-label="Найти"
+                  >
+                    Найти
+                  </Button>
+                  <Button
+                    htmlType="button"
+                    className="filter-action-btn filter-action-btn--reset"
+                    icon={<ResetIcon aria-hidden />}
+                    onClick={handleResetFilters}
+                    aria-label="Сбросить фильтры"
+                  >
+                    Сбросить
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
       </Form>
 
-      {errorSearch ? (
-        <Alert
-          data-testid="search-error"
-          message="Ошибка поиска"
-          description={errorSearch}
-          type="error"
-          showIcon
-          className="error-alert"
-        />
-      ) : null}
-
-      <CatalogResultsFade viewKey={resultsViewKey} hold={catalogSurfaceHold}>
-        {showShowcase && isActive ? (
-          <CatalogShowcase
-            kind="tires"
-            renderCard={renderCatalogCard}
-            onChipClick={handleShowcaseChipClick}
+      <div className="catalog-search-main">
+        {errorSearch ? (
+          <Alert
+            data-testid="search-error"
+            message="Ошибка поиска"
+            description={errorSearch}
+            type="error"
+            showIcon
+            className="error-alert"
           />
         ) : null}
 
-        {showSearchEmpty ? (
-          <CatalogSearchEmptyHint
-            kind="tires"
-            onResetFilters={handleResetFilters}
-            onChipClick={handleShowcaseChipClick}
-          />
-        ) : null}
+        <CatalogResultsFade viewKey={resultsViewKey} hold={catalogSurfaceHold}>
+          {showShowcase && isActive ? (
+            <CatalogShowcase
+              kind="tires"
+              renderCard={renderCatalogCard}
+              onChipClick={handleShowcaseChipClick}
+            />
+          ) : null}
 
-        {showSearchResults ? (
-          <PaginatedCardsList
-            items={searchResults}
-            isClientMode={isClientMode}
-            searchResetKey={searchResetKey}
-            containerClassName="items-list-container"
-            gridClassName="items-grid"
-            onResetFilters={handleResetFilters}
-            renderCard={renderCatalogCard}
-          />
-        ) : null}
-      </CatalogResultsFade>
+          {showSearchEmpty ? (
+            <CatalogSearchEmptyHint
+              kind="tires"
+              onResetFilters={handleResetFilters}
+              onChipClick={handleShowcaseChipClick}
+            />
+          ) : null}
+
+          {showSearchResults ? (
+            <PaginatedCardsList
+              items={searchResults}
+              isClientMode={isClientMode}
+              searchResetKey={searchResetKey}
+              containerClassName="items-list-container"
+              gridClassName="items-grid"
+              onResetFilters={handleResetFilters}
+              renderCard={renderCatalogCard}
+            />
+          ) : null}
+        </CatalogResultsFade>
+      </div>
     </div>
   );
 });

@@ -579,7 +579,10 @@ $catalog-text: $color-text;
   }
 }
 
-// Column stack: filter form above full-width catalog.
+// Panel layout from data-layout (useCatalogSearchFormLayout):
+// horizontal — compact toolbar above full-width catalog (desktop default);
+// sidebar — vertical form left sticky + catalog right;
+// stacked — vertical form above catalog (mobile).
 @mixin catalog-search-parameters-layout() {
   display: flex;
   flex-direction: column;
@@ -589,9 +592,65 @@ $catalog-text: $color-text;
   max-width: 100%;
   min-width: 0;
 
-  > :not(.search-form) {
+  > .catalog-search-main {
+    display: flex;
+    flex-direction: column;
+    gap: $space-4;
     min-width: 0;
     width: 100%;
+    flex: 1 1 auto;
+  }
+
+  &[data-layout='horizontal'],
+  &[data-layout='stacked'] {
+    flex-direction: column;
+
+    > .search-form {
+      position: static;
+      width: 100%;
+      max-width: 100%;
+      flex: 0 0 auto;
+      max-height: none;
+      overflow: visible;
+    }
+
+    > .catalog-search-main {
+      width: 100%;
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+  }
+
+  &[data-layout='horizontal'] > .search-form {
+    padding: 10px 14px;
+  }
+
+  &[data-layout='sidebar'] {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: $space-5;
+
+    > .search-form {
+      position: sticky;
+      top: var(--catalog-filter-sticky-top, #{$space-3});
+      z-index: $z-filter-bar;
+      width: 20.5rem;
+      max-width: 20.5rem;
+      flex: 0 0 20.5rem;
+      align-self: flex-start;
+      max-height: calc(
+        100dvh - var(--catalog-filter-sticky-top, #{$space-3}) - #{$space-5}
+      );
+      overflow-x: hidden;
+      overflow-y: auto;
+      scrollbar-width: thin;
+    }
+
+    > .catalog-search-main {
+      width: auto;
+      min-width: 0;
+      flex: 1 1 0;
+    }
   }
 
   .error-alert.ant-alert-error {
@@ -624,7 +683,7 @@ $catalog-text: $color-text;
   width: 100%;
   max-width: 100%;
   margin: 0;
-  padding: 10px 14px;
+  padding: 16px 16px 18px;
   background: $color-surface;
   border: 1px solid $color-border;
   border-radius: $radius-lg;
@@ -643,6 +702,8 @@ $catalog-text: $color-text;
     min-width: 0;
   }
 
+  // Horizontal toolbar wraps to at most ~2 rows; a 3rd row is a JS layout
+  // switch to sidebar (see useCatalogSearchFormLayout), not more wrap.
   .search-form__row {
     display: flex;
     flex-wrap: wrap;
@@ -986,48 +1047,271 @@ $catalog-text: $color-text;
     }
   }
 
-  @media (max-width: 900px) {
-    .search-form__row {
-      flex-wrap: nowrap;
-      justify-content: flex-start;
-      overflow-x: auto;
-      overflow-y: hidden;
-      padding-block-end: 2px;
-      scrollbar-width: thin;
-      -webkit-overflow-scrolling: touch;
+}
+
+// Vertical field stack for sidebar + stacked layouts (retail filter panel).
+@mixin catalog-search-form-vertical-fields() {
+  .search-form__toolbar {
+    align-items: stretch;
+  }
+
+  .search-form__row {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 14px;
+    overflow: visible;
+  }
+
+  .filter-group,
+  .filter-range {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    flex: 0 0 auto;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+  }
+
+  .filter-group--disk-type,
+  .filter-group--spikes,
+  .filter-group--brand,
+  .filter-group--supplier {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .filter-group--season {
+    width: 100%;
+
+    .form-item-season,
+    .ant-radio-group {
+      width: 100%;
     }
 
-    .filter-group--spikes {
-      width: 7.75rem;
-      min-width: 7.75rem;
+    .ant-radio-group {
+      height: 40px;
+      padding: 3px;
+      gap: 4px;
     }
 
-    .filter-group--disk-type {
-      width: 9.5rem;
-      min-width: 9.5rem;
-    }
-
-    .filter-group--brand {
-      flex: 0 0 9rem;
-      width: 9rem;
-      min-width: 9rem;
-      max-width: 9rem;
-    }
-
-    .filter-group--supplier {
-      width: 8.5rem;
-      min-width: 8.5rem;
-    }
-
-    .filter-group--actions {
-      position: sticky;
-      inset-inline-end: 0;
+    .ant-radio-wrapper {
+      flex: 1 1 0;
+      justify-content: center;
+      height: 34px;
       padding-inline: 6px;
-      background: linear-gradient(
-        to right,
-        transparent,
-        $color-surface 28%
-      );
+
+      .ant-radio + span {
+        font-size: 13px;
+      }
+
+      .season-radio-icon {
+        width: 16px;
+        height: 16px;
+      }
+    }
+  }
+
+  // Size / mount: three equal fields in one row with labels above.
+  .filter-group--mount,
+  .filter-group--size {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+    gap: 8px;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+  }
+
+  .filter-group--checks {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px 10px;
+    height: auto;
+    max-height: none;
+    align-items: start;
+  }
+
+  .filter-group--actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    margin-top: 2px;
+  }
+
+  .ant-select.filter-select--size,
+  .ant-select.filter-select--mount {
+    width: 100%;
+  }
+
+  .filter-range {
+    width: 100%;
+    height: 40px;
+
+    .filter-range__item {
+      flex: 1 1 0;
+      min-width: 0;
+    }
+
+    .filter-range__item .ant-select {
+      width: 100%;
+    }
+  }
+
+  // Show field labels (hidden in legacy compact toolbar).
+  .ant-form-item {
+    width: 100%;
+    max-width: none;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ant-form-item-row {
+    flex-direction: column !important;
+    align-items: stretch;
+    height: auto;
+  }
+
+  .ant-form-item-label {
+    display: block;
+    padding: 0 0 4px;
+    line-height: 1.2;
+    text-align: start;
+
+    > label {
+      height: auto;
+      color: $color-text-muted;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+
+      &::after {
+        display: none !important;
+      }
+    }
+  }
+
+  .ant-form-item-control,
+  .ant-form-item-control-input,
+  .ant-form-item-control-input-content {
+    width: 100%;
+  }
+
+  .ant-form-item-control-input {
+    height: 32px;
+  }
+
+  .form-item-season {
+    height: auto;
+    min-height: 40px;
+
+    .ant-form-item-control-input {
+      height: 40px;
+    }
+  }
+
+  .form-item-check {
+    height: auto;
+    min-height: 28px;
+    max-height: none;
+
+    .ant-checkbox-wrapper {
+      min-height: 28px;
+      font-size: 13px;
+      font-weight: 500;
+      white-space: normal;
+    }
+  }
+
+  .form-item-brand,
+  .form-item-supplier,
+  .form-item-spikes,
+  .form-item-disk-type {
+    height: auto;
+    min-height: 0;
+    max-height: none;
+
+    .ant-form-item-row,
+    .ant-form-item-control,
+    .ant-form-item-control-input,
+    .ant-form-item-control-input-content {
+      height: auto;
+      min-height: 0;
+      max-height: none;
+    }
+
+    .ant-form-item-control-input {
+      height: 32px;
+      min-height: 32px;
+      max-height: 32px;
+    }
+
+    .ant-select {
+      height: 32px !important;
+      min-height: 32px !important;
+      max-height: 32px !important;
+    }
+  }
+
+  // Full-width text actions instead of 32×32 icon chips.
+  .filter-action-btn.ant-btn {
+    width: 100%;
+    min-width: 0;
+    height: 40px;
+    padding-inline: 12px;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  .filter-action-btn--search.ant-btn {
+    background: $catalog-accent !important;
+    border-color: $catalog-accent !important;
+    color: $color-on-accent !important;
+
+    &:not(:disabled):hover,
+    &:not(:disabled):active {
+      background: $catalog-accent-hover !important;
+      border-color: $catalog-accent-hover !important;
+      color: $color-on-accent !important;
+    }
+
+    &:focus-visible {
+      outline-color: $catalog-accent;
+    }
+  }
+
+  .filter-action-btn--reset.ant-btn {
+    background: $color-surface !important;
+    border: 1px solid $color-border !important;
+    color: $color-text !important;
+
+    &:not(:disabled):hover,
+    &:not(:disabled):active {
+      background: $color-bg-sunken !important;
+      border-color: $color-border-strong !important;
+      color: $color-text !important;
+    }
+
+    &:focus-visible {
+      outline-color: $catalog-accent;
     }
   }
 }

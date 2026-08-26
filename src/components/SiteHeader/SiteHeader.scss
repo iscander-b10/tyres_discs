@@ -226,6 +226,7 @@
 }
 
 .site-header__nav {
+  position: relative;
   display: flex;
   align-items: center;
   border-top: 1px solid $color-border-soft;
@@ -246,6 +247,118 @@
 
   &::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Soft edge fades — как у CatalogShowcase / Filament topnav */
+  $nav-fade: 28px;
+
+  &--fade-end:not(&--fade-start) {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      #000 0%,
+      #000 calc(100% - #{$nav-fade}),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      #000 0%,
+      #000 calc(100% - #{$nav-fade}),
+      transparent 100%
+    );
+  }
+
+  &--fade-start:not(&--fade-end) {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      #000 #{$nav-fade},
+      #000 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      #000 #{$nav-fade},
+      #000 100%
+    );
+  }
+
+  &--fade-start#{&}--fade-end {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      #000 #{$nav-fade},
+      #000 calc(100% - #{$nav-fade}),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      #000 #{$nav-fade},
+      #000 calc(100% - #{$nav-fade}),
+      transparent 100%
+    );
+  }
+}
+
+/* Стрелки только на desktop с точным указателем; на touch — swipe + fade */
+.site-header__nav-scroll {
+  display: none;
+  appearance: none;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  padding: 0;
+  border: 0;
+  background: $color-surface;
+  color: $color-text-muted;
+  cursor: pointer;
+  transition: color 0.2s, opacity 0.2s, background-color 0.2s;
+
+  .anticon {
+    font-size: 12px;
+  }
+
+  &:hover:not(:disabled) {
+    color: $color-text;
+    background: $color-border-soft;
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-accent;
+    outline-offset: -2px;
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  &--prev {
+    left: 0;
+    box-shadow: 8px 0 12px -6px $color-surface;
+  }
+
+  &--next {
+    right: 0;
+    box-shadow: -8px 0 12px -6px $color-surface;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .site-header__nav.is-overflow .site-header__nav-scroll {
+    display: inline-flex;
+  }
+
+  .site-header__nav.is-overflow .site-header__nav-list {
+    padding-inline: 28px;
   }
 }
 

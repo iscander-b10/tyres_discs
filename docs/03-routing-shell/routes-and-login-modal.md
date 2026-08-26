@@ -307,7 +307,8 @@ Side effects: auth/session operations, navigation, animation frame и focus. Cle
 - basket показывается при `canUseApp`; ссылка — `toAppPath` (`/demo/basket` в демо);
 - badge не показывает stale quantity до готовности workspace и cart namespace;
 - значение выше 99 отображается как `99+`;
-- navigation items берутся из `config/site`, в демо пути через `toAppPath`, disabled показываются с tooltip «Скоро».
+- navigation items берутся из `config/site`, в демо пути через `toAppPath`, disabled показываются с tooltip «Скоро»;
+- category nav без видимого scrollbar: swipe на touch, wheel→горизонталь и edge-fade/стрелки на desktop при overflow (`useSiteHeaderNavScroll`).
 
 **Тест:** [`src/components/SiteHeader/SiteHeader.test.jsx`](https://github.com/iscander-b10/tyres_discs/blob/main/src/components/SiteHeader/SiteHeader.test.jsx) проверяет readiness badge.
 

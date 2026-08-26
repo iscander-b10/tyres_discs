@@ -47,6 +47,7 @@
 | `Form.useWatch('season', form)` | текущий сезон | показ фильтра шипов |
 | `useCatalogSelectCloseOnMouseLeave()` | props для brand Select | UX закрытия dropdown |
 | `useMemo` | `widthOptions` | летом — ширины от 135 мм в начале списка |
+| `useCatalogSearchFormLayout(rootRef)` | `data-layout` панели | `horizontal` / `sidebar` / `stacked` по ширине |
 
 ### Локальное состояние
 
@@ -101,13 +102,25 @@ showSpikesFilter = selectedSeason === 'w'
 ### Ветви рендеринга
 
 ```
-Form (всегда)
-├─ Alert errorSearch, если есть
-└─ CatalogResultsFade (opacity 50ms, delayed unmount)
-   ├─ showShowcase && isActive → CatalogShowcase kind="tires"
-   ├─ showSearchEmpty → CatalogSearchEmptyHint
-   └─ showSearchResults → PaginatedCardsList
+div.tires-search-parameters[data-layout]
+├─ Form.search-form (всегда)
+└─ div.catalog-search-main
+   ├─ Alert errorSearch, если есть
+   └─ CatalogResultsFade (opacity 50ms, delayed unmount)
+      ├─ showShowcase && isActive → CatalogShowcase kind="tires"
+      ├─ showSearchEmpty → CatalogSearchEmptyHint
+      └─ showSearchResults → PaginatedCardsList
 ```
+
+`data-layout` задаёт `useCatalogSearchFormLayout` по ширине панели (порог калиброван по более плотной форме дисков). Это **режим панели**, его нельзя путать с Ant Design `Form layout`:
+
+| Режим панели (`data-layout`) | Когда | UI панели | Ant `Form layout` |
+| --- | --- | --- | --- |
+| `horizontal` | ширина ≥ 960px | форма сверху на всю ширину, каталог ниже; compact toolbar 32px, подписи скрыты, wrap максимум в ~2 ряда, иконки «Найти»/«Сбросить» | `horizontal` |
+| `sidebar` | 769–959px | вертикальная форма слева (`position: sticky`, ~20.5rem), каталог справа; подписи над полями, размер в 3 колонки, чекбоксы в 2, кнопки на всю ширину | `vertical` |
+| `stacked` | ≤ 768px | та же вертикальная форма сверху, каталог ниже | `vertical` |
+
+В третью строку горизонтальный toolbar не переваливается: как только две строки уже не влезают, включается `sidebar`. На широком десктопе формы слева быть не должно.
 
 Смены витрина ↔ empty ↔ список — целиком, без stagger полок/карточек и без translate. `prefers-reduced-motion: reduce` — мгновенная смена.
 
@@ -156,7 +169,7 @@ Form (всегда)
 
 **Путь:** `src/components/DiscsSearchParameters/DiscsSearchParameters.jsx`
 
-Структура **идентична** `TiresSearchParameters`, отличия:
+Структура **идентична** `TiresSearchParameters`, отличия: та же раскладка `data-layout` (порог ширины калиброван по форме дисков).
 
 ### Props
 

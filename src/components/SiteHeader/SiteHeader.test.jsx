@@ -31,6 +31,8 @@ jest.mock('react-router-dom', () => ({
 }));
 jest.mock('@ant-design/icons', () => ({
   ShoppingCartOutlined: () => null,
+  LeftOutlined: () => null,
+  RightOutlined: () => null,
 }));
 jest.mock('../../icons/Phone.svg', () => ({
   ReactComponent: () => null,
@@ -185,5 +187,45 @@ describe('SiteHeader phone', () => {
     expect(
       container.querySelector('.site-header__phone-text')?.textContent
     ).toBe('8 800 250 88 50');
+  });
+});
+
+describe('SiteHeader category nav', () => {
+  let container;
+  let root;
+
+  beforeEach(() => {
+    global.IS_REACT_ACT_ENVIRONMENT = true;
+    mockLocationPathname = '/';
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    useAppShell.mockReturnValue({ handleBrandClick: jest.fn() });
+    useAuth.mockReturnValue({
+      isAuthenticated: false,
+      isWorkspaceReady: false,
+    });
+    useCart.mockReturnValue({ isLoaded: true, totalQuantity: 0 });
+  });
+
+  afterEach(async () => {
+    await act(async () => root.unmount());
+    container.remove();
+    jest.clearAllMocks();
+  });
+
+  test('рендерит nav-list без стрелок, пока нет overflow', async () => {
+    await act(async () => {
+      root.render(<SiteHeader />);
+    });
+
+    expect(container.querySelector('.site-header__nav-list')).not.toBeNull();
+    expect(container.querySelector('.site-header__nav.is-overflow')).toBeNull();
+    expect(
+      container.querySelector('[aria-label="Показать предыдущие категории"]')
+    ).toBeNull();
+    expect(
+      container.querySelector('[aria-label="Показать следующие категории"]')
+    ).toBeNull();
   });
 });

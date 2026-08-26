@@ -79,11 +79,12 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 
 | Файл | Инварианты |
 | --- | --- |
-| `SiteHeader.test.jsx` | cart badge, auth links, нет «Войти»/«Выйти» на `/demo*` |
+| `SiteHeader.test.jsx` | cart badge, auth links, нет «Войти»/«Выйти» на `/demo*`, нет стрелок nav без overflow |
 | `SiteFooter.test.jsx` | нет «Войти»/«Выйти» на `/demo*`; на `/` «Войти» есть |
 | `LandingPage.test.jsx` | «Посмотреть демо» enabled → `/demo` |
 | `CatalogItemModalWindow.test.jsx` | лейбл «Размер»; у discs «Цвет» сразу после размера (пусто → «—»); у tyres поля «Цвет» нет |
 | `TiresSearchParameters.searchRace.test.jsx` | stale request discard, spinner, skip facets, reset during pending, pending не blank, timeout, StrictMode settle |
+| `useCatalogSearchFormLayout.test.js` | пороги stacked / sidebar / horizontal (диски как эталон плотности) |
 | `DiscsSearchParameters.searchRace.test.jsx` | stale request discard, spinner, skip facets, reset during pending, pending не blank, timeout, StrictMode settle |
 | `DiscsSearchParameters.rangeSelect.test.jsx` | связанные Select ЦО от/до: после выбора «от» в «до» нет меньших; clear возвращает полный facet-список |
 | `filterDiscRangeSelectOptions.test.js` | UI-фильтр опций range: пустой other, inclusive ≥/≤, дробные ЦО, отрицательный ET |

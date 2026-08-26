@@ -15,6 +15,10 @@ import {
   catalogSearchSelectProps,
   useCatalogSelectCloseOnMouseLeave,
 } from '../shared/catalogSearchSelectProps';
+import {
+  CATALOG_SEARCH_LAYOUT,
+  useCatalogSearchFormLayout,
+} from '../shared/useCatalogSearchFormLayout';
 import { useAppShell } from '../../app/AppShellContext';
 import { scrollWindowToTop } from '../../utils/scrollWindowToTop';
 import { mapDiscFormValuesToSearchFilters } from '../../catalog/search/searchFormFilters';
@@ -68,6 +72,11 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
   const [availablePcd, setAvailablePcd] = useState([]);
   const [availablePn, setAvailablePn] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
+  const rootRef = useRef(null);
+  const searchFormLayout = useCatalogSearchFormLayout(rootRef);
+  const isHorizontalLayout =
+    searchFormLayout === CATALOG_SEARCH_LAYOUT.HORIZONTAL;
+  const fieldPlaceholder = (name) => (isHorizontalLayout ? name : 'Все');
   const brandSelectCloseOnMouseLeave = useCatalogSelectCloseOnMouseLeave();
   const cbFrom = Form.useWatch('cbFrom', form);
   const cbTo = Form.useWatch('cbTo', form);
@@ -427,10 +436,15 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
   const etToOptions = filterDiscRangeSelectOptions(availableEt, 'to', etFrom);
 
   return (
-    <div className="discs-search-parameters">
+    <div
+      ref={rootRef}
+      className="discs-search-parameters"
+      data-layout={searchFormLayout}
+    >
       <Form
         form={form}
-        layout="horizontal"
+        layout={isHorizontalLayout ? 'horizontal' : 'vertical'}
+        requiredMark={false}
         onFinish={handleSearch}
         onValuesChange={handleFormChange}
         initialValues={{
@@ -456,6 +470,7 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
             <div className="filter-group filter-group--disk-type">
               <Form.Item
                 name="diskType"
+                label={isHorizontalLayout ? undefined : 'Тип диска'}
                 className="form-item-disk-type"
                 getValueFromEvent={(value) => {
                   if (value === 'all' || value == null) return undefined;
@@ -466,7 +481,7 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
                   {...catalogSearchSelectProps}
                   aria-label="Тип диска"
                   className="filter-select--disk-type"
-                  placeholder="Тип диска"
+                  placeholder={fieldPlaceholder('Тип диска')}
                   options={[
                     { value: 'Литой', label: 'Литой' },
                     { value: 'Штампованный', label: 'Штампованный' },
@@ -477,11 +492,11 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
             </div>
 
             <div className="filter-group filter-group--mount" role="group" aria-label="Крепление">
-              <Form.Item name="diameter" className="form-item">
+              <Form.Item name="diameter" label={isHorizontalLayout ? undefined : 'Диаметр'} className="form-item">
                 <Select
                   {...catalogSearchSelectProps}
                   allowClear
-                  placeholder="Диаметр"
+                  placeholder={fieldPlaceholder('Диаметр')}
                   aria-label="Диаметр"
                   loading={loadingOptions}
                   className="filter-select--size"
@@ -493,11 +508,11 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
                   ))}
                 </Select>
               </Form.Item>
-              <Form.Item name="pn" className="form-item">
+              <Form.Item name="pn" label={isHorizontalLayout ? undefined : 'PN'} className="form-item">
                 <Select
                   {...catalogSearchSelectProps}
                   allowClear
-                  placeholder="PN"
+                  placeholder={fieldPlaceholder('PN')}
                   aria-label="Количество отверстий"
                   loading={loadingOptions}
                   className="filter-select--mount"
@@ -509,11 +524,11 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
                   ))}
                 </Select>
               </Form.Item>
-              <Form.Item name="pcd" className="form-item">
+              <Form.Item name="pcd" label={isHorizontalLayout ? undefined : 'PCD'} className="form-item">
                 <Select
                   {...catalogSearchSelectProps}
                   allowClear
-                  placeholder="PCD"
+                  placeholder={fieldPlaceholder('PCD')}
                   aria-label="PCD"
                   loading={loadingOptions}
                   className="filter-select--mount"
@@ -629,13 +644,19 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
               </Form.Item>
             </div>
 
+            <div className="filter-group filter-group--checks">
+              <Form.Item name="onlyAmountFrom4" valuePropName="checked" className="form-item form-item-check">
+                <Checkbox>от 4 шт</Checkbox>
+              </Form.Item>
+            </div>
+
             <div className="filter-group filter-group--brand">
-              <Form.Item name="brand" className="form-item form-item-brand">
+              <Form.Item name="brand" label={isHorizontalLayout ? undefined : 'Бренд'} className="form-item form-item-brand">
                 <Select
                   {...catalogSearchSelectProps}
                   {...brandSelectCloseOnMouseLeave}
                   mode="multiple"
-                  placeholder="Бренд"
+                  placeholder={fieldPlaceholder('Бренд')}
                   aria-label="Бренд"
                   allowClear
                   maxTagCount="responsive"
@@ -652,7 +673,7 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
             </div>
 
             <div className="filter-group filter-group--supplier">
-              <Form.Item name="supplier" className="form-item form-item-supplier">
+              <Form.Item name="supplier" label={isHorizontalLayout ? undefined : 'Поставщик'} className="form-item form-item-supplier">
                 <SupplierFilterSelect
                   isClientMode={isClientMode}
                   loading={loadingOptions}
@@ -661,77 +682,99 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
               </Form.Item>
             </div>
 
-            <div className="filter-group filter-group--checks">
-              <Form.Item name="onlyAmountFrom4" valuePropName="checked" className="form-item form-item-check">
-                <Checkbox>от 4 шт</Checkbox>
-              </Form.Item>
-            </div>
-
             <div className="filter-group filter-group--actions">
-              <HoverTooltip title="Найти">
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  className="filter-action-btn filter-action-btn--search"
-                  icon={<SearchIcon aria-hidden />}
-                  loading={loadingSearch}
-                  aria-label="Найти"
-                />
-              </HoverTooltip>
-              <HoverTooltip title="Сбросить фильтры">
-                <Button
-                  htmlType="button"
-                  className="filter-action-btn filter-action-btn--reset"
-                  icon={<ResetIcon aria-hidden />}
-                  onClick={handleResetFilters}
-                  aria-label="Сбросить фильтры"
-                />
-              </HoverTooltip>
+              {isHorizontalLayout ? (
+                <>
+                  <HoverTooltip title="Найти">
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      className="filter-action-btn filter-action-btn--search"
+                      icon={<SearchIcon aria-hidden />}
+                      loading={loadingSearch}
+                      aria-label="Найти"
+                    />
+                  </HoverTooltip>
+                  <HoverTooltip title="Сбросить фильтры">
+                    <Button
+                      htmlType="button"
+                      className="filter-action-btn filter-action-btn--reset"
+                      icon={<ResetIcon aria-hidden />}
+                      onClick={handleResetFilters}
+                      aria-label="Сбросить фильтры"
+                    />
+                  </HoverTooltip>
+                </>
+              ) : (
+                <>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    className="filter-action-btn filter-action-btn--search"
+                    icon={<SearchIcon aria-hidden />}
+                    loading={loadingSearch}
+                    aria-label="Найти"
+                  >
+                    Найти
+                  </Button>
+                  <Button
+                    htmlType="button"
+                    className="filter-action-btn filter-action-btn--reset"
+                    icon={<ResetIcon aria-hidden />}
+                    onClick={handleResetFilters}
+                    aria-label="Сбросить фильтры"
+                  >
+                    Сбросить
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
       </Form>
 
-      {errorSearch ? (
-        <Alert
-          data-testid="search-error"
-          message="Ошибка поиска"
-          description={errorSearch}
-          type="error"
-          showIcon
-          className="error-alert"
-        />
-      ) : null}
-
-      <CatalogResultsFade viewKey={resultsViewKey} hold={catalogSurfaceHold}>
-        {showShowcase && isActive ? (
-          <CatalogShowcase
-            kind="discs"
-            renderCard={renderCatalogCard}
-            onChipClick={handleShowcaseChipClick}
+      <div className="catalog-search-main">
+        {errorSearch ? (
+          <Alert
+            data-testid="search-error"
+            message="Ошибка поиска"
+            description={errorSearch}
+            type="error"
+            showIcon
+            className="error-alert"
           />
         ) : null}
 
-        {showSearchEmpty ? (
-          <CatalogSearchEmptyHint
-            kind="discs"
-            onResetFilters={handleResetFilters}
-            onChipClick={handleShowcaseChipClick}
-          />
-        ) : null}
+        <CatalogResultsFade viewKey={resultsViewKey} hold={catalogSurfaceHold}>
+          {showShowcase && isActive ? (
+            <CatalogShowcase
+              kind="discs"
+              renderCard={renderCatalogCard}
+              onChipClick={handleShowcaseChipClick}
+            />
+          ) : null}
 
-        {showSearchResults ? (
-          <PaginatedCardsList
-            items={searchResults}
-            isClientMode={isClientMode}
-            searchResetKey={searchResetKey}
-            containerClassName="items-list-container"
-            gridClassName="items-grid"
-            onResetFilters={handleResetFilters}
-            renderCard={renderCatalogCard}
-          />
-        ) : null}
-      </CatalogResultsFade>
+          {showSearchEmpty ? (
+            <CatalogSearchEmptyHint
+              kind="discs"
+              onResetFilters={handleResetFilters}
+              onChipClick={handleShowcaseChipClick}
+            />
+          ) : null}
+
+          {showSearchResults ? (
+            <PaginatedCardsList
+              items={searchResults}
+              isClientMode={isClientMode}
+              searchResetKey={searchResetKey}
+              containerClassName="items-list-container"
+              gridClassName="items-grid"
+              onResetFilters={handleResetFilters}
+              renderCard={renderCatalogCard}
+            />
+          ) : null}
+        </CatalogResultsFade>
+      </div>
     </div>
   );
 });

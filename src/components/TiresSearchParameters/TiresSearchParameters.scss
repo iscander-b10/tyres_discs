@@ -8,4 +8,11 @@
     @include catalog.catalog-search-form-controls();
     @include catalog.catalog-search-form-item-utils();
   }
+
+  &[data-layout='sidebar'],
+  &[data-layout='stacked'] {
+    .search-form {
+      @include catalog.catalog-search-form-vertical-fields();
+    }
+  }
 }

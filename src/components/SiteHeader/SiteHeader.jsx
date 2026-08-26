@@ -1,6 +1,10 @@
 import React from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { ShoppingCartOutlined } from '@ant-design/icons';
+import {
+  LeftOutlined,
+  RightOutlined,
+  ShoppingCartOutlined,
+} from '@ant-design/icons';
 import { ReactComponent as PhoneIcon } from '../../icons/Phone.svg';
 import { ReactComponent as UserIcon } from '../../icons/User.svg';
 import { SITE_NAV_ITEMS, SITE_PHONE } from '../../config/site';
@@ -19,6 +23,7 @@ import { useLogout } from '../../auth/useLogout';
 import { useCart } from '../../cart/CartContext';
 import HoverTooltip from '../shared/HoverTooltip';
 import ThemeSwitch from '../shared/ThemeSwitch/ThemeSwitch';
+import { useSiteHeaderNavScroll } from './useSiteHeaderNavScroll';
 import './SiteHeader.scss';
 
 function navClassName({ isActive }) {
@@ -51,6 +56,9 @@ function SiteHeader({
     : appEnabled
       ? DEFAULT_APP_HOME
       : PATHS.home;
+
+  const { listRef, canPrev, canNext, hasOverflow, scrollByDir } =
+    useSiteHeaderNavScroll(location.pathname);
 
   return (
     <header className="site-header">
@@ -144,8 +152,37 @@ function SiteHeader({
           </div>
         </div>
 
-        <nav className="site-header__nav" aria-label="Категории каталога">
-          <div className="site-header__nav-list">
+        <nav
+          className={[
+            'site-header__nav',
+            hasOverflow ? 'is-overflow' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+          aria-label="Категории каталога"
+        >
+          {hasOverflow ? (
+            <button
+              type="button"
+              className="site-header__nav-scroll site-header__nav-scroll--prev"
+              aria-label="Показать предыдущие категории"
+              disabled={!canPrev}
+              onClick={() => scrollByDir(-1)}
+            >
+              <LeftOutlined aria-hidden />
+            </button>
+          ) : null}
+
+          <div
+            ref={listRef}
+            className={[
+              'site-header__nav-list',
+              canPrev ? 'site-header__nav-list--fade-start' : '',
+              canNext ? 'site-header__nav-list--fade-end' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          >
             {SITE_NAV_ITEMS.map((item) => {
               if (item.disabled || !item.path) {
                 const button = (
@@ -177,6 +214,18 @@ function SiteHeader({
               );
             })}
           </div>
+
+          {hasOverflow ? (
+            <button
+              type="button"
+              className="site-header__nav-scroll site-header__nav-scroll--next"
+              aria-label="Показать следующие категории"
+              disabled={!canNext}
+              onClick={() => scrollByDir(1)}
+            >
+              <RightOutlined aria-hidden />
+            </button>
+          ) : null}
         </nav>
       </div>
     </header>

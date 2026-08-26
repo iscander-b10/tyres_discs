@@ -20,9 +20,11 @@
 ### `SiteHeader`
 
 - **Props:** `appearance: 'light' \| 'dark'`, `onAppearanceChange(next)`.
-- **Side effects:** navigate, открытие login query, logout через `useLogout`.
+- **Side effects:** navigate, открытие login query, logout через `useLogout`;
+  горизонтальный overflow category nav через `useSiteHeaderNavScroll`
+  (`src/components/SiteHeader/useSiteHeaderNavScroll.js`).
 - **Кто вызывает:** `AppFrame` в `App.js`.
-- **Тесты:** `SiteHeader.test.jsx` — badge корзины, login link, скрытие «Войти»/«Выйти» на `/demo*`.
+- **Тесты:** `SiteHeader.test.jsx` — badge корзины, login link, скрытие «Войти»/«Выйти» на `/demo*`, отсутствие стрелок nav без overflow.
 - **Страница:** [Тема и shell](/10-ui/theme-and-shell-components).
 
 ---
@@ -131,6 +133,7 @@ export default function AddToCartControl({
 | --- | --- | --- |
 | `catalogCopy.js` | `formatPriceDisplay`, `resolveCatalogModel`, … | Форматирование для карточек |
 | `catalogSearchSelectProps.js` | `catalogSearchSelectProps`, `useCatalogSelectCloseOnMouseLeave` | Общие props Select |
+| `useCatalogSearchFormLayout.js` | `useCatalogSearchFormLayout`, `resolveCatalogSearchFormLayout`, константы layout | Раскладка формы поиска: horizontal / sidebar / stacked |
 | `ikonPromoBadges.js` | `resolveIkonPromoBadges`, `IKON_PROMO_LABELS` | Бейджи Ikon |
 | `showcaseChips.js` | `getShowcaseStaticChips` | Статические чипы размеров |
 

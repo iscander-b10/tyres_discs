@@ -103,12 +103,15 @@ Notification настроен на верхний правый угол и не 
 - `useAuth` определяет кнопку «Войти»/«Выйти» на маркетинговых и staff URL;
 - на `/demo*` «Войти» и «Выйти» скрыты (`isDemoPath`); login modal с демо не открывается;
 - `useCart` показывает badge только когда одновременно готовы workspace и cart;
-- `useCart` показывает badge только когда одновременно готовы workspace и cart;
 - badge ограничивает визуальный текст значением `99+`, но accessible label
   содержит фактическое количество;
 - `loginLinkTarget(location)` сохраняет безопасный post-login return path;
 - `handleBrandClick` сбрасывает поисковые панели и ведёт staff на `/tyres`, гостя на `/`, демо на `/demo/tyres`;
-- disabled пункты `SITE_NAV_ITEMS` показываются как «Скоро».
+- disabled пункты `SITE_NAV_ITEMS` показываются как «Скоро»;
+- category nav (`site-header__nav-list`) — горизонтальный overflow без видимого
+  scrollbar: на touch — swipe, на desktop — wheel→горизонталь, soft edge-fade и
+  стрелки только при `(hover: hover) and (pointer: fine)` и реальном overflow;
+  активный пункт и focus прокручиваются в видимую зону (`useSiteHeaderNavScroll`).
 
 `SiteHeader.test.jsx` подтверждает важный readiness-инвариант badge: старое
 количество нельзя показывать до загрузки корзины текущего workspace.
