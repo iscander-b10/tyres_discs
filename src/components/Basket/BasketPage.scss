@@ -411,6 +411,8 @@
   font-size: inherit;
   line-height: inherit;
   color: inherit;
+  container-type: inline-size;
+  container-name: basket-prices;
 
   &:focus-visible {
     outline: 2px solid $color-border-strong;
@@ -426,9 +428,10 @@
 .basket-line__price-strip {
   width: max-content;
   max-width: 100%;
+  min-width: 0;
 
-  // Shared two-column grid: captions | values (one value column under another).
-  // Scope: basket only; catalog/modal keep full-width tiled PriceStrip.
+  // Two-column table while caption + value fit: captions | values stacked in one column.
+  // Narrow wrap (below) left-aligns the amount under its caption.
   &.catalog-price-strip--manager,
   &.catalog-price-strip--client {
     display: grid;
@@ -813,6 +816,8 @@
       'check body'
       'media body'
       'end   end';
+    /* Checkbox sits directly above the photo; keep air only before end. */
+    row-gap: 0;
   }
 
   .basket-line__media {
@@ -821,6 +826,10 @@
     min-height: 0;
     align-self: start;
     padding: 0;
+  }
+
+  .basket-line__end {
+    margin-top: $space-5;
   }
 
   .basket-line__prices-hit {
@@ -852,5 +861,48 @@
 
   .basket-page--client .basket-line__main {
     gap: $space-3;
+  }
+}
+
+// When caption + amount no longer fit on one row, stack the amount under the caption (start-aligned).
+@container basket-prices (max-width: 200px) {
+  .basket-line__price-strip,
+  .basket-page--client .basket-line__price-strip {
+    width: 100%;
+    max-width: 100%;
+
+    &.catalog-price-strip--manager,
+    &.catalog-price-strip--client {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      grid-template-columns: none;
+    }
+
+    .catalog-price-strip__tile {
+      display: flex;
+      flex-flow: row wrap;
+      justify-content: flex-start;
+      align-items: baseline;
+      grid-template-columns: none;
+      grid-column: auto;
+      width: 100%;
+      column-gap: $space-3;
+      row-gap: 2px;
+    }
+
+    .catalog-price-strip__caption {
+      flex: 0 0 auto;
+    }
+
+    &.catalog-price-strip--manager .catalog-price-strip__tile .catalog-price-strip__value,
+    &.catalog-price-strip--client .catalog-price-strip__tile .catalog-price-strip__value {
+      flex: 0 0 auto;
+      align-self: flex-start;
+      justify-self: start;
+      margin-inline-start: 0;
+      min-width: 0;
+      text-align: start;
+    }
   }
 }

@@ -29,9 +29,10 @@
 | Export | Назначение | Async |
 | --- | --- | --- |
 | `scrollWindowToTop({ behavior }?)` | `window.scrollTo(top: 0)`; без `behavior` — `smooth`, при `prefers-reduced-motion: reduce` — `auto` | sync |
-| `scheduleScrollIntoView(el, { behavior, block, inline, delayMs }?)` | `el.scrollIntoView` после опциональной задержки; тот же выбор `behavior`; возвращает cancel для timeout | sync (+ timer) |
 
-**Кто вызывает:** `TiresSearchParameters` / `DiscsSearchParameters` (`handleShowcaseChipClick` → `scrollWindowToTop`; foreground «Найти» в `stacked` → `scheduleScrollIntoView`).
+**Кто вызывает:** `TiresSearchParameters` / `DiscsSearchParameters` (`handleShowcaseChipClick` → `scrollWindowToTop`).
+
+`scheduleScrollIntoView` — **legacy / удалён**: раньше stacked «Найти» скроллил к `.catalog-search-main` после fade 50ms. Сейчас stacked закрывает панель фильтров без `scrollIntoView`.
 
 ---
 

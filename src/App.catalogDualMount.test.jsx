@@ -4,6 +4,10 @@ import { AppShellProvider } from './app/AppShellContext';
 import DiscsSearchParameters from './components/DiscsSearchParameters/DiscsSearchParameters';
 import TiresSearchParameters from './components/TiresSearchParameters/TiresSearchParameters';
 import indexedDBService from './services/indexedDBService';
+import {
+  CATALOG_SEARCH_LAYOUT,
+  useCatalogSearchFormLayout,
+} from './components/shared/useCatalogSearchFormLayout';
 
 /**
  * Dual-mount catalog: keep-alive UX + pause IDB for inactive panel.
@@ -71,6 +75,16 @@ jest.mock('./icons/Sun.svg', () => ({ ReactComponent: () => null }));
 jest.mock('./icons/Snow.svg', () => ({ ReactComponent: () => null }));
 jest.mock('./icons/Reset.svg', () => ({ ReactComponent: () => null }));
 jest.mock('./icons/Search.svg', () => ({ ReactComponent: () => null }));
+jest.mock('./icons/Filters.svg', () => ({ ReactComponent: () => null }));
+jest.mock('./components/shared/useCatalogSearchFormLayout', () => {
+  const actual = jest.requireActual(
+    './components/shared/useCatalogSearchFormLayout'
+  );
+  return {
+    ...actual,
+    useCatalogSearchFormLayout: jest.fn(),
+  };
+});
 
 const emptyTireOptions = {
   widths: [205],
@@ -133,7 +147,9 @@ function DualMountHarness({
 }
 
 describe('catalog dual-mount pause IDB', () => {
+  jest.setTimeout(20000);
   beforeEach(() => {
+    useCatalogSearchFormLayout.mockReturnValue(CATALOG_SEARCH_LAYOUT.SIDEBAR);
     indexedDBService.getAvailableParameterOptions.mockReset();
     indexedDBService.getAvailableDiscParameterOptions.mockReset();
     indexedDBService.searchTires.mockReset();

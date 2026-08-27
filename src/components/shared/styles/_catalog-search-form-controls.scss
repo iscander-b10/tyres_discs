@@ -582,7 +582,7 @@ $catalog-text: $color-text;
 // Panel layout from data-layout (useCatalogSearchFormLayout):
 // horizontal — compact toolbar above full-width catalog (desktop default);
 // sidebar — vertical form left sticky + catalog right;
-// stacked — vertical form above catalog (mobile).
+// stacked — collapsed «Фильтры» + catalog; open panel is the same vertical form.
 @mixin catalog-search-parameters-layout() {
   display: flex;
   flex-direction: column;
@@ -623,6 +623,49 @@ $catalog-text: $color-text;
 
   &[data-layout='horizontal'] > .search-form {
     padding: 10px 14px;
+  }
+
+  &[data-layout='stacked']:not([data-mobile-filters-open='true']) > .search-form {
+    display: none;
+  }
+
+  &[data-layout='stacked'][data-mobile-filters-open='true'] {
+    > .catalog-search-main {
+      display: none;
+    }
+
+    > .search-form {
+      display: flex;
+      flex-direction: column;
+      max-height: calc(
+        100dvh - 6.75rem - var(--catalog-filter-sticky-top, #{$space-4}) -
+          env(safe-area-inset-bottom, 0px) - var(--mobile-filters-ime-inset, 0px)
+      );
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 0;
+    }
+
+    .search-form__toolbar,
+    .search-form__row {
+      flex: 1 0 auto;
+    }
+
+    .filter-group--actions {
+      position: sticky;
+      bottom: 0;
+      z-index: 2;
+      margin-top: auto;
+      margin-inline: -16px;
+      padding-inline: 16px;
+      padding-top: $space-3;
+      padding-bottom: max(#{$space-3}, env(safe-area-inset-bottom, 0px));
+      background: $color-surface;
+      border-top: 1px solid $color-border;
+      box-shadow: 0 -12px 16px $color-surface;
+    }
   }
 
   &[data-layout='sidebar'] {

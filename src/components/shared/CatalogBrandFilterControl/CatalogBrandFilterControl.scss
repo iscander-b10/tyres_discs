@@ -1,0 +1,96 @@
+@use '../../../styles/tokens' as *;
+
+.catalog-brand-filter-control__trigger {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+
+  .ant-select {
+    width: 100%;
+  }
+}
+
+.catalog-brand-sheet {
+  --ant-color-primary: #{$color-cta};
+  --ant-color-primary-hover: #{$color-cta-hover};
+  --ant-color-primary-active: #{$color-cta-hover};
+  --ant-color-text: #{$color-text};
+  --ant-color-text-placeholder: #{$color-text-subtle};
+
+  .ant-drawer-content {
+    background: $color-surface;
+    border-radius: $radius-lg $radius-lg 0 0;
+    overflow: hidden;
+  }
+
+  .ant-drawer-header {
+    padding: $space-4 $space-4 $space-3;
+    border-bottom: 1px solid $color-border;
+  }
+
+  .ant-drawer-title {
+    font-weight: 600;
+    color: $color-text;
+  }
+
+  .ant-drawer-body.catalog-brand-sheet__body {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .ant-drawer-footer.catalog-brand-sheet__footer {
+    padding: $space-3 $space-4;
+    padding-bottom: max(#{$space-3}, env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid $color-border;
+    background: $color-surface;
+
+    .ant-btn {
+      min-height: 44px;
+      font-weight: 600;
+    }
+  }
+}
+
+.catalog-brand-sheet__content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  padding: $space-3 $space-4 0;
+  gap: $space-3;
+}
+
+.catalog-brand-sheet__list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  margin-inline: -#{$space-4};
+  padding-inline: $space-4;
+  padding-bottom: $space-2;
+}
+
+.catalog-brand-sheet__options {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 0;
+
+  .ant-checkbox-group-item,
+  .ant-checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 44px;
+    margin-inline-end: 0;
+    padding-block: $space-2;
+    font-weight: 500;
+    color: $color-text;
+  }
+}

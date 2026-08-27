@@ -25,7 +25,7 @@
 
 .catalog-price-strip__tile {
   display: flex;
-  flex-direction: row;
+  flex-flow: row wrap;
   align-items: center;
   justify-content: space-between;
   gap: $space-2;
@@ -67,10 +67,13 @@
   font-weight: $catalog-type-label-weight;
   line-height: $catalog-type-label-lh;
   color: $color-text-muted;
+  white-space: nowrap;
 }
 
 // All price values — one price role (channel hierarchy via tile color only).
 .catalog-price-strip__value {
+  flex: 0 0 auto;
+  margin-inline-start: auto;
   min-width: 0;
   font-size: $catalog-type-price-size;
   font-weight: $catalog-type-price-weight;
@@ -78,7 +81,8 @@
   letter-spacing: -0.015em;
   color: $color-text;
   font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
+  white-space: nowrap;
   text-align: right;
 }
 

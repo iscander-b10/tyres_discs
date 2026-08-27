@@ -79,7 +79,7 @@ singleton `catalogIdbSession`). При `searchResults === null` панель р�
 `CatalogShowcase`. Смены витрина / empty / список идут через shared
 `CatalogResultsFade` (opacity 50ms, delayed unmount). Витрина читает тот же RAM-кэш, что поиск.
 
-**Тесты:** `TiresSearchParameters.searchRace.test.jsx`, `TiresSearchParameters.spikesControl.test.jsx`, `DiscsSearchParameters.searchRace.test.jsx`.
+**Тесты:** `TiresSearchParameters.searchRace.test.jsx`, `TiresSearchParameters.mobileFilters.test.jsx`, `TiresSearchParameters.spikesControl.test.jsx`, `TiresSearchParameters.brandFilter.test.jsx`, `DiscsSearchParameters.searchRace.test.jsx`, `DiscsSearchParameters.mobileFilters.test.jsx`, `DiscsSearchParameters.brandFilter.test.jsx`.
 
 **Страницы:** [Async race guards](/08-search-showcase/async-race-guards), [сквозной поток](/08-search-showcase/end-to-end-flow).
 
@@ -103,6 +103,8 @@ singleton `catalogIdbSession`). При `searchResults === null` панель р�
 | `CartQtyControls` | `shared/CartQtyControls/...` | `quantity`, `maxStock`, handlers | [Корзина](/10-ui/basket-and-client-mode) |
 | `PaginatedCardsList` | `shared/PaginatedCardsList/...` | `items`, `renderCard`, `onResetFilters` | [UI каталога](/10-ui/catalog-components) |
 | `SupplierFilterSelect` | `shared/SupplierFilterSelect.jsx` | `options`, маскировка client mode | [Поиск](/08-search-showcase/tire-and-disc-search) |
+| `CatalogBrandFilterControl` | `shared/CatalogBrandFilterControl/CatalogBrandFilterControl.jsx` | `layout`, `options`, `isActive`; sheet на sidebar/stacked, Select на horizontal | [Поиск](/08-search-showcase/tire-and-disc-search) |
+| `CatalogMobileFiltersPanel` | `shared/CatalogMobileFiltersPanel/CatalogMobileFiltersPanel.jsx` | stacked chrome: кнопка «Фильтры» ↔ та же Form; `open` / `onOpenChange` / `formId`; sidebar/horizontal без chrome | [Поиск](/08-search-showcase/tire-and-disc-search) |
 | `HoverTooltip` | `shared/HoverTooltip.jsx` | children + Tooltip props | [UI каталога](/10-ui/catalog-components) |
 
 ### `AddToCartControl` — ключевой export
@@ -132,9 +134,10 @@ export default function AddToCartControl({
 | Модуль | Exports | Назначение |
 | --- | --- | --- |
 | `catalogCopy.js` | `formatPriceDisplay`, `resolveCatalogModel`, … | Форматирование для карточек |
-| `catalogSearchSelectProps.js` | `catalogSearchSelectProps`, `useCatalogSelectCloseOnMouseLeave` | Общие props Select; `onOpenChange` → popup scroll lock; brand-хук композирует lock |
+| `catalogSearchSelectProps.js` | `catalogSearchSelectProps`, `useCatalogSelectCloseOnMouseLeave` | Общие props Select; `onOpenChange` → popup scroll lock; brand-хук композирует lock (**только** `horizontal` brand Select внутри `CatalogBrandFilterControl`) |
 | `catalogSelectPopupScrollLock.js` | `useCatalogSelectPopupScrollLock`, `acquire`/`release`, `onCatalogSelectOpenChange`, allowlist | Пока catalog-select popup открыт и ширина < 1100px, не скроллятся страница и sidebar `.search-form` |
 | `useCatalogSearchFormLayout.js` | `useCatalogSearchFormLayout`, `resolveCatalogSearchFormLayout`, константы layout | Раскладка формы поиска: horizontal / sidebar / stacked |
+| `useVisualViewportBottomInset.js` | `useVisualViewportBottomInset(active)` | Нижний inset клавиатуры (`visualViewport`); brand sheet и stacked-панель фильтров |
 | `ikonPromoBadges.js` | `resolveIkonPromoBadges`, `IKON_PROMO_LABELS` | Бейджи Ikon |
 | `showcaseChips.js` | `getShowcaseStaticChips` | Статические чипы размеров |
 

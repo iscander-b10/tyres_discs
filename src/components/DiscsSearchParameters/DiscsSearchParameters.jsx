@@ -9,22 +9,17 @@ import PaginatedCardsList from '../shared/PaginatedCardsList/PaginatedCardsList'
 import CatalogShowcase from '../shared/CatalogShowcase';
 import CatalogSearchEmptyHint from '../shared/CatalogShowcase/CatalogSearchEmptyHint';
 import CatalogResultsFade from '../shared/CatalogResultsFade/CatalogResultsFade';
-import { CATALOG_SURFACE_FADE_MS } from '../shared/CatalogResultsFade/catalogSurfaceFade';
 import HoverTooltip from '../shared/HoverTooltip';
 import SupplierFilterSelect from '../shared/SupplierFilterSelect';
-import {
-  catalogSearchSelectProps,
-  useCatalogSelectCloseOnMouseLeave,
-} from '../shared/catalogSearchSelectProps';
+import CatalogBrandFilterControl from '../shared/CatalogBrandFilterControl/CatalogBrandFilterControl';
+import CatalogMobileFiltersPanel from '../shared/CatalogMobileFiltersPanel/CatalogMobileFiltersPanel';
+import { catalogSearchSelectProps } from '../shared/catalogSearchSelectProps';
 import {
   CATALOG_SEARCH_LAYOUT,
   useCatalogSearchFormLayout,
 } from '../shared/useCatalogSearchFormLayout';
 import { useAppShell } from '../../app/AppShellContext';
-import {
-  scheduleScrollIntoView,
-  scrollWindowToTop,
-} from '../../utils/scrollWindowToTop';
+import { scrollWindowToTop } from '../../utils/scrollWindowToTop';
 import { mapDiscFormValuesToSearchFilters } from '../../catalog/search/searchFormFilters';
 import {
   DISC_FACET_IRRELEVANT_FIELDS,
@@ -78,14 +73,13 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
   const [availablePcd, setAvailablePcd] = useState([]);
   const [availablePn, setAvailablePn] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
+  const [stackedFiltersOpen, setStackedFiltersOpen] = useState(false);
   const rootRef = useRef(null);
-  const catalogMainRef = useRef(null);
-  const cancelCatalogScrollRef = useRef(() => {});
   const searchFormLayout = useCatalogSearchFormLayout(rootRef);
   const isHorizontalLayout =
     searchFormLayout === CATALOG_SEARCH_LAYOUT.HORIZONTAL;
+  const isStackedLayout = searchFormLayout === CATALOG_SEARCH_LAYOUT.STACKED;
   const fieldPlaceholder = (name) => (isHorizontalLayout ? name : 'Все');
-  const brandSelectCloseOnMouseLeave = useCatalogSelectCloseOnMouseLeave();
   const cbFrom = Form.useWatch('cbFrom', form);
   const cbTo = Form.useWatch('cbTo', form);
   const widthFrom = Form.useWatch('widthFrom', form);
@@ -122,6 +116,7 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
     setLoadingOptions(false);
     setErrorSearch(null);
     setSearchResults(null);
+    setStackedFiltersOpen(false);
     setAvailableBrands([]);
     setAvailableSuppliers([]);
     setAvailableDiameters([]);
@@ -134,6 +129,12 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
   }, [form, workspaceResetKey]);
 
   useEffect(() => {
+    if (!isStackedLayout) {
+      setStackedFiltersOpen(false);
+    }
+  }, [isStackedLayout]);
+
+  useEffect(() => {
     // StrictMode (npm start) делает setup → cleanup → setup и сохраняет тот же ref.
     mountedRef.current = true;
     return () => {
@@ -141,8 +142,6 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
       loadRequestIdRef.current += 1;
       searchRequestIdRef.current += 1;
       clearDebounced(cascadeTimerRef);
-      cancelCatalogScrollRef.current();
-      cancelCatalogScrollRef.current = () => {};
     };
   }, []);
 
@@ -306,14 +305,7 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
       setSearchResetKey((key) => key + 1);
       setSearchLoading(true);
       setErrorSearch(null);
-      // Stacked (mobile): after fade delay, smooth-scroll to catalog zone.
-      if (searchFormLayout === CATALOG_SEARCH_LAYOUT.STACKED) {
-        cancelCatalogScrollRef.current();
-        cancelCatalogScrollRef.current = scheduleScrollIntoView(
-          catalogMainRef.current,
-          { delayMs: CATALOG_SURFACE_FADE_MS }
-        );
-      }
+      setStackedFiltersOpen(false);
     }
 
     try {
@@ -459,7 +451,17 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
       ref={rootRef}
       className="discs-search-parameters"
       data-layout={searchFormLayout}
+      data-mobile-filters-open={
+        isStackedLayout && stackedFiltersOpen ? 'true' : undefined
+      }
     >
+      <CatalogMobileFiltersPanel
+        layout={searchFormLayout}
+        isActive={isActive}
+        open={stackedFiltersOpen}
+        onOpenChange={setStackedFiltersOpen}
+        formId="discs-search-form"
+      >
       <Form
         form={form}
         layout={isHorizontalLayout ? 'horizontal' : 'vertical'}
@@ -654,23 +656,13 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
 
             <div className="filter-group filter-group--brand">
               <Form.Item name="brand" label={isHorizontalLayout ? undefined : 'Бренд'} className="form-item form-item-brand">
-                <Select
-                  {...catalogSearchSelectProps}
-                  {...brandSelectCloseOnMouseLeave}
-                  mode="multiple"
-                  placeholder={fieldPlaceholder('Бренд')}
-                  aria-label="Бренд"
-                  allowClear
-                  maxTagCount="responsive"
-                  optionFilterProp="children"
+                <CatalogBrandFilterControl
+                  layout={searchFormLayout}
+                  options={availableBrands}
                   loading={loadingOptions}
-                >
-                  {availableBrands.map((brand) => (
-                    <Option key={brand} value={brand}>
-                      {brand}
-                    </Option>
-                  ))}
-                </Select>
+                  placeholder={fieldPlaceholder('Бренд')}
+                  isActive={isActive}
+                />
               </Form.Item>
             </div>
 
@@ -740,8 +732,12 @@ const DiscsSearchParameters = memo(({ isActive = true }) => {
           </div>
         </div>
       </Form>
+      </CatalogMobileFiltersPanel>
 
-      <div className="catalog-search-main" ref={catalogMainRef}>
+      <div
+        className="catalog-search-main"
+        hidden={isStackedLayout && stackedFiltersOpen ? true : undefined}
+      >
         {errorSearch ? (
           <Alert
             data-testid="search-error"

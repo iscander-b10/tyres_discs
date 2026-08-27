@@ -2,6 +2,10 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import React from 'react';
 import { AppShellProvider } from '../../app/AppShellContext';
 import indexedDBService from '../../services/indexedDBService';
+import {
+  CATALOG_SEARCH_LAYOUT,
+  useCatalogSearchFormLayout,
+} from '../shared/useCatalogSearchFormLayout';
 import DiscsSearchParameters from './DiscsSearchParameters';
 
 /**
@@ -47,8 +51,16 @@ jest.mock('../shared/CatalogItemCard/CatalogItemCard', () => () => null);
 jest.mock('../shared/CatalogItemModalWindow/CatalogItemModalWindow', () => () =>
   null
 );
+jest.mock('../shared/useCatalogSearchFormLayout', () => {
+  const actual = jest.requireActual('../shared/useCatalogSearchFormLayout');
+  return {
+    ...actual,
+    useCatalogSearchFormLayout: jest.fn(),
+  };
+});
 jest.mock('../../icons/Reset.svg', () => ({ ReactComponent: () => null }));
 jest.mock('../../icons/Search.svg', () => ({ ReactComponent: () => null }));
+jest.mock('../../icons/Filters.svg', () => ({ ReactComponent: () => null }));
 
 const deferred = () => {
   let resolve;
@@ -72,6 +84,7 @@ describe('DiscsSearchParameters search races', () => {
   });
 
   beforeEach(() => {
+    useCatalogSearchFormLayout.mockReturnValue(CATALOG_SEARCH_LAYOUT.SIDEBAR);
     indexedDBService.getAvailableDiscParameterOptions.mockResolvedValue({
       brands: [],
       suppliers: [],

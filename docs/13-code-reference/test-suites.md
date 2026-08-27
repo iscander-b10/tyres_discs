@@ -1,7 +1,7 @@
 # Тестовые наборы
 
 ::: tip Статус: проверено по коду
-60 test-файлов под `src/` входят в корневой `npm test`. Ещё один тестовый файл `yandex/catalog-sync` запускается отдельной cloud-командой. Карта трассировки контрактов — [contract-catalog](/11-testing/contract-catalog).
+69 test-файлов под `src/` входят в корневой `npm test`. Ещё один тестовый файл `yandex/catalog-sync` запускается отдельной cloud-командой. Карта трассировки контрактов — [contract-catalog](/11-testing/contract-catalog).
 :::
 
 ## Инструменты
@@ -75,7 +75,7 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 
 ---
 
-## Components (15 файлов)
+## Components (19 файлов)
 
 | Файл | Инварианты |
 | --- | --- |
@@ -84,11 +84,15 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 | `LandingPage.test.jsx` | «Посмотреть демо» enabled → `/demo` |
 | `CatalogItemModalWindow.test.jsx` | лейбл «Размер»; у discs «Цвет» сразу после размера (пусто → «—»); у tyres поля «Цвет» нет |
 | `TiresSearchParameters.searchRace.test.jsx` | stale request discard, spinner, skip facets, reset during pending, pending не blank, timeout, StrictMode settle |
+| `TiresSearchParameters.mobileFilters.test.jsx` | stacked «Фильтры» ↔ панель; idle/open/find/reset/background; sidebar/horizontal без кнопки |
 | `TiresSearchParameters.spikesControl.test.jsx` | stacked Radio.Group шипов; mapping Все/`null`, Шипы/`true`, Без шипов/`false`; horizontal остаётся Select |
+| `TiresSearchParameters.brandFilter.test.jsx` | stacked/sidebar brand sheet + «Готово»; Enter не сабмитит форму; clear без открытия sheet; horizontal Select; inert dual-mount |
 | `useCatalogSearchFormLayout.test.js` | пороги stacked / sidebar / horizontal (диски как эталон плотности) |
 | `catalogSelectPopupScrollLock.test.js` | acquire/release refcount, unmount, restore слушателей; lock на 767/900/1099, не на 1100+; композиция с brand mouseleave |
 | `DiscsSearchParameters.searchRace.test.jsx` | stale request discard, spinner, skip facets, reset during pending, pending не blank, timeout, StrictMode settle |
+| `DiscsSearchParameters.mobileFilters.test.jsx` | тот же stacked-контракт «Фильтры», что у шин |
 | `DiscsSearchParameters.rangeSelect.test.jsx` | связанные Select ЦО от/до: после выбора «от» в «до» нет меньших; clear возвращает полный facet-список |
+| `DiscsSearchParameters.brandFilter.test.jsx` | диски подключают тот же brand sheet; чекбокс пишет `brand`; «Готово» не вызывает поиск |
 | `filterDiscRangeSelectOptions.test.js` | UI-фильтр опций range: пустой other, inclusive ≥/≤, дробные ЦО, отрицательный ET |
 | `CatalogShowcase.appLog.test.jsx` | error logging on showcase fail |
 | `CatalogShowcase.bootstrap.test.jsx` | пустой store / loading → skeleton; Empty «Каталог ещё загружается» отсутствует; notify только на settled полках |

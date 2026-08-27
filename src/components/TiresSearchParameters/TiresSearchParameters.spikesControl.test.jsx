@@ -50,6 +50,7 @@ jest.mock('../../icons/Sun.svg', () => ({ ReactComponent: () => null }));
 jest.mock('../../icons/Snow.svg', () => ({ ReactComponent: () => null }));
 jest.mock('../../icons/Reset.svg', () => ({ ReactComponent: () => null }));
 jest.mock('../../icons/Search.svg', () => ({ ReactComponent: () => null }));
+jest.mock('../../icons/Filters.svg', () => ({ ReactComponent: () => null }));
 
 const shellValue = {
   clientMode: false,
@@ -75,6 +76,10 @@ const renderTiresSearch = async () => {
       <TiresSearchParameters isActive />
     </AppShellProvider>
   );
+  const filtersTrigger = screen.queryByRole('button', { name: 'Фильтры' });
+  if (filtersTrigger) {
+    fireEvent.click(filtersTrigger);
+  }
   const form = await screen.findByRole('form', { name: 'Параметры поиска шин' });
   await act(async () => {
     await Promise.resolve();

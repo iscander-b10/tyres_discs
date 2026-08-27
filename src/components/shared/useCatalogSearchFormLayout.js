@@ -5,7 +5,7 @@ import { useLayoutEffect, useState } from 'react';
  *
  * - horizontal — toolbar above catalog, max ~2 wrapped rows
  * - sidebar — vertical form left (sticky) + catalog right
- * - stacked — vertical form above catalog (mobile)
+ * - stacked — collapsed «Фильтры» trigger; same vertical form in a panel (mobile)
  *
  * Breakpoint is calibrated on the denser discs form: below
  * CATALOG_SEARCH_HORIZONTAL_MIN_PX the discs toolbar needs a 3rd row.

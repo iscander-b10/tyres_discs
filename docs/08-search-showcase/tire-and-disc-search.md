@@ -45,9 +45,10 @@
 | `useAppShell()` | `clientMode`, `catalogDataVersion`, `workspaceResetKey` | режим клиента, перезагрузка после sync, сброс при смене workspace |
 | `Form.useForm()` | instance формы | управление полями |
 | `Form.useWatch('season', form)` | текущий сезон | показ фильтра шипов |
-| `useCatalogSelectCloseOnMouseLeave()` | props для brand Select | UX закрытия dropdown; композирует lock popup, не перетирает его |
-| `useMemo` | `widthOptions` | летом — ширины от 135 мм в начале списка |
 | `useCatalogSearchFormLayout(rootRef)` | `data-layout` панели | `horizontal` / `sidebar` / `stacked` по ширине |
+| `CatalogBrandFilterControl` | `layout`, `availableBrands`, `isActive` | stacked/sidebar — bottom sheet; `horizontal` — Select + `useCatalogSelectCloseOnMouseLeave` |
+| `CatalogMobileFiltersPanel` | `layout`, `isActive`, `open`, `onOpenChange`, `formId` | только `stacked`: кнопка «Фильтры» ↔ та же вертикальная Form; sidebar/horizontal — children без chrome |
+| `useMemo` | `widthOptions` | летом — ширины от 135 мм в начале списка |
 
 ### Локальное состояние
 
@@ -56,6 +57,7 @@
 | `loadingSearch` | `false` | spinner на кнопке «Найти» |
 | `errorSearch` | `null` | текст ошибки для PaginatedCardsList |
 | `searchResults` | `null` | `null` = idle/showcase; `[]` = empty; array = results |
+| `stackedFiltersOpen` | `false` | только `stacked`: панель фильтров открыта. Resize из stacked сбрасывает в `false`; возврат в stacked — снова свёрнуто |
 | `searchResetKey` | `0` | сброс title-filter в PaginatedCardsList |
 | `availableWidths/Profiles/Diameters/Brands/Suppliers` | `[]` | опции Select |
 | `loadingOptions` | `false` | spinner на Select **только пока списки ещё пустые** (первая загрузка). Повторный каскад идёт stale-while-revalidate: предыдущие options остаются на экране |
@@ -85,26 +87,29 @@ showSpikesFilter = selectedSeason === 'w'
 
 ### Effects
 
-1. **`[workspaceResetKey]`** — полный reset: форма, результаты, опции, инкремент request ids.
-2. **Mounted flag** — setup: `mountedRef.current = true`; cleanup: `false` + инкремент load/search ids + сброс debounce каскада + отмена отложенного scroll к каталогу. Без `true` в setup development StrictMode оставляет флаг ложным → «Найти» не settle’ит.
-3. **`[catalogDataVersion, workspaceResetKey, isActive]`** — catch-up при активации или обновлении каталога: reload facets + background search если уже были результаты.
+1. **`[workspaceResetKey]`** — полный reset: форма, результаты, опции, `stackedFiltersOpen=false`, инкремент request ids.
+2. **Mounted flag** — setup: `mountedRef.current = true`; cleanup: `false` + инкремент load/search ids + сброс debounce каскада. Без `true` в setup development StrictMode оставляет флаг ложным → «Найти» не settle’ит.
+3. **`[catalogDataVersion, workspaceResetKey, isActive]`** — catch-up при активации или обновлении каталога: reload facets + background search если уже были результаты. Background **не** тогглит stacked-панель.
+4. **`[isStackedLayout]`** — уход из stacked сбрасывает `stackedFiltersOpen` (sidebar/horizontal всегда показывают форму).
 
 ### Обработчики событий
 
 | Handler | Триггер | Действие |
 | --- | --- | --- |
-| `handleSearch(values, { background })` | submit / chip / catch-up | map → IDB → setSearchResults. Foreground **не** обнуляет `searchResults` до await: витрина или прошлые результаты остаются. Таймаут 30 с → `errorSearch`. В `stacked` после `CATALOG_SURFACE_FADE_MS` — `scheduleScrollIntoView` к `.catalog-search-main`
+| `handleSearch(values, { background })` | submit / chip / catch-up | map → IDB → setSearchResults. Foreground **не** обнуляет `searchResults` до await: витрина или прошлые результаты остаются. Таймаут 30 с → `errorSearch`. Foreground в `stacked` **закрывает** панель фильтров (без `scrollIntoView` к каталогу). Background / `catalogDataVersion` панель не открывает и не закрывает
 | `handleFormChange(changed, all)` | onValuesChange | season/spikes sync; debounce каскада; skip brand/supplier/чекбоксы/spikes (они не меняют size options); auto-resubmit чекбоксов |
-| `handleResetFilters` | кнопка сброса | reset form, `searchResults=null`, `loadingSearch=false`, bump `searchRequestIdRef` (in-flight поиск stale), reload facets. **Не** вызывает `searchTires` |
-| `handleShowcaseChipClick(chip)` | чип витрины / empty-hint | set width/profile/diameter + `scrollWindowToTop` + search |
+| `handleResetFilters` | кнопка сброса | reset form, `searchResults=null`, `loadingSearch=false`, bump `searchRequestIdRef` (in-flight поиск stale), reload facets. **Не** вызывает `searchTires`. В `stacked` открытая панель **остаётся** открытой |
+| `handleShowcaseChipClick(chip)` | чип витрины / empty-hint | set width/profile/diameter + `scrollWindowToTop` + search. Форма в `stacked` остаётся свёрнутой |
 | `softInvalidateIncompatibleSizeValues` | cascade | drop несовместимых width/profile/diameter |
 
 ### Ветви рендеринга
 
 ```
-div.tires-search-parameters[data-layout]
-├─ Form.search-form (всегда)
-└─ div.catalog-search-main
+div.tires-search-parameters[data-layout][data-mobile-filters-open?]
+├─ CatalogMobileFiltersPanel
+│  ├─ Button «Фильтры» (только stacked и панель закрыта)
+│  └─ Form.search-form (stacked закрыта: `hidden`; sidebar/horizontal — всегда)
+└─ div.catalog-search-main (stacked + открытая панель: `hidden`)
    ├─ Alert errorSearch, если есть
    └─ CatalogResultsFade (opacity 50ms, delayed unmount)
       ├─ showShowcase && isActive → CatalogShowcase kind="tires"
@@ -118,7 +123,9 @@ div.tires-search-parameters[data-layout]
 | --- | --- | --- | --- |
 | `horizontal` | ширина ≥ 1100px | форма сверху на всю ширину, каталог ниже; compact toolbar 32px, подписи скрыты, wrap максимум в ~2 ряда, иконки «Найти»/«Сбросить» | `horizontal` |
 | `sidebar` | 769–1099px | вертикальная форма слева (`position: sticky`, ~20.5rem), каталог справа; подписи над полями, размер в 3 колонки, чекбоксы в 2, кнопки на всю ширину; зимние шипы — segmented `Radio.Group` | `vertical` |
-| `stacked` | ≤ 768px | та же вертикальная форма сверху, каталог ниже; foreground «Найти» плавно скроллит к `.catalog-search-main` после fade 50ms | `vertical` |
+| `stacked` | ≤ 768px | по умолчанию полноширинная кнопка «Фильтры» (accent / `currentColor`-иконка `Filters.svg`) + витрина или результаты. Тап открывает **ту же** вертикальную форму (`catalog-search-form-vertical-fields`), каталог скрыт. «Найти»/«Сбросить» — sticky bottom внутри скролла формы (`env(safe-area-inset-bottom)`, `visualViewport` как у brand sheet). Foreground «Найти» закрывает панель (кнопка + каталог), без `scrollIntoView`. «Сбросить» панель не закрывает. Не Drawer и не `document.body.style.overflow = 'hidden'` | `vertical` |
+
+Resize stacked → sidebar/horizontal: форма снова всегда видна, `stackedFiltersOpen` сбрасывается. Обратно в stacked: свёрнуто. Dual-mount: open/closed у каждой панели своё; неактивная `hidden`+`inert` не держит chrome поверх активной. a11y панели: `aria-expanded` на «Фильтры», видимый текст «Фильтры» (не icon-only), hit-area ≥ 44px, Escape закрывает без сабмита (если не открыт brand sheet / Select), фокус в форму при открытии и на триггер при закрытии. `prefers-reduced-motion: reduce` — показ/скрытие без слайда.
 
 В третью строку горизонтальный toolbar не переваливается: как только две строки уже не влезают, включается `sidebar`. На широком десктопе формы слева быть не должно.
 
@@ -137,11 +144,28 @@ div.tires-search-parameters[data-layout]
 
 На `horizontal` (≥ 1100px) слушатели не вешаются: колесо над страницей работает как раньше. CSS contain на dropdown остаётся везде.
 
+Фильтр **бренда** на `sidebar` и `stacked` **не** открывает этот dropdown: `CatalogBrandFilterControl` показывает Ant Design `Drawer` (`placement="bottom"`) с поиском, чекбоксами и «Готово». Для brand-sheet `onCatalogSelectOpenChange` не вызывается — фон лочит overlay Drawer, без `document.body.style.overflow = 'hidden'` (portal в `#root`, не в `body`, чтобы не включился portal `autoLock`). Остальные Select (ширина, диаметр, ЦО, поставщик) по-прежнему идут через `catalogSearchSelectProps` и lock.
+
+#### Бренд: sheet на stacked/sidebar, Select на horizontal
+
+Решение завязано только на `searchFormLayout` панели, не на user-agent.
+
+| Layout | UI | Закрытие | Enter / IME |
+| --- | --- | --- | --- |
+| `horizontal` | Ant Design `Select` `mode="multiple"` + `catalogSearchSelectProps` + `useCatalogSelectCloseOnMouseLeave` | mouseleave по панели опций, клик снаружи, clear | поиск внутри dropdown, как раньше |
+| `sidebar`, `stacked` | то же поле-trigger (placeholder, `maxTagCount="responsive"`, `allowClear`, `loading`, `aria-label="Бренд"`), но dropdown не открывается; тап открывает sheet | «Готово», маска, Escape; swipe-down — только если его даёт Drawer. **Не** закрывается от скролла страницы/формы | поле поиска **внутри** sheet: `enterKeyHint="search"`, Enter / «Поиск» — только фильтр списка и/или blur (`preventDefault` + `stopPropagation`), форма «Найти» не уходит |
+
+Мультивыбор в sheet сразу пишет Form.Item `brand` (массив строк), без отложенного Apply. «Готово» только закрывает sheet. Clear на trigger сбрасывает `brand` и не открывает sheet. На trigger combobox-input не фокусируется (клавиатура до открытия sheet недопустима).
+
+a11y: Drawer `role="dialog"`, фокус внутрь при открытии, restore на trigger при закрытии. Dual-mount: неактивная панель `hidden`+`inert` и `isActive={false}` — sheet с неё не открывается, закрытый Drawer не монтируется (лишнего portal нет).
+
+Клавиатура IME: `visualViewport` добавляет padding снизу, список и «Готово» остаются достижимы. Скролл только списка опций (`overscroll-behavior: contain`).
+
 Смены витрина ↔ empty ↔ список — целиком, без stagger полок/карточек и без translate. `prefers-reduced-motion: reduce` — мгновенная смена.
 
 ### Ant Design
 
-`Form`, `Select`, `Button`, `Radio.Group`, `Checkbox`; иконки через SVG ReactComponent.
+`Form`, `Select`, `Button`, `Radio.Group`, `Checkbox`; фильтр бренда — `CatalogBrandFilterControl` (`Select` на `horizontal`, `Drawer` + `Input` + `Checkbox.Group` на `sidebar`/`stacked`). Stacked chrome — `CatalogMobileFiltersPanel` (кнопка «Фильтры» + та же Form). Иконки через SVG ReactComponent.
 
 Фильтр шипов виден только при `season === 'w'`. В `horizontal` это Select «Все / Шипы / Без шипов» (`allowClear`). В `sidebar` и `stacked` — тот же segmented `Radio.Group`, что сезон шин и тип диска: три равных сегмента, без лейбла сверху, всегда выбран один вариант (default «Все»). Значения формы те же: `true` / `false` / `null`.
 
@@ -162,14 +186,16 @@ div.tires-search-parameters[data-layout]
 
 ### Связанные тесты
 
-- `TiresSearchParameters.searchRace.test.jsx` — stale searchRequestId; сброс во время in-flight гасит spinner и игнорирует поздний ответ; pending «Найти» не blank (витрина остаётся); timeout гасит spinner; рендер в `React.StrictMode` settle’ит «Найти»
+- `TiresSearchParameters.searchRace.test.jsx` — stale searchRequestId; сброс во время in-flight гасит spinner и игнорирует поздний ответ; pending «Найти» не blank (витрина остаётся); timeout гасит spinner; рендер в `React.StrictMode` settle’ит «Найти». Layout мокается как `sidebar`, чтобы форма была в DOM
+- `TiresSearchParameters.mobileFilters.test.jsx` — stacked idle: «Фильтры» + витрина без полей; открытие скрывает каталог; «Найти» закрывает панель; «Сбросить» не закрывает; background search не тогглит; sidebar/horizontal без кнопки
 - `TiresSearchParameters.spikesControl.test.jsx` — stacked Radio.Group шипов; mapping Все/`null`, Шипы/`true`, Без шипов/`false`; в `horizontal` остаётся Select
+- `TiresSearchParameters.brandFilter.test.jsx` — stacked/sidebar: sheet без `.catalog-search-select-dropdown`; чекбокс пишет `brand` как array; «Готово» не вызывает поиск; Enter в поиске шита не сабмитит форму; clear на trigger не открывает sheet; `horizontal` — прежний Select dropdown; dual-mount/inert — sheet не с скрытой панели
 - `catalogSelectPopupScrollLock.test.js` — refcount popup, ширина stacked/sidebar vs horizontal, unmount, allowlist скроллера, композиция brand mouseleave
 - `App.catalogDualMount.test.jsx` — discs не вызывается на вкладке шин
 
 ### Пример взаимодействия
 
-Пользователь выбирает «Зимние» → появляется фильтр шипов (Select в `horizontal`, Radio.Group «Все / Шипы / Без шипов» в `sidebar`/`stacked`) → выбирает 205/55/R16 → жмёт «Найти» → витрина на месте (кнопка `loading`) → на stacked через 50ms страница плавно съезжает к зоне каталога → `searchResults` становится массивом → витрина скрывается → PaginatedCardsList.
+Пользователь на телефоне видит кнопку «Фильтры» и витрину. Тап открывает вертикальную форму. Выбирает «Зимние» → появляется фильтр шипов (Radio.Group «Все / Шипы / Без шипов») → выбирает 205/55/R16 → жмёт «Найти» → панель закрывается, сверху снова «Фильтры», ниже каталог (витрина остаётся, пока IDB отвечает, кнопка `loading` на скрытой «Найти») → `searchResults` становится массивом → витрина скрывается → PaginatedCardsList. Без плавного скролла к `.catalog-search-main`. На `horizontal` фильтр шипов — Select; форма всегда на экране.
 
 ### Типичные ошибки при изменении
 
@@ -226,13 +252,15 @@ div.tires-search-parameters[data-layout]
 
 ### Ant Design
 
-Те же: `Radio.Group` «Тип диска» (`Литой` / `Штампованный`, default `'Литой'`) — тот же segmented control, что сезон у шин, без лейбла сверху и без опции «Все». Placeholders «от»/«до», `aria-label`, `allowClear` и `catalogSearchSelectProps` у диапазонов сохраняются. Popup scroll lock тот же shared-модуль, что у шин: на `sidebar` жест по ЦО/ширине/бренду не скроллит левую форму.
+Те же: `Radio.Group` «Тип диска» (`Литой` / `Штампованный`, default `'Литой'`) — тот же segmented control, что сезон у шин, без лейбла сверху и без опции «Все». Placeholders «от»/«до», `aria-label`, `allowClear` и `catalogSearchSelectProps` у диапазонов сохраняются. Popup scroll lock тот же shared-модуль, что у шин: на `sidebar` жест по ЦО/ширине не скроллит левую форму. Бренд на `sidebar`/`stacked` — тот же `CatalogBrandFilterControl` (sheet + «Готово»), что у шин.
 
 ### Тесты
 
-- `DiscsSearchParameters.searchRace.test.jsx` — stale request id, StaleCatalogStoreError, сброс во время in-flight, pending не blank, timeout, StrictMode settle «Найти».
+- `DiscsSearchParameters.searchRace.test.jsx` — stale request id, StaleCatalogStoreError, сброс во время in-flight, pending не blank, timeout, StrictMode settle «Найти». Layout мокается как `sidebar`
+- `DiscsSearchParameters.mobileFilters.test.jsx` — тот же stacked-контракт кнопки «Фильтры», что у шин
 - `filterDiscRangeSelectOptions.test.js` — пустой other, inclusive `from`/`to`, дробные ЦО, отрицательный ET, `''`/`null`/`undefined`.
 - `DiscsSearchParameters.rangeSelect.test.jsx` — после выбора `cbFrom` в dropdown `cbTo` нет меньших значений; после clear полный список возвращается.
+- `DiscsSearchParameters.brandFilter.test.jsx` — stacked/sidebar подключают тот же brand sheet; чекбокс пишет `brand`; «Готово» не вызывает `searchDiscs`.
 
 ---
 

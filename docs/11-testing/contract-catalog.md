@@ -44,6 +44,8 @@
 | stale search result discarded | `*searchRace.test.jsx` | [Race guards](/08-search-showcase/async-race-guards) |
 | form → filters mapping | `searchFormFilters.test.js` | [Tire search](/08-search-showcase/tire-and-disc-search) |
 | связанные Select «от/до» дисков | `filterDiscRangeSelectOptions.test.js`, `DiscsSearchParameters.rangeSelect.test.jsx` | [Поиск дисков](/08-search-showcase/tire-and-disc-search) |
+| stacked/sidebar бренд — sheet + «Готово», без сабмита по Enter | `TiresSearchParameters.brandFilter.test.jsx`, `DiscsSearchParameters.brandFilter.test.jsx` | [Поиск шин и дисков](/08-search-showcase/tire-and-disc-search) |
+| stacked ≤768: кнопка «Фильтры», та же форма, «Найти» закрывает панель без scrollIntoView | `TiresSearchParameters.mobileFilters.test.jsx`, `DiscsSearchParameters.mobileFilters.test.jsx` | [Поиск шин и дисков](/08-search-showcase/tire-and-disc-search) |
 | Select popup не скроллит страницу/sidebar-форму на ширине < 1100px | `catalogSelectPopupScrollLock.test.js` | [Поиск шин и дисков](/08-search-showcase/tire-and-disc-search) |
 | seeded shuffle stable per version | `showcaseSeed.test.js` | [Showcase](/08-search-showcase/showcase-selection) |
 | tire vs disc showcase differ | `buildTire/DiscShowcase.test.js` | [Showcase](/08-search-showcase/showcase-selection) |

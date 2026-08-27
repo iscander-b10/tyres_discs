@@ -54,7 +54,8 @@
   display: flex;
   align-items: center;
   column-gap: 6px;
-  row-gap: $space-1;
+  /* When status wraps under search, match toolbar margin-bottom for equal air. */
+  row-gap: $space-3;
   min-width: 0;
   flex-wrap: wrap;
 }
