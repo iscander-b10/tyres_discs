@@ -8,8 +8,6 @@ $color-surface-muted: var(--color-surface-muted);
 // Fixed white stage behind product photos — same hex in light and dark
 // (matches search-form surface in light; does not follow dark $color-surface).
 $color-photo-canvas: #ffffff;
-// Labels from transformers that ship RGBA/transparent product shots
-$photo-canvas-suppliers: 'ШинаСу', 'Семисотнов';
 $color-price-store-bg: var(--color-price-store-bg);
 $color-text: var(--color-text);
 $color-text-muted: var(--color-text-muted);

@@ -85,6 +85,7 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 | `CatalogItemModalWindow.test.jsx` | лейбл «Размер»; у discs «Цвет» сразу после размера (пусто → «—»); у tyres поля «Цвет» нет |
 | `TiresSearchParameters.searchRace.test.jsx` | stale request discard, spinner, skip facets, reset during pending, pending не blank, timeout, StrictMode settle |
 | `useCatalogSearchFormLayout.test.js` | пороги stacked / sidebar / horizontal (диски как эталон плотности) |
+| `catalogSelectPopupScrollLock.test.js` | acquire/release refcount, unmount, restore слушателей; lock на 767/900/1099, не на 1100+; композиция с brand mouseleave |
 | `DiscsSearchParameters.searchRace.test.jsx` | stale request discard, spinner, skip facets, reset during pending, pending не blank, timeout, StrictMode settle |
 | `DiscsSearchParameters.rangeSelect.test.jsx` | связанные Select ЦО от/до: после выбора «от» в «до» нет меньших; clear возвращает полный facet-список |
 | `filterDiscRangeSelectOptions.test.js` | UI-фильтр опций range: пустой other, inclusive ≥/≤, дробные ЦО, отрицательный ET |

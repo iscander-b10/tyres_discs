@@ -1527,6 +1527,13 @@ $catalog-text: $color-text;
 
   border-radius: $radius-lg;
   padding: 4px;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+
+  .rc-virtual-list-holder {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
 
   .ant-select-item,
   .ant-dropdown-menu-item {
@@ -1567,4 +1574,13 @@ $catalog-text: $color-text;
       background: $catalog-accent-light !important;
     }
   }
+}
+
+// Complements JS lock while a catalog Select popup is open on stacked/sidebar.
+// Do not set overflow:hidden on body here — iOS/iPad jumps and fights the
+// product modal / bootstrap overlay restore.
+html.catalog-select-popup-open,
+html.catalog-select-popup-open body,
+html.catalog-select-popup-open .search-form {
+  overscroll-behavior: none;
 }

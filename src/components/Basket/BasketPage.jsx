@@ -215,17 +215,6 @@ function BasketPage() {
                   </button>
 
                   <div className="basket-line__body">
-                    <Button
-                      className="basket-line__remove"
-                      type="text"
-                      icon={<CloseOutlined aria-hidden />}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeItem(item.key);
-                      }}
-                      aria-label={`Удалить ${item.title}`}
-                    />
-
                     <div className="basket-line__main">
                       <button
                         type="button"
@@ -265,61 +254,72 @@ function BasketPage() {
                         </button>
                       </div>
                     </div>
+                  </div>
 
+                  <div
+                    className="basket-line__end"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <div
-                      className="basket-line__end"
-                      onClick={(e) => e.stopPropagation()}
+                      className={`basket-line__sums${
+                        showWebsiteTotal ? ' basket-line__sums--with-web' : ''
+                      }`}
+                      role="group"
+                      aria-label={
+                        showWebsiteTotal
+                          ? `${CATALOG_PRICE_TOOLTIPS.website}: ${websiteMoney}, Магазин: ${storeMoney}`
+                          : `Магазин: ${storeMoney}`
+                      }
                     >
-                      <div
-                        className={`basket-line__sums${
-                          showWebsiteTotal ? ' basket-line__sums--with-web' : ''
-                        }`}
-                        role="group"
-                        aria-label={
-                          showWebsiteTotal
-                            ? `${CATALOG_PRICE_TOOLTIPS.website}: ${websiteMoney}, Магазин: ${storeMoney}`
-                            : `Магазин: ${storeMoney}`
-                        }
-                      >
-                        {showWebsiteTotal ? (
-                          <HoverTooltip
-                            title={CATALOG_PRICE_TOOLTIPS.website}
-                            placement="top"
-                          >
-                            <span
-                              className="basket-line__sum-web"
-                              aria-hidden="true"
-                            >
-                              <WebsiteIcon
-                                className="basket-line__sum-web-icon"
-                                focusable="false"
-                              />
-                              <span className="basket-line__sum-web-value">
-                                {websiteMoney}
-                              </span>
-                            </span>
-                          </HoverTooltip>
-                        ) : null}
-                        <div className="basket-line__store">
-                          <div className="basket-line__qty">
-                            <CartQtyControls
-                              quantity={item.quantity}
-                              maxStock={maxStock}
-                              onDecrement={() => decrement(item.key)}
-                              onIncrement={() => increment(item.key)}
-                              size="small"
-                            />
-                          </div>
+                      {showWebsiteTotal ? (
+                        <HoverTooltip
+                          title={CATALOG_PRICE_TOOLTIPS.website}
+                          placement="top"
+                        >
                           <span
-                            className="basket-line__sum-total"
+                            className="basket-line__sum-web"
                             aria-hidden="true"
                           >
-                            {storeMoney}
+                            <WebsiteIcon
+                              className="basket-line__sum-web-icon"
+                              focusable="false"
+                            />
+                            <span className="basket-line__sum-web-value">
+                              {websiteMoney}
+                            </span>
                           </span>
+                        </HoverTooltip>
+                      ) : null}
+                      <div className="basket-line__store">
+                        <div className="basket-line__qty">
+                          <CartQtyControls
+                            quantity={item.quantity}
+                            maxStock={maxStock}
+                            onDecrement={() => decrement(item.key)}
+                            onIncrement={() => increment(item.key)}
+                            size="small"
+                          />
                         </div>
+                        <span
+                          className="basket-line__sum-total"
+                          aria-hidden="true"
+                        >
+                          {storeMoney}
+                        </span>
                       </div>
                     </div>
                   </div>
+
+                  <Button
+                    className="basket-line__remove"
+                    type="text"
+                    icon={<CloseOutlined aria-hidden />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeItem(item.key);
+                    }}
+                    aria-label={`Удалить ${item.title}`}
+                  />
                 </li>
               );
             })}

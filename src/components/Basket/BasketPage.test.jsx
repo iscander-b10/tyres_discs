@@ -102,3 +102,55 @@ describe('BasketPage photo', () => {
     expect(container.querySelector('.basket-line__media')).not.toBeNull();
   });
 });
+
+describe('BasketPage line layout', () => {
+  let container;
+  let root;
+
+  beforeEach(() => {
+    global.IS_REACT_ACT_ENVIRONMENT = true;
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    useAppShell.mockReturnValue({
+      clientMode: false,
+      continueSelection: jest.fn(),
+    });
+    useAuth.mockReturnValue({ isWorkspaceReady: true });
+    useCart.mockReturnValue({
+      items: [{ ...cartItem, websitePrice: 4000 }],
+      isLoaded: true,
+      totals: { quantity: 1, selling: 5000, b2b: 0 },
+      increment: jest.fn(),
+      decrement: jest.fn(),
+      removeItem: jest.fn(),
+      clear: jest.fn(),
+    });
+  });
+
+  afterEach(async () => {
+    await act(async () => root.unmount());
+    container.remove();
+    jest.clearAllMocks();
+  });
+
+  test('суммы — сосед body, не внутри него, чтобы уезжать под фото', async () => {
+    await act(async () => {
+      root.render(<BasketPage />);
+    });
+
+    const line = container.querySelector('.basket-line');
+    const body = container.querySelector('.basket-line__body');
+    const end = container.querySelector('.basket-line__end');
+    const prices = container.querySelector('.basket-line__prices-hit');
+
+    expect(line).not.toBeNull();
+    expect(body).not.toBeNull();
+    expect(end).not.toBeNull();
+    expect(end.parentElement).toBe(line);
+    expect(body.contains(end)).toBe(false);
+    expect(body.contains(prices)).toBe(true);
+    expect(container.querySelector('.basket-line__sum-web')).not.toBeNull();
+  });
+});

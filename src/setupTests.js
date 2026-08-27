@@ -22,3 +22,10 @@ if (typeof window.ResizeObserver !== 'function') {
     disconnect() {}
   };
 }
+
+afterEach(() => {
+  const {
+    resetCatalogSelectPopupScrollLockForTests,
+  } = require('./components/shared/catalogSelectPopupScrollLock');
+  resetCatalogSelectPopupScrollLockForTests();
+});

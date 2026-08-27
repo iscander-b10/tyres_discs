@@ -164,11 +164,16 @@
   display: flex;
   flex-direction: column;
   gap: $space-3;
+  /* Line layout follows this column, not the viewport (sidebar can squeeze it). */
+  container-type: inline-size;
+  container-name: basket-list;
 }
 
 .basket-line {
+  position: relative;
   display: grid;
-  grid-template-columns: auto 148px minmax(0, 1fr);
+  grid-template-columns: auto 148px minmax(0, 1fr) auto;
+  grid-template-areas: 'check media body end';
   gap: $space-3;
   align-items: start;
   padding: $space-4;
@@ -179,13 +184,20 @@
 }
 
 .basket-line__check {
+  grid-area: check;
   display: flex;
   align-items: flex-start;
-  justify-content: center;
+  justify-content: flex-start;
   min-width: 44px;
   min-height: 44px;
   padding-top: 4px;
   box-sizing: border-box;
+
+  .ant-checkbox-wrapper {
+    min-width: 44px;
+    min-height: 44px;
+    align-items: flex-start;
+  }
 }
 
 .basket-page--client .basket-line__check {
@@ -194,6 +206,7 @@
 }
 
 .basket-line__media {
+  grid-area: media;
   appearance: none;
   border: 0;
   padding: 0;
@@ -205,16 +218,11 @@
   align-items: center;
   justify-content: center;
   border-radius: $radius-md;
-  background: $color-surface-muted;
+  // Same fixed white stage as CatalogItemCard / product modal
+  background: $color-photo-canvas;
   overflow: hidden;
   cursor: pointer;
   outline: none;
-
-  @each $supplier in $photo-canvas-suppliers {
-    &[data-supplier='#{$supplier}'] {
-      background: $color-photo-canvas;
-    }
-  }
 
   &::after {
     content: '';
@@ -258,13 +266,8 @@
   object-fit: contain;
   display: block;
   pointer-events: none;
+  background: $color-photo-canvas;
   transition: transform 0.2s ease;
-
-  @each $supplier in $photo-canvas-suppliers {
-    &[data-supplier='#{$supplier}'] {
-      background: $color-photo-canvas;
-    }
-  }
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
@@ -272,14 +275,12 @@
 }
 
 .basket-line__body {
-  position: relative;
+  grid-area: body;
   min-width: 0;
-  min-height: 148px; /* match photo so right store total can sit at card bottom */
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  column-gap: $space-4;
-  align-items: stretch;
-  /* No padding-inline-end gutter — totals right-align under × */
+  min-height: 148px; /* match photo so qty ‖ store can sit at card bottom */
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
 }
 
 .basket-line__main {
@@ -287,7 +288,8 @@
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  gap: $space-3;
+  /* Follow meta (4px) → prices as one stack, not a detached footer. */
+  gap: $space-2;
 }
 
 .basket-page--client .basket-line__main {
@@ -359,8 +361,8 @@
 
 .basket-line__remove {
   position: absolute;
-  top: -4px;
-  inset-inline-end: -4px;
+  top: $space-3;
+  inset-inline-end: $space-3;
   z-index: 1;
   flex-shrink: 0;
   width: 44px !important;
@@ -385,6 +387,9 @@
   align-items: flex-end;
   justify-content: flex-start;
   gap: $space-4;
+}
+
+.basket-page--client .basket-line__bottom {
   /* Pin unit prices to bottom of main — level with qty ‖ store total */
   margin-top: auto;
 }
@@ -456,6 +461,11 @@
     row-gap: 0;
   }
 
+  // Manager: denser rows so the strip sits with supplier/code, not as a third card.
+  &.catalog-price-strip--manager .catalog-price-strip__tile {
+    padding-block: 2px;
+  }
+
   // Thin dividers between channel rows — not after the last (store).
   &.catalog-price-strip--manager .catalog-price-strip__tile--b2b,
   &.catalog-price-strip--manager .catalog-price-strip__tile--website {
@@ -472,7 +482,7 @@
   }
 
   // Equal channel values — end-aligned tabular column.
-  // Manager keeps title-scale; client quiet table overrides below.
+  // Manager uses value-scale (matches catalog card); client quiet table overrides below.
   &.catalog-price-strip--manager .catalog-price-strip__tile .catalog-price-strip__value,
   &.catalog-price-strip--client .catalog-price-strip__tile .catalog-price-strip__value {
     justify-self: end;
@@ -486,6 +496,12 @@
     text-align: end;
     overflow-wrap: normal;
     white-space: nowrap;
+  }
+
+  &.catalog-price-strip--manager .catalog-price-strip__tile .catalog-price-strip__value {
+    font-size: $catalog-type-value-size;
+    font-weight: $catalog-type-value-weight;
+    line-height: $catalog-type-value-lh;
   }
 }
 
@@ -513,12 +529,14 @@
 }
 
 .basket-line__end {
+  grid-area: end;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   justify-content: flex-end;
   flex-shrink: 0;
   align-self: stretch;
+  min-width: 0;
   /* Clear absolute × above the totals block */
   padding-top: 36px;
 }
@@ -750,50 +768,59 @@
 
   .basket-summary {
     position: static;
-    order: -1;
   }
 }
 
-@media (max-width: 640px) {
+/* Qty + totals no longer fit beside unit prices: drop them under photo and info. */
+@container basket-list (max-width: 760px) {
+  .basket-line {
+    grid-template-columns: auto 148px minmax(0, 1fr);
+    grid-template-areas:
+      'check media body'
+      'end   end   end';
+    row-gap: $space-5;
+  }
+
+  .basket-line__body {
+    min-height: 0;
+  }
+
+  .basket-page--client .basket-line__body {
+    min-height: 0;
+  }
+
+  .basket-line__main {
+    min-height: 0;
+    padding-inline-end: 44px; /* clear × once the end column is gone */
+  }
+
+  .basket-line__end {
+    width: 100%;
+    align-items: flex-end;
+    padding-top: 0;
+    min-height: 0;
+  }
+
+  .basket-page--client .basket-line__end {
+    margin-top: 0;
+  }
+}
+
+@container basket-list (max-width: 520px) {
   .basket-line {
     grid-template-columns: auto minmax(0, 1fr);
     grid-template-areas:
       'check body'
-      'media body';
-  }
-
-  .basket-line__check {
-    grid-area: check;
+      'media body'
+      'end   end';
   }
 
   .basket-line__media {
-    grid-area: media;
     width: 96px;
     height: 96px;
     min-height: 0;
     align-self: start;
     padding: 0;
-  }
-
-  .basket-line__body {
-    grid-area: body;
-    grid-template-columns: minmax(0, 1fr);
-    min-height: 0;
-    row-gap: $space-3;
-  }
-
-  .basket-page--client .basket-line__body {
-    min-height: 96px;
-    row-gap: $space-3;
-  }
-
-  .basket-line__main {
-    min-height: 0; /* stack content; do not stretch empty space under photo */
-    padding-inline-end: 44px; /* clear × when columns stack */
-  }
-
-  .basket-page--client .basket-line__main {
-    gap: $space-3;
   }
 
   .basket-line__prices-hit {
@@ -820,54 +847,10 @@
 
   .basket-line__bottom {
     width: 100%;
-    margin-top: 0; /* unit prices stay under meta, not pulled into empty space */
-  }
-
-  .basket-line__end {
-    width: 100%;
-    align-items: flex-end;
-    padding-top: 0;
-    min-height: 0;
-  }
-
-  .basket-line__sums {
-    width: 100%;
-  }
-
-  .basket-line__sums--with-web {
-    padding: $space-2 $space-3;
-    border-radius: $radius-sm;
-    border: 1px solid color-mix(in srgb, #{$color-text} 6%, transparent);
-    background: color-mix(in srgb, #{$color-text} 2.5%, #{$color-price-store-bg});
-  }
-
-  /* Container already highlights the block — avoid double chip chrome */
-  .basket-line__sums--with-web .basket-line__sum-web {
-    padding-inline: 0;
-    border: none;
-    background: transparent;
-  }
-
-  [data-theme='dark'] .basket-line__sums--with-web {
-    border-color: color-mix(in srgb, #{$color-text} 10%, transparent);
-    background: color-mix(in srgb, #{$color-text} 4%, #{$color-price-store-bg});
-  }
-
-  .basket-line__store {
-    width: 100%;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .basket-page--client .basket-line__end {
     margin-top: 0;
   }
 
-  .basket-page--client .basket-line__store {
+  .basket-page--client .basket-line__main {
     gap: $space-3;
-  }
-
-  .basket-page--client .basket-line__sum-total {
-    font-size: 20px;
   }
 }

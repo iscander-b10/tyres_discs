@@ -132,7 +132,8 @@ export default function AddToCartControl({
 | Модуль | Exports | Назначение |
 | --- | --- | --- |
 | `catalogCopy.js` | `formatPriceDisplay`, `resolveCatalogModel`, … | Форматирование для карточек |
-| `catalogSearchSelectProps.js` | `catalogSearchSelectProps`, `useCatalogSelectCloseOnMouseLeave` | Общие props Select |
+| `catalogSearchSelectProps.js` | `catalogSearchSelectProps`, `useCatalogSelectCloseOnMouseLeave` | Общие props Select; `onOpenChange` → popup scroll lock; brand-хук композирует lock |
+| `catalogSelectPopupScrollLock.js` | `useCatalogSelectPopupScrollLock`, `acquire`/`release`, `onCatalogSelectOpenChange`, allowlist | Пока catalog-select popup открыт и ширина < 1100px, не скроллятся страница и sidebar `.search-form` |
 | `useCatalogSearchFormLayout.js` | `useCatalogSearchFormLayout`, `resolveCatalogSearchFormLayout`, константы layout | Раскладка формы поиска: horizontal / sidebar / stacked |
 | `ikonPromoBadges.js` | `resolveIkonPromoBadges`, `IKON_PROMO_LABELS` | Бейджи Ikon |
 | `showcaseChips.js` | `getShowcaseStaticChips` | Статические чипы размеров |

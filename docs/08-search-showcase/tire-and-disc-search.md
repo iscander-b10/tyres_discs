@@ -45,7 +45,7 @@
 | `useAppShell()` | `clientMode`, `catalogDataVersion`, `workspaceResetKey` | режим клиента, перезагрузка после sync, сброс при смене workspace |
 | `Form.useForm()` | instance формы | управление полями |
 | `Form.useWatch('season', form)` | текущий сезон | показ фильтра шипов |
-| `useCatalogSelectCloseOnMouseLeave()` | props для brand Select | UX закрытия dropdown |
+| `useCatalogSelectCloseOnMouseLeave()` | props для brand Select | UX закрытия dropdown; композирует lock popup, не перетирает его |
 | `useMemo` | `widthOptions` | летом — ширины от 135 мм в начале списка |
 | `useCatalogSearchFormLayout(rootRef)` | `data-layout` панели | `horizontal` / `sidebar` / `stacked` по ширине |
 
@@ -122,6 +122,21 @@ div.tires-search-parameters[data-layout]
 
 В третью строку горизонтальный toolbar не переваливается: как только две строки уже не влезают, включается `sidebar`. На широком десктопе формы слева быть не должно.
 
+### Select dropdown: страница и sidebar-форма не скроллятся
+
+На ширине **ниже 1100px** (`CATALOG_SEARCH_HORIZONTAL_MIN_PX`) — и `stacked` (телефон, ≤ 768px), и `sidebar` (планшет / узкий экран, 769–1099px) — жест прокрутки по длинному списку опций (бренд, ширина, ЦО) должен двигать **только** список, не `window`/`body` и не sticky `.search-form` слева.
+
+Это **не** баг «только мобилки»: порог 768px здесь ни при чём. `getPopupContainer` в `.search-form` нельзя ставить — у sidebar-формы `overflow-y: auto`, popup обрежется. Dropdown по-прежнему порталится в `document.body`.
+
+Два слоя, один shared-контракт (не панели шин/дисков и не AppShell):
+
+1. CSS: `overscroll-behavior: contain` и `-webkit-overflow-scrolling: touch` на `.catalog-search-select-dropdown` и `.rc-virtual-list-holder`. Это дополнение (wheel/Android), на iOS/iPad цепочка жеста всё равно уходит в document или в overflow формы.
+2. JS: refcount-lock в `src/components/shared/catalogSelectPopupScrollLock.js`. Пока счётчик открытых popup > 0 и ширина `< 1100`, на `document` стоят `touchmove`/`wheel` (`passive: false`) с `preventDefault`, кроме allowlist-скроллера самого popup (`.catalog-search-select-dropdown` / `.rc-virtual-list-holder`). На границе списка жест не «пробивает» страницу и форму. Класс `catalog-select-popup-open` вешается на `html`. **Не** используется `document.body.style.overflow = 'hidden'` — на iOS/iPad это прыжок страницы и конфликт restore с `CatalogItemModalWindow` / `CatalogBootstrapOverlay`.
+
+Подключение: `catalogSearchSelectProps.onOpenChange` — все catalog Select (включая `SupplierFilterSelect`) без копирования lock в JSX форм. Brand Select спредит `useCatalogSelectCloseOnMouseLeave` **после** `catalogSearchSelectProps`: хук отдаёт прежние `open` / `onOpenChange` / `popupRender` и вызывает lock внутри `onOpenChange` (и при mouseleave), а не перетирает его в ноль. Lock не привязан к `isActive` (dual-mount: обе панели смонтированы, неактивная `hidden`+`inert`). Счётчик открытых popup общий: lock снимается при close, unmount хука и если antd убрал portal dropdown, не вызвав `onOpenChange(false)`.
+
+На `horizontal` (≥ 1100px) слушатели не вешаются: колесо над страницей работает как раньше. CSS contain на dropdown остаётся везде.
+
 Смены витрина ↔ empty ↔ список — целиком, без stagger полок/карточек и без translate. `prefers-reduced-motion: reduce` — мгновенная смена.
 
 ### Ant Design
@@ -146,6 +161,7 @@ div.tires-search-parameters[data-layout]
 ### Связанные тесты
 
 - `TiresSearchParameters.searchRace.test.jsx` — stale searchRequestId; сброс во время in-flight гасит spinner и игнорирует поздний ответ; pending «Найти» не blank (витрина остаётся); timeout гасит spinner; рендер в `React.StrictMode` settle’ит «Найти»
+- `catalogSelectPopupScrollLock.test.js` — refcount popup, ширина stacked/sidebar vs horizontal, unmount, allowlist скроллера, композиция brand mouseleave
 - `App.catalogDualMount.test.jsx` — discs не вызывается на вкладке шин
 
 ### Пример взаимодействия
@@ -207,7 +223,7 @@ div.tires-search-parameters[data-layout]
 
 ### Ant Design
 
-Те же: `Radio.Group` «Тип диска» (`Литой` / `Штампованный`, default `'Литой'`) — тот же segmented control, что сезон у шин, без лейбла сверху и без опции «Все». Placeholders «от»/«до», `aria-label`, `allowClear` и `catalogSearchSelectProps` у диапазонов сохраняются.
+Те же: `Radio.Group` «Тип диска» (`Литой` / `Штампованный`, default `'Литой'`) — тот же segmented control, что сезон у шин, без лейбла сверху и без опции «Все». Placeholders «от»/«до», `aria-label`, `allowClear` и `catalogSearchSelectProps` у диапазонов сохраняются. Popup scroll lock тот же shared-модуль, что у шин: на `sidebar` жест по ЦО/ширине/бренду не скроллит левую форму.
 
 ### Тесты
 
