@@ -607,31 +607,9 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
               </Form.Item>
             </div>
 
-            <div className="filter-group filter-group--actions">
-              {isHorizontalLayout ? (
-                <>
-                  <HoverTooltip title="Найти">
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      className="filter-action-btn filter-action-btn--search"
-                      icon={<SearchIcon aria-hidden />}
-                      loading={loadingSearch}
-                      aria-label="Найти"
-                    />
-                  </HoverTooltip>
-                  <HoverTooltip title="Сбросить фильтры">
-                    <Button
-                      htmlType="button"
-                      className="filter-action-btn filter-action-btn--reset"
-                      icon={<ResetIcon aria-hidden />}
-                      onClick={handleResetFilters}
-                      aria-label="Сбросить фильтры"
-                    />
-                  </HoverTooltip>
-                </>
-              ) : (
-                <>
+            {isHorizontalLayout ? (
+              <div className="filter-group filter-group--actions">
+                <HoverTooltip title="Найти">
                   <Button
                     type="primary"
                     htmlType="submit"
@@ -639,22 +617,45 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
                     icon={<SearchIcon aria-hidden />}
                     loading={loadingSearch}
                     aria-label="Найти"
-                  >
-                    Найти
-                  </Button>
+                  />
+                </HoverTooltip>
+                <HoverTooltip title="Сбросить фильтры">
                   <Button
                     htmlType="button"
                     className="filter-action-btn filter-action-btn--reset"
                     icon={<ResetIcon aria-hidden />}
                     onClick={handleResetFilters}
                     aria-label="Сбросить фильтры"
-                  >
-                    Сбросить
-                  </Button>
-                </>
-              )}
-            </div>
+                  />
+                </HoverTooltip>
+              </div>
+            ) : null}
           </div>
+          {isHorizontalLayout ? null : (
+            <div className="filter-group filter-group--actions">
+              <Button
+                type="primary"
+                htmlType="submit"
+                block
+                className="filter-action-btn filter-action-btn--search"
+                icon={<SearchIcon aria-hidden />}
+                loading={loadingSearch}
+                aria-label="Найти"
+              >
+                Найти
+              </Button>
+              <Button
+                htmlType="button"
+                block
+                className="filter-action-btn filter-action-btn--reset"
+                icon={<ResetIcon aria-hidden />}
+                onClick={handleResetFilters}
+                aria-label="Сбросить фильтры"
+              >
+                Сбросить
+              </Button>
+            </div>
+          )}
         </div>
       </Form>
       </CatalogMobileFiltersPanel>

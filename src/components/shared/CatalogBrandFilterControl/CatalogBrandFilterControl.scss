@@ -93,4 +93,54 @@
     font-weight: 500;
     color: $color-text;
   }
+
+  /* Same Material green checked state as RunFlat / «от 4 шт». */
+  .ant-checkbox {
+    width: 18px;
+    height: 18px;
+    --ant-color-primary: #{$color-checkbox};
+    --ant-color-primary-hover: #{$color-checkbox-hover};
+    --ant-wave-color: transparent;
+  }
+
+  .ant-checkbox .ant-checkbox-inner {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 1px solid $color-border !important;
+    background-color: $color-surface !important;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .ant-checkbox-checked .ant-checkbox-inner {
+    background-color: $color-checkbox !important;
+    border-color: $color-checkbox !important;
+  }
+
+  .ant-checkbox-checked .ant-checkbox-inner::after {
+    border-color: $color-on-accent !important;
+    width: 6px;
+    height: 9px;
+  }
+
+  .ant-checkbox-wrapper:not(.ant-checkbox-wrapper-disabled):hover
+    .ant-checkbox:not(.ant-checkbox-checked):not(.ant-checkbox-disabled)
+    .ant-checkbox-inner,
+  .ant-checkbox:not(.ant-checkbox-checked):not(.ant-checkbox-disabled):hover .ant-checkbox-inner {
+    border-color: $color-border-strong !important;
+    background-color: $color-surface !important;
+  }
+
+  .ant-checkbox-wrapper:not(.ant-checkbox-wrapper-disabled):hover
+    .ant-checkbox-checked:not(.ant-checkbox-disabled)
+    .ant-checkbox-inner,
+  .ant-checkbox-checked:not(.ant-checkbox-disabled):hover .ant-checkbox-inner {
+    background-color: $color-checkbox-hover !important;
+    border-color: $color-checkbox-hover !important;
+  }
+
+  .ant-checkbox-wrapper-checked:not(.ant-checkbox-wrapper-disabled):hover .ant-checkbox-inner::after,
+  .ant-checkbox-checked:not(.ant-checkbox-disabled):hover .ant-checkbox-inner::after {
+    border-color: $color-on-accent !important;
+  }
 }

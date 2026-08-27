@@ -645,26 +645,40 @@ $catalog-text: $color-text;
       overflow-y: auto;
       overscroll-behavior: contain;
       -webkit-overflow-scrolling: touch;
+      // Horizontal padding lives on __row so sticky actions can span the card.
+      padding-inline: 0;
       padding-bottom: 0;
-    }
 
-    .search-form__toolbar,
-    .search-form__row {
-      flex: 1 0 auto;
-    }
+      .search-form__toolbar {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+        width: 100%;
+      }
 
-    .filter-group--actions {
-      position: sticky;
-      bottom: 0;
-      z-index: 2;
-      margin-top: auto;
-      margin-inline: -16px;
-      padding-inline: 16px;
-      padding-top: $space-3;
-      padding-bottom: max(#{$space-3}, env(safe-area-inset-bottom, 0px));
-      background: $color-surface;
-      border-top: 1px solid $color-border;
-      box-shadow: 0 -12px 16px $color-surface;
+      .search-form__row {
+        flex: 1 0 auto;
+        width: 100%;
+        padding-inline: 16px;
+      }
+
+      .filter-group--actions {
+        position: sticky;
+        bottom: 0;
+        z-index: 2;
+        width: 100%;
+        max-width: none;
+        align-self: stretch;
+        // Sit under fields with toolbar gap only (same 14px as row groups).
+        margin-top: 0;
+        margin-inline: 0;
+        padding-inline: 16px;
+        padding-top: 0;
+        padding-bottom: max(#{$space-3}, env(safe-area-inset-bottom, 0px));
+        background: $color-surface;
+        box-shadow: 0 -12px 16px $color-surface;
+      }
     }
   }
 
@@ -1136,6 +1150,9 @@ $catalog-text: $color-text;
 @mixin catalog-search-form-vertical-fields() {
   .search-form__toolbar {
     align-items: stretch;
+    width: 100%;
+    // Same rhythm as __row groups (supplier → checks → actions).
+    gap: 14px;
   }
 
   .search-form__row {
@@ -1145,6 +1162,7 @@ $catalog-text: $color-text;
     justify-content: flex-start;
     gap: 14px;
     overflow: visible;
+    width: 100%;
   }
 
   .filter-group,
@@ -1251,12 +1269,28 @@ $catalog-text: $color-text;
     max-height: none;
   }
 
+  // Direct child of toolbar (outside __row) so the block always spans the form.
+  .search-form__toolbar > .filter-group--actions,
   .filter-group--actions {
+    display: flex;
     width: 100%;
+    max-width: none;
+    min-width: 0;
+    flex: 0 0 auto;
+    align-self: stretch;
     flex-direction: column;
     align-items: stretch;
     gap: 8px;
-    margin-top: 2px;
+    margin-top: 0;
+    box-sizing: border-box;
+
+    .filter-action-btn.ant-btn {
+      display: flex;
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: 100%;
+      align-self: stretch;
+    }
   }
 
   .ant-select.filter-select--size,
