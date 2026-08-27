@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { Button, Progress } from 'antd';
+import { Button } from 'antd';
 import {
   CATALOG_BOOTSTRAP_LOADING_LABEL,
   catalogBootstrapHeadline,
@@ -45,8 +45,9 @@ function CatalogBootstrapOverlay({
   const displayPercent = Math.min(99, percent);
   const headline = catalogBootstrapHeadline(catalogBootstrap);
   const valueText = catalogBootstrapValueText(catalogBootstrap);
+  const isWaiting = isCatalogWaitingLabel(label);
   const caption =
-    isCatalogBytesLabel(label) || isCatalogWaitingLabel(label)
+    isCatalogBytesLabel(label) || isWaiting
       ? CATALOG_BOOTSTRAP_LOADING_LABEL
       : label || CATALOG_BOOTSTRAP_LOADING_LABEL;
 
@@ -176,19 +177,28 @@ function CatalogBootstrapOverlay({
           </>
         ) : (
           <>
-            <p className="catalog-bootstrap-overlay__percent" aria-hidden="true">
-              {headline}
-            </p>
-            <div aria-hidden="true">
-              <Progress
-                className="catalog-bootstrap-overlay__bar"
-                type="line"
-                percent={displayPercent}
-                showInfo={false}
-                strokeLinecap="round"
-                strokeColor="var(--color-accent)"
-                trailColor="rgba(255, 255, 255, 0.16)"
-              />
+            <div className="catalog-bootstrap-overlay__meters">
+              <div
+                className={[
+                  'catalog-bootstrap-overlay__circle',
+                  isWaiting ? 'catalog-bootstrap-overlay__circle--waiting' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+              >
+                <span
+                  className="catalog-bootstrap-overlay__spinner"
+                  aria-hidden="true"
+                />
+                {isWaiting ? null : (
+                  <span className="catalog-bootstrap-overlay__percent">
+                    {headline}
+                  </span>
+                )}
+              </div>
+              {isWaiting ? (
+                <p className="catalog-bootstrap-overlay__percent">{headline}</p>
+              ) : null}
             </div>
             <p className="catalog-bootstrap-overlay__label">{caption}</p>
           </>

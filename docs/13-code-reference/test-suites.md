@@ -75,7 +75,7 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 
 ---
 
-## Components (12 файлов)
+## Components (15 файлов)
 
 | Файл | Инварианты |
 | --- | --- |
@@ -84,6 +84,7 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 | `LandingPage.test.jsx` | «Посмотреть демо» enabled → `/demo` |
 | `CatalogItemModalWindow.test.jsx` | лейбл «Размер»; у discs «Цвет» сразу после размера (пусто → «—»); у tyres поля «Цвет» нет |
 | `TiresSearchParameters.searchRace.test.jsx` | stale request discard, spinner, skip facets, reset during pending, pending не blank, timeout, StrictMode settle |
+| `TiresSearchParameters.spikesControl.test.jsx` | stacked Radio.Group шипов; mapping Все/`null`, Шипы/`true`, Без шипов/`false`; horizontal остаётся Select |
 | `useCatalogSearchFormLayout.test.js` | пороги stacked / sidebar / horizontal (диски как эталон плотности) |
 | `catalogSelectPopupScrollLock.test.js` | acquire/release refcount, unmount, restore слушателей; lock на 767/900/1099, не на 1100+; композиция с brand mouseleave |
 | `DiscsSearchParameters.searchRace.test.jsx` | stale request discard, spinner, skip facets, reset during pending, pending не blank, timeout, StrictMode settle |
@@ -91,7 +92,7 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 | `filterDiscRangeSelectOptions.test.js` | UI-фильтр опций range: пустой other, inclusive ≥/≤, дробные ЦО, отрицательный ET |
 | `CatalogShowcase.appLog.test.jsx` | error logging on showcase fail |
 | `CatalogShowcase.bootstrap.test.jsx` | пустой store / loading → skeleton; Empty «Каталог ещё загружается» отсутствует; notify только на settled полках |
-| `CatalogBootstrapOverlay.test.jsx` | шторка на blocking/error, нет на idle/ready, Escape не закрывает, staff МБ при неизвестном Content-Length, demo % без МБ, waiting lock без 0%, waitForShowcase держит до витрины затем fade |
+| `CatalogBootstrapOverlay.test.jsx` | шторка на blocking/error, нет на idle/ready, Escape не закрывает, indeterminate-спиннер вокруг статичного %/МБ без линейного бара и без fill 0–100, staff МБ при неизвестном Content-Length, demo % без МБ, waiting lock без 0% и без текста в круге, error без кольца и бара, waitForShowcase держит до витрины затем fade |
 | `CatalogResultsFade.test.jsx` | delayed unmount 50ms, reduced-motion сразу |
 
 **Страница:** [Async race guards](/08-search-showcase/async-race-guards).

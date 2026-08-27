@@ -1115,7 +1115,6 @@ $catalog-text: $color-text;
     max-height: none;
   }
 
-  .filter-group--spikes,
   .filter-group--brand,
   .filter-group--supplier {
     width: 100%;
@@ -1132,11 +1131,13 @@ $catalog-text: $color-text;
   }
 
   .filter-group--season,
-  .filter-group--disk-type {
+  .filter-group--disk-type,
+  .filter-group--spikes {
     width: 100%;
 
     .form-item-season,
     .form-item-disk-type,
+    .form-item-spikes,
     .ant-radio-group {
       width: 100%;
     }
@@ -1162,6 +1163,17 @@ $catalog-text: $color-text;
         height: 16px;
       }
     }
+  }
+
+  // Three equal segments sized to the longest label («Без шипов»).
+  .filter-group--spikes .ant-radio-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .filter-group--spikes .ant-radio-wrapper {
+    width: 100%;
+    min-width: 0;
   }
 
   // Size / mount: three equal fields in one row with labels above.
@@ -1283,7 +1295,8 @@ $catalog-text: $color-text;
   }
 
   .form-item-season,
-  .form-item-disk-type {
+  .form-item-disk-type,
+  .form-item-spikes {
     height: auto;
     min-height: 40px;
 
@@ -1306,8 +1319,7 @@ $catalog-text: $color-text;
   }
 
   .form-item-brand,
-  .form-item-supplier,
-  .form-item-spikes {
+  .form-item-supplier {
     // Compact toolbar sets height: 32px !important on brand/supplier trees —
     // without !important here the label collapses onto the same 32px strip.
     height: auto !important;

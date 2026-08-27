@@ -117,7 +117,7 @@ div.tires-search-parameters[data-layout]
 | Режим панели (`data-layout`) | Когда | UI панели | Ant `Form layout` |
 | --- | --- | --- | --- |
 | `horizontal` | ширина ≥ 1100px | форма сверху на всю ширину, каталог ниже; compact toolbar 32px, подписи скрыты, wrap максимум в ~2 ряда, иконки «Найти»/«Сбросить» | `horizontal` |
-| `sidebar` | 769–1099px | вертикальная форма слева (`position: sticky`, ~20.5rem), каталог справа; подписи над полями, размер в 3 колонки, чекбоксы в 2, кнопки на всю ширину | `vertical` |
+| `sidebar` | 769–1099px | вертикальная форма слева (`position: sticky`, ~20.5rem), каталог справа; подписи над полями, размер в 3 колонки, чекбоксы в 2, кнопки на всю ширину; зимние шипы — segmented `Radio.Group` | `vertical` |
 | `stacked` | ≤ 768px | та же вертикальная форма сверху, каталог ниже; foreground «Найти» плавно скроллит к `.catalog-search-main` после fade 50ms | `vertical` |
 
 В третью строку горизонтальный toolbar не переваливается: как только две строки уже не влезают, включается `sidebar`. На широком десктопе формы слева быть не должно.
@@ -143,6 +143,8 @@ div.tires-search-parameters[data-layout]
 
 `Form`, `Select`, `Button`, `Radio.Group`, `Checkbox`; иконки через SVG ReactComponent.
 
+Фильтр шипов виден только при `season === 'w'`. В `horizontal` это Select «Все / Шипы / Без шипов» (`allowClear`). В `sidebar` и `stacked` — тот же segmented `Radio.Group`, что сезон шин и тип диска: три равных сегмента, без лейбла сверху, всегда выбран один вариант (default «Все»). Значения формы те же: `true` / `false` / `null`.
+
 ### Loading / empty / error
 
 | Состояние | UI |
@@ -161,12 +163,13 @@ div.tires-search-parameters[data-layout]
 ### Связанные тесты
 
 - `TiresSearchParameters.searchRace.test.jsx` — stale searchRequestId; сброс во время in-flight гасит spinner и игнорирует поздний ответ; pending «Найти» не blank (витрина остаётся); timeout гасит spinner; рендер в `React.StrictMode` settle’ит «Найти»
+- `TiresSearchParameters.spikesControl.test.jsx` — stacked Radio.Group шипов; mapping Все/`null`, Шипы/`true`, Без шипов/`false`; в `horizontal` остаётся Select
 - `catalogSelectPopupScrollLock.test.js` — refcount popup, ширина stacked/sidebar vs horizontal, unmount, allowlist скроллера, композиция brand mouseleave
 - `App.catalogDualMount.test.jsx` — discs не вызывается на вкладке шин
 
 ### Пример взаимодействия
 
-Пользователь выбирает «Зимние» → появляется Select шипов → выбирает 205/55/R16 → жмёт «Найти» → витрина на месте (кнопка `loading`) → на stacked через 50ms страница плавно съезжает к зоне каталога → `searchResults` становится массивом → витрина скрывается → PaginatedCardsList.
+Пользователь выбирает «Зимние» → появляется фильтр шипов (Select в `horizontal`, Radio.Group «Все / Шипы / Без шипов» в `sidebar`/`stacked`) → выбирает 205/55/R16 → жмёт «Найти» → витрина на месте (кнопка `loading`) → на stacked через 50ms страница плавно съезжает к зоне каталога → `searchResults` становится массивом → витрина скрывается → PaginatedCardsList.
 
 ### Типичные ошибки при изменении
 

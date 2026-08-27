@@ -94,7 +94,7 @@ flowchart LR
 **Шины — поля формы:**
 
 - `season`: `'s'` (лето) или `'w'` (зима), default `'s'`
-- `spikes`: `true` / `false` / `null` («Все») — видно только при `season === 'w'`
+- `spikes`: `true` / `false` / `null` («Все») — видно только при `season === 'w'`. В `horizontal` — Select; в `sidebar`/`stacked` — segmented `Radio.Group` как сезон и тип диска
 - `width`, `profile`, `diameter` — каскадные Select с опциями из IDB
 - `brand[]`, `supplier`, `onlyAmountFrom4`, `onlyRunflat`
 

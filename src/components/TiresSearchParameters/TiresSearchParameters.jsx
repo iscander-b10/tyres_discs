@@ -49,6 +49,28 @@ const { Option } = Select;
 
 const DEFAULT_SEASON = 's';
 
+const SPIKES_FILTER_OPTIONS = [
+  { value: 'all', label: 'Все' },
+  { value: 'yes', label: 'Шипы' },
+  { value: 'no', label: 'Без шипов' },
+];
+
+const spikesToControlValue = (value) => {
+  if (value === true) return 'yes';
+  if (value === false) return 'no';
+  return 'all';
+};
+
+const spikesFromControlEvent = (raw) => {
+  const value =
+    raw && typeof raw === 'object' && raw.target != null
+      ? raw.target.value
+      : raw;
+  if (value === 'yes') return true;
+  if (value === 'no') return false;
+  return null;
+};
+
 const isActiveFilterValue = (value) =>
   value !== undefined && value !== null && value !== '';
 
@@ -473,30 +495,30 @@ const TiresSearchParameters = memo(({ isActive = true }) => {
               <div className="filter-group filter-group--spikes">
                 <Form.Item
                   name="spikes"
-                  label={isHorizontalLayout ? undefined : 'Шипы'}
                   className="form-item-spikes"
                   getValueProps={(value) => ({
-                    value:
-                      value === true ? 'yes' : value === false ? 'no' : 'all',
+                    value: spikesToControlValue(value),
                   })}
-                  getValueFromEvent={(value) => {
-                    if (value === 'yes') return true;
-                    if (value === 'no') return false;
-                    return null;
-                  }}
+                  getValueFromEvent={spikesFromControlEvent}
                 >
-                  <Select
-                    {...catalogSearchSelectProps}
-                    allowClear
-                    placeholder="Все"
-                    aria-label="Шипы"
-                    className="filter-select--spikes"
-                    options={[
-                      { value: 'all', label: 'Все' },
-                      { value: 'yes', label: 'Шипы' },
-                      { value: 'no', label: 'Без шипов' },
-                    ]}
-                  />
+                  {isHorizontalLayout ? (
+                    <Select
+                      {...catalogSearchSelectProps}
+                      allowClear
+                      placeholder="Все"
+                      aria-label="Шипы"
+                      className="filter-select--spikes"
+                      options={SPIKES_FILTER_OPTIONS}
+                    />
+                  ) : (
+                    <Radio.Group aria-label="Шипы" role="radiogroup">
+                      {SPIKES_FILTER_OPTIONS.map((option) => (
+                        <Radio key={option.value} value={option.value}>
+                          <span className="season-radio-label">{option.label}</span>
+                        </Radio>
+                      ))}
+                    </Radio.Group>
+                  )}
                 </Form.Item>
               </div>
             ) : null}

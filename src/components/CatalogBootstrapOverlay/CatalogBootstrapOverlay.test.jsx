@@ -50,10 +50,17 @@ describe('CatalogBootstrapOverlay', () => {
       'aria-valuenow',
       '42'
     );
-    const bar = overlay.querySelector('.catalog-bootstrap-overlay__bar');
-    expect(bar).toBeTruthy();
-    expect(bar.querySelector('.ant-progress-inner')).toBeTruthy();
-    expect(bar.querySelector('.ant-progress-bg')).toBeTruthy();
+    expect(overlay.querySelector('.ant-progress')).toBeNull();
+    expect(overlay.querySelector('.catalog-bootstrap-overlay__bar')).toBeNull();
+    const circle = overlay.querySelector('.catalog-bootstrap-overlay__circle');
+    const spinner = overlay.querySelector('.catalog-bootstrap-overlay__spinner');
+    expect(circle).toBeTruthy();
+    expect(spinner).toBeTruthy();
+    expect(spinner).toHaveAttribute('aria-hidden', 'true');
+    expect(spinner).toHaveTextContent('');
+    const headline = overlay.querySelector('.catalog-bootstrap-overlay__percent');
+    expect(headline).toHaveTextContent('42%');
+    expect(circle).toHaveTextContent('42%');
 
     fireEvent.mouseDown(overlay);
     fireEvent.keyDown(document, { key: 'Escape' });
@@ -101,6 +108,13 @@ describe('CatalogBootstrapOverlay', () => {
       'aria-valuetext',
       'Загружено 2,4 МБ'
     );
+    const overlay = screen.getByTestId('catalog-bootstrap-overlay');
+    expect(overlay.querySelector('.catalog-bootstrap-overlay__bar')).toBeNull();
+    const circle = overlay.querySelector('.catalog-bootstrap-overlay__circle');
+    expect(circle).toHaveTextContent('2,4 МБ');
+    expect(overlay.querySelector('.catalog-bootstrap-overlay__percent')).toHaveTextContent(
+      '2,4 МБ'
+    );
   });
 
   test('ожидание lock не показывает фейковый download %', () => {
@@ -114,6 +128,7 @@ describe('CatalogBootstrapOverlay', () => {
       />
     );
 
+    const overlay = screen.getByTestId('catalog-bootstrap-overlay');
     expect(
       screen.getByText('Каталог загружается в другой вкладке')
     ).toBeInTheDocument();
@@ -123,6 +138,14 @@ describe('CatalogBootstrapOverlay', () => {
       'Каталог загружается в другой вкладке'
     );
     expect(screen.queryByRole('button', { name: 'Повторить' })).toBeNull();
+    const circle = overlay.querySelector(
+      '.catalog-bootstrap-overlay__circle--waiting'
+    );
+    expect(circle).toBeTruthy();
+    expect(circle.querySelector('.catalog-bootstrap-overlay__spinner')).toBeTruthy();
+    expect(circle).not.toHaveTextContent('0%');
+    expect(circle).not.toHaveTextContent('Каталог загружается в другой вкладке');
+    expect(overlay.querySelector('.catalog-bootstrap-overlay__bar')).toBeNull();
   });
 
   test('error показывает текст и кнопку Повторить', () => {
@@ -142,6 +165,10 @@ describe('CatalogBootstrapOverlay', () => {
     expect(
       screen.getByText('Нет сети. Проверьте подключение.')
     ).toBeInTheDocument();
+    const overlay = screen.getByTestId('catalog-bootstrap-overlay');
+    expect(overlay.querySelector('.catalog-bootstrap-overlay__circle')).toBeNull();
+    expect(overlay.querySelector('.catalog-bootstrap-overlay__spinner')).toBeNull();
+    expect(overlay.querySelector('.catalog-bootstrap-overlay__bar')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Повторить' }));
     expect(retry).toHaveBeenCalledTimes(1);
   });

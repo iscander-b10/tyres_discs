@@ -79,7 +79,7 @@ singleton `catalogIdbSession`). При `searchResults === null` панель р�
 `CatalogShowcase`. Смены витрина / empty / список идут через shared
 `CatalogResultsFade` (opacity 50ms, delayed unmount). Витрина читает тот же RAM-кэш, что поиск.
 
-**Тесты:** `TiresSearchParameters.searchRace.test.jsx`, `DiscsSearchParameters.searchRace.test.jsx`.
+**Тесты:** `TiresSearchParameters.searchRace.test.jsx`, `TiresSearchParameters.spikesControl.test.jsx`, `DiscsSearchParameters.searchRace.test.jsx`.
 
 **Страницы:** [Async race guards](/08-search-showcase/async-race-guards), [сквозной поток](/08-search-showcase/end-to-end-flow).
 

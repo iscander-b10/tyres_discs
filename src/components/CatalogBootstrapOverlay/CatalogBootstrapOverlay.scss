@@ -1,5 +1,8 @@
 @use '../../styles/tokens' as *;
 
+$ring-size: 240px;
+$ring-stroke: 5px;
+
 .catalog-bootstrap-overlay {
   position: fixed;
   inset: 0;
@@ -36,7 +39,9 @@
 }
 
 .catalog-bootstrap-overlay__percent {
-  margin: 0 0 $space-4;
+  position: relative;
+  z-index: 1;
+  margin: 0;
   color: $color-accent;
   font-family: $font-sans;
   font-size: 64px;
@@ -45,22 +50,53 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.04em;
   text-align: center;
+  white-space: nowrap;
 }
 
-/* Specificity matches antd Progress CSS-in-JS (.hash.ant-progress .ant-progress-*). */
-.catalog-bootstrap-overlay__bar.ant-progress {
+.catalog-bootstrap-overlay__meters {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   width: 100%;
+}
 
-  .ant-progress-inner {
-    overflow: hidden;
-    background: rgba(255, 255, 255, 0.16);
-    border-radius: 999px;
-  }
+.catalog-bootstrap-overlay__meters > .catalog-bootstrap-overlay__percent {
+  margin: $space-4 0 $space-5;
+  white-space: normal;
+}
 
-  .ant-progress-bg {
-    background: $color-accent;
-    border-radius: 999px;
-  }
+.catalog-bootstrap-overlay__circle {
+  position: relative;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: $ring-size;
+  height: $ring-size;
+  margin-bottom: $space-5;
+}
+
+$ring-mask: radial-gradient(
+  farthest-side,
+  transparent calc(100% - #{$ring-stroke}),
+  #000 calc(100% - #{$ring-stroke} + 0.5px)
+);
+
+.catalog-bootstrap-overlay__spinner {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 50%;
+  background:
+    conic-gradient(
+      from 0deg,
+      rgb(from #{$color-accent} r g b / 0) 0deg,
+      rgb(from #{$color-accent} r g b / 0) 250deg,
+      $color-accent 360deg
+    ),
+    rgba(255, 255, 255, 0.16);
+  -webkit-mask: $ring-mask;
+  mask: $ring-mask;
+  animation: catalog-bootstrap-overlay-spin 1.1s linear infinite;
 }
 
 .catalog-bootstrap-overlay__label,
@@ -93,12 +129,18 @@
   color: $color-on-accent;
 }
 
+@keyframes catalog-bootstrap-overlay-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .catalog-bootstrap-overlay {
     transition: none;
   }
 
-  .catalog-bootstrap-overlay__bar.ant-progress .ant-progress-bg {
-    transition: none;
+  .catalog-bootstrap-overlay__spinner {
+    animation: none;
   }
 }
