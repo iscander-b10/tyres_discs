@@ -338,13 +338,15 @@ Footer использует тот же `loginLinkTarget`, поэтому header
 **Context:** `clientMode`, `setClientMode` из AppShell.  
 **Результат:** portal в `document.body` с Ant Design `Switch`.
 
-Компонент владеет только представлением плавающего переключателя: текущей позицией, drag/snap flags и DOM refs. Положение читается из `ivanor.mode-toggle.position`; legacy key мигрируется при следующем сохранении. Координаты ограничиваются viewport, сохраняются вместе с относительными ratios и пересчитываются при resize. Pointer move обновляет transform через `requestAnimationFrame`, а cleanup отменяет RAF и снимает window listeners.
+Компонент владеет только представлением плавающего переключателя: текущей позицией, drag/snap flags и DOM refs. Положение читается из `ivanor.mode-toggle.position`; legacy key мигрируется при следующем сохранении. Координаты ограничиваются viewport, сохраняются вместе с относительными ratios и пересчитываются при resize. Pointer move обновляет transform через `requestAnimationFrame`, а cleanup отменяет RAF, hold-timer и снимает window listeners.
+
+На mouse клик по Switch не начинает drag (перетаскивание с рамки после 5 px). На touch/pen жест может начаться с самого Switch: long-press ~420 ms поднимает панель, сдвиг дальше 12 px тоже начинает drag; короткий tap по-прежнему вызывает `setClientMode`. Capture ставится только после начала drag, чтобы Switch получил tap.
 
 `Switch.checked` получает `clientMode`, `onChange` вызывает `setClientMode`. Бизнес-правило «guest всегда client» находится не здесь, а в Provider. `AppFrame` вообще не монтирует toggle без `appEnabled`.
 
 Пример: auth manager перетаскивает toggle к правому краю и включает client mode. Position сохраняется локально, AppShell сохраняет mode отдельно, а Context rerender меняет отображение цен у consumers.
 
-Отдельного теста `ModeToggle` нет. Опасно переносить mode business rules в drag-компонент, не очищать global pointer listeners или сохранять только абсолютные координаты: после resize панель может оказаться вне viewport.
+`ModeToggle.test.jsx` проверяет touch long-press/slide, tap без сдвига и mouse-drag с рамки. Опасно переносить mode business rules в drag-компонент, ставить pointer capture на Switch до порога (tap перестанет переключать режим), не очищать global pointer listeners/hold-timer или сохранять только абсолютные координаты: после resize панель может оказаться вне viewport.
 
 ### `ScrollToTop`
 

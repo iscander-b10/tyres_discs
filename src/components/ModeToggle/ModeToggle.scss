@@ -25,7 +25,9 @@
     .mode-toggle-controls {
       cursor: grabbing;
       user-select: none;
+      -webkit-user-select: none;
       touch-action: none;
+      box-shadow: $shadow-elevated;
 
       .client-mode-switch {
         pointer-events: none;
@@ -46,7 +48,14 @@
   border: 1px solid $color-border;
   cursor: grab;
   touch-action: none;
-  transition: background-color 0.2s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
 
 .client-mode-switch.ant-switch {
@@ -55,6 +64,7 @@
   --ant-color-primary-hover: #c82731;
   background: $color-switch-track !important;
   cursor: pointer;
+  touch-action: none;
 
   &.ant-switch-checked {
     background: #e43141 !important;

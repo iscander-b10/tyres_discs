@@ -184,25 +184,33 @@
 }
 
 .basket-line__check {
+  --basket-checkbox-size: 18px;
   grid-area: check;
   display: flex;
   align-items: flex-start;
   justify-content: flex-start;
-  min-width: 44px;
-  min-height: 44px;
-  padding-top: 4px;
+  width: var(--basket-checkbox-size);
+  /* Same 8px as toolbar «Выбрать все» (antd checkbox-label paddingXS). */
+  margin-inline-end: calc(#{$space-2} - #{$space-3});
   box-sizing: border-box;
 
   .ant-checkbox-wrapper {
-    min-width: 44px;
-    min-height: 44px;
-    align-items: flex-start;
-  }
-}
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    width: var(--basket-checkbox-size);
+    height: var(--basket-checkbox-size);
+    margin: 0;
 
-.basket-page--client .basket-line__check {
-  padding-top: 0;
-  align-items: center;
+    /* Hit area uses card padding, not the photo. */
+    &::after {
+      content: '';
+      position: absolute;
+      inset-block: -13px;
+      inset-inline-start: -#{$space-4};
+      inset-inline-end: 0;
+    }
+  }
 }
 
 .basket-line__media {
@@ -296,11 +304,19 @@
   gap: $space-3;
 }
 
+.basket-line__head {
+  display: flex;
+  align-items: flex-start;
+  gap: $space-1;
+  min-width: 0;
+}
+
 .basket-line__info {
   appearance: none;
   border: 0;
   background: transparent;
   padding: 0;
+  flex: 1 1 auto;
   min-width: 0;
   text-align: left;
   display: flex;
@@ -367,6 +383,7 @@
   flex-shrink: 0;
   width: 44px !important;
   height: 44px !important;
+  margin-inline-start: auto;
   color: $color-text-subtle !important;
   border-radius: $radius-md !important;
 
@@ -378,6 +395,16 @@
   &:focus-visible {
     outline: 2px solid $color-accent;
     outline-offset: 1px;
+  }
+
+  &:not(:disabled):active {
+    transform: scale(0.96);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &:not(:disabled):active {
+      transform: none;
+    }
   }
 }
 
@@ -395,6 +422,7 @@
 }
 
 .basket-line__prices-hit {
+  --basket-price-col-gap: #{$space-5};
   appearance: none;
   border: 0;
   background: transparent;
@@ -411,8 +439,6 @@
   font-size: inherit;
   line-height: inherit;
   color: inherit;
-  container-type: inline-size;
-  container-name: basket-prices;
 
   &:focus-visible {
     outline: 2px solid $color-border-strong;
@@ -421,8 +447,16 @@
 }
 
 .basket-page--client .basket-line__prices-hit {
+  --basket-price-col-gap: #{$space-4};
   min-width: min(100%, 240px);
   max-width: 300px;
+}
+
+.basket-line__prices-hit--stack,
+.basket-page--client .basket-line__prices-hit--stack {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .basket-line__price-strip {
@@ -430,15 +464,15 @@
   max-width: 100%;
   min-width: 0;
 
-  // Two-column table while caption + value fit: captions | values stacked in one column.
-  // Narrow wrap (below) left-aligns the amount under its caption.
+  // Two-column table while every caption|value pair fits.
+  // If any pair overflows, --stack puts all amounts under their captions.
   &.catalog-price-strip--manager,
   &.catalog-price-strip--client {
     display: grid;
     grid-template-columns: max-content minmax(11ch, max-content);
     justify-content: start;
     align-content: start;
-    column-gap: $space-5;
+    column-gap: var(--basket-price-col-gap);
     row-gap: 0;
     padding-block: 0;
   }
@@ -460,8 +494,9 @@
     background: transparent;
     /* No border/bg transition: channel tiles briefly flash $color-border on mode switch. */
     transition: none;
-    column-gap: $space-5;
+    column-gap: var(--basket-price-col-gap);
     row-gap: 0;
+    flex-wrap: nowrap;
   }
 
   // Manager: denser rows so the strip sits with supplier/code, not as a third card.
@@ -514,11 +549,11 @@
   &.catalog-price-strip--client {
     width: 100%;
     grid-template-columns: max-content minmax(12ch, 1fr);
-    column-gap: $space-4;
+    column-gap: var(--basket-price-col-gap);
   }
 
   .catalog-price-strip__tile {
-    column-gap: $space-4;
+    column-gap: var(--basket-price-col-gap);
     min-height: 28px;
   }
 
@@ -774,50 +809,16 @@
   }
 }
 
-/* Qty + totals no longer fit beside unit prices: drop them under photo and info. */
+/* Compact cart row: checkbox | photo | info+prices, then qty ‖ line total. */
 @container basket-list (max-width: 760px) {
   .basket-line {
-    grid-template-columns: auto 148px minmax(0, 1fr);
+    grid-template-columns: auto 96px minmax(0, 1fr);
     grid-template-areas:
       'check media body'
       'end   end   end';
-    row-gap: $space-5;
-  }
-
-  .basket-line__body {
-    min-height: 0;
-  }
-
-  .basket-page--client .basket-line__body {
-    min-height: 0;
-  }
-
-  .basket-line__main {
-    min-height: 0;
-    padding-inline-end: 44px; /* clear × once the end column is gone */
-  }
-
-  .basket-line__end {
-    width: 100%;
-    align-items: flex-end;
-    padding-top: 0;
-    min-height: 0;
-  }
-
-  .basket-page--client .basket-line__end {
-    margin-top: 0;
-  }
-}
-
-@container basket-list (max-width: 520px) {
-  .basket-line {
-    grid-template-columns: auto minmax(0, 1fr);
-    grid-template-areas:
-      'check body'
-      'media body'
-      'end   end';
-    /* Checkbox sits directly above the photo; keep air only before end. */
-    row-gap: 0;
+    column-gap: $space-3;
+    row-gap: $space-4;
+    align-items: start;
   }
 
   .basket-line__media {
@@ -825,33 +826,28 @@
     height: 96px;
     min-height: 0;
     align-self: start;
-    padding: 0;
   }
 
-  .basket-line__end {
-    margin-top: $space-5;
+  .basket-line__body,
+  .basket-page--client .basket-line__body,
+  .basket-line__main {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
 
-  .basket-line__prices-hit {
-    flex: 1 1 auto;
-    justify-content: flex-start;
-    min-width: 0;
-    max-width: none;
-    width: 100%;
+  .basket-line__main {
+    padding-inline-end: 0;
+    gap: $space-3;
   }
 
-  .basket-page--client .basket-line__prices-hit {
-    min-width: 0;
-    max-width: none;
-  }
-
-  .basket-page--client .basket-line__price-strip {
-    &.catalog-price-strip--manager,
-    &.catalog-price-strip--client {
-      width: 100%;
-      max-width: none;
-      grid-template-columns: max-content minmax(12ch, 1fr);
-    }
+  .basket-line__remove {
+    position: static;
+    top: auto;
+    inset-inline-end: auto;
+    /* Optical: 44px hit sits with the title cap, not a full row below it. */
+    margin-block-start: -8px;
+    margin-inline-end: -8px;
   }
 
   .basket-line__bottom {
@@ -859,50 +855,112 @@
     margin-top: 0;
   }
 
-  .basket-page--client .basket-line__main {
-    gap: $space-3;
+  /* Full width of the body so stacked prices can measure the real column. */
+  .basket-line__prices-hit,
+  .basket-page--client .basket-line__prices-hit {
+    --basket-price-col-gap: #{$space-3};
+    flex: 0 1 auto;
+    justify-content: flex-start;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
   }
-}
 
-// When caption + amount no longer fit on one row, stack the amount under the caption (start-aligned).
-@container basket-prices (max-width: 200px) {
   .basket-line__price-strip,
   .basket-page--client .basket-line__price-strip {
+    /* Do not use max-content here: the strip is a size container and would collapse. */
     width: 100%;
     max-width: 100%;
 
     &.catalog-price-strip--manager,
     &.catalog-price-strip--client {
-      display: flex;
-      flex-direction: column;
-      align-items: stretch;
-      grid-template-columns: none;
+      width: 100%;
+      max-width: 100%;
+      grid-template-columns: max-content max-content;
+      justify-content: start;
+      column-gap: var(--basket-price-col-gap);
     }
 
     .catalog-price-strip__tile {
-      display: flex;
-      flex-flow: row wrap;
+      width: auto;
+      max-width: 100%;
       justify-content: flex-start;
-      align-items: baseline;
-      grid-template-columns: none;
-      grid-column: auto;
-      width: 100%;
-      column-gap: $space-3;
-      row-gap: 2px;
+      column-gap: var(--basket-price-col-gap);
     }
 
-    .catalog-price-strip__caption {
-      flex: 0 0 auto;
-    }
-
+    .catalog-price-strip__value,
     &.catalog-price-strip--manager .catalog-price-strip__tile .catalog-price-strip__value,
     &.catalog-price-strip--client .catalog-price-strip__tile .catalog-price-strip__value {
-      flex: 0 0 auto;
-      align-self: flex-start;
-      justify-self: start;
       margin-inline-start: 0;
       min-width: 0;
-      text-align: start;
+      justify-self: end;
+      text-align: end;
     }
+  }
+
+  .basket-line__end,
+  .basket-page--client .basket-line__end {
+    width: 100%;
+    align-items: flex-end;
+    padding-top: 0;
+    min-height: 0;
+    margin-top: 0;
+  }
+}
+
+@container basket-list (max-width: 400px) {
+  .basket-line {
+    grid-template-columns: auto 72px minmax(0, 1fr);
+    column-gap: $space-2;
+  }
+
+  .basket-line__check {
+    margin-inline-end: 0;
+  }
+
+  .basket-line__media {
+    width: 72px;
+    height: 72px;
+  }
+}
+
+/* If any caption|value pair overflows, stack ALL three amounts under their captions. */
+.basket-line__price-strip--stack,
+.basket-page--client .basket-line__price-strip--stack {
+  width: 100%;
+  max-width: 100%;
+
+  &.catalog-price-strip--manager,
+  &.catalog-price-strip--client {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    grid-template-columns: none;
+  }
+
+  .catalog-price-strip__tile {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    align-items: flex-start;
+    grid-template-columns: none;
+    grid-column: auto;
+    width: 100%;
+    column-gap: var(--basket-price-col-gap);
+    row-gap: 2px;
+  }
+
+  .catalog-price-strip__caption {
+    flex: 0 0 auto;
+  }
+
+  &.catalog-price-strip--manager .catalog-price-strip__tile .catalog-price-strip__value,
+  &.catalog-price-strip--client .catalog-price-strip__tile .catalog-price-strip__value {
+    flex: 0 0 auto;
+    align-self: flex-start;
+    justify-self: start;
+    margin-inline-start: 0;
+    text-align: start;
   }
 }

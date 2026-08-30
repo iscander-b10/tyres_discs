@@ -136,12 +136,20 @@ disabled «Личный кабинет» со статусом «Скоро». �
 Design `Switch` и позволяет перетаскивать панель:
 
 - позиция ограничивается viewport;
-- движение начинается после порога 5 px, чтобы не превратить click в drag;
+- на desktop движение с рамки начинается после порога 5 px, клик по Switch
+  только переключает режим;
+- на touch/pen Switch можно зажать (~420 ms) или сдвинуть дальше 12 px — тогда
+  панель поднимается и следует за пальцем, а tap по-прежнему переключает режим;
+- pointer capture откладывается до начала drag, чтобы короткий tap дошёл до
+  Switch; `touch-action: none` и hold-timer снимаются на pointerup/cancel/unmount;
 - DOM-позиция во время drag обновляется через `requestAnimationFrame`;
 - относительная позиция хранится в `ivanor.mode-toggle.position`;
 - legacy `ivanor-sidebar-position` читается один раз и удаляется при новой
   записи;
 - listeners, RAF и timers очищаются при завершении/unmount.
+
+`ModeToggle.test.jsx` фиксирует long-press/slide на touch, tap без сдвига и
+mouse-drag с рамки.
 
 Смысл client mode и скрываемые поля разобраны на странице
 [Корзина и режим клиента](/10-ui/basket-and-client-mode).
@@ -149,8 +157,9 @@ Design `Switch` и позволяет перетаскивать панель:
 ## Ошибки и ограничения
 
 - Ошибки localStorage темы и позиции проглатываются с безопасным fallback.
-- Нет отдельного unit-теста `Root`, `ThemeSwitch`, `SiteFooter` и drag-логики
-  `ModeToggle`; интеграция Ant Design tokens также не покрыта тестом.
+- Нет отдельного unit-теста `Root` и `ThemeSwitch`; интеграция Ant Design
+  tokens также не покрыта тестом. Drag `ModeToggle` покрыт
+  `ModeToggle.test.jsx`.
 - Системная тема читается только при инициализации: подписки на последующее
   изменение `prefers-color-scheme` нет.
 - Disabled nav и «Личный кабинет» не являются скрытыми active routes: это явно неготовые элементы интерфейса. Кнопка «Посмотреть демо» на лендинге — active, ведёт на `/demo`.

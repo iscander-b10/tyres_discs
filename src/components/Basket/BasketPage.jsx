@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Button, Checkbox, Spin, Typography } from 'antd';
 import { CloseOutlined } from '@ant-design/icons';
 import { useLocation } from 'react-router-dom';
@@ -29,6 +29,69 @@ const formatMoney = (value) => {
   if (!Number.isFinite(value) || value <= 0) return formatPriceDisplay(null);
   return `${Math.round(value).toLocaleString('ru-RU')}\u00A0руб.`;
 };
+
+/** True if any caption|value pair is wider than the host (all three then stack). */
+function pricePairsNeedStack(host) {
+  if (!host) return false;
+  const strip = host.querySelector('.catalog-price-strip');
+  if (!strip) return false;
+  const available = host.clientWidth;
+  const gap =
+    Number.parseFloat(
+      getComputedStyle(host).getPropertyValue('--basket-price-col-gap')
+    ) || 0;
+  const tiles = strip.querySelectorAll('.catalog-price-strip__tile');
+  for (const tile of tiles) {
+    const caption = tile.querySelector('.catalog-price-strip__caption');
+    const value = tile.querySelector('.catalog-price-strip__value');
+    if (!caption || !value) continue;
+    if (caption.scrollWidth + gap + value.scrollWidth > available + 0.5) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function BasketPriceHit({ item, isClientMode, onOpen }) {
+  const hostRef = useRef(null);
+  const [stackPrices, setStackPrices] = useState(false);
+
+  useLayoutEffect(() => {
+    const host = hostRef.current;
+    if (!host) return undefined;
+
+    const measure = () => {
+      setStackPrices(pricePairsNeedStack(host));
+    };
+
+    measure();
+    void document.fonts?.ready?.then(measure);
+    if (typeof ResizeObserver === 'undefined') return undefined;
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(host);
+    return () => observer.disconnect();
+  }, [item, isClientMode]);
+
+  return (
+    <button
+      ref={hostRef}
+      type="button"
+      className={`basket-line__prices-hit${
+        stackPrices ? ' basket-line__prices-hit--stack' : ''
+      }`}
+      onClick={onOpen}
+    >
+      <CatalogPriceStrip
+        item={item}
+        isClientMode={isClientMode}
+        className={`basket-line__price-strip${
+          stackPrices ? ' basket-line__price-strip--stack' : ''
+        }`}
+      />
+    </button>
+  );
+}
 
 function BasketLinePhoto({ photoSrc, supplier }) {
   const [failed, setFailed] = useState(false);
@@ -216,42 +279,47 @@ function BasketPage() {
 
                   <div className="basket-line__body">
                     <div className="basket-line__main">
-                      <button
-                        type="button"
-                        className="basket-line__info"
-                        onClick={() => setModalItemKey(item.key)}
-                      >
-                        <Text className="basket-line__name">{item.title}</Text>
-                        {item.sizeTitle ? (
-                          <Text className="basket-line__meta basket-line__size" type="secondary">
-                            {item.sizeTitle}
-                          </Text>
-                        ) : null}
-                        {item.code ? (
-                          <Text className="basket-line__meta basket-line__code" type="secondary">
-                            Код: {item.code}
-                          </Text>
-                        ) : null}
-                        {!isClientMode && item.supplier ? (
-                          <Text className="basket-line__meta basket-line__supplier" type="secondary">
-                            {item.supplier}
-                          </Text>
-                        ) : null}
-                      </button>
-
-                      <div className="basket-line__bottom">
+                      <div className="basket-line__head">
                         <button
                           type="button"
-                          className="basket-line__prices-hit"
+                          className="basket-line__info"
                           onClick={() => setModalItemKey(item.key)}
                         >
-                          <CatalogPriceStrip
-                            item={item}
-                            /* Client → store unit only; manager → B2B / Internet / store */
-                            isClientMode={isClientMode}
-                            className="basket-line__price-strip"
-                          />
+                          <Text className="basket-line__name">{item.title}</Text>
+                          {item.sizeTitle ? (
+                            <Text className="basket-line__meta basket-line__size" type="secondary">
+                              {item.sizeTitle}
+                            </Text>
+                          ) : null}
+                          {item.code ? (
+                            <Text className="basket-line__meta basket-line__code" type="secondary">
+                              Код: {item.code}
+                            </Text>
+                          ) : null}
+                          {!isClientMode && item.supplier ? (
+                            <Text className="basket-line__meta basket-line__supplier" type="secondary">
+                              {item.supplier}
+                            </Text>
+                          ) : null}
                         </button>
+                        <Button
+                          className="basket-line__remove"
+                          type="text"
+                          icon={<CloseOutlined aria-hidden />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeItem(item.key);
+                          }}
+                          aria-label={`Удалить ${item.title}`}
+                        />
+                      </div>
+
+                      <div className="basket-line__bottom">
+                        <BasketPriceHit
+                          item={item}
+                          isClientMode={isClientMode}
+                          onOpen={() => setModalItemKey(item.key)}
+                        />
                       </div>
                     </div>
                   </div>
@@ -309,17 +377,6 @@ function BasketPage() {
                       </div>
                     </div>
                   </div>
-
-                  <Button
-                    className="basket-line__remove"
-                    type="text"
-                    icon={<CloseOutlined aria-hidden />}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeItem(item.key);
-                    }}
-                    aria-label={`Удалить ${item.title}`}
-                  />
                 </li>
               );
             })}

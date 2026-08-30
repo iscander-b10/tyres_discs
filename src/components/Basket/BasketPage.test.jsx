@@ -142,15 +142,21 @@ describe('BasketPage line layout', () => {
 
     const line = container.querySelector('.basket-line');
     const body = container.querySelector('.basket-line__body');
+    const head = container.querySelector('.basket-line__head');
     const end = container.querySelector('.basket-line__end');
     const prices = container.querySelector('.basket-line__prices-hit');
+    const remove = container.querySelector('.basket-line__remove');
+    const info = container.querySelector('.basket-line__info');
 
     expect(line).not.toBeNull();
     expect(body).not.toBeNull();
+    expect(head).not.toBeNull();
     expect(end).not.toBeNull();
     expect(end.parentElement).toBe(line);
     expect(body.contains(end)).toBe(false);
     expect(body.contains(prices)).toBe(true);
+    expect(head.contains(info)).toBe(true);
+    expect(head.contains(remove)).toBe(true);
     expect(container.querySelector('.basket-line__sum-web')).not.toBeNull();
   });
 });

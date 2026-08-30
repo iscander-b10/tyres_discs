@@ -9,6 +9,11 @@ const POSITION_STORAGE_KEY = 'ivanor.mode-toggle.position';
 const LEGACY_POSITION_STORAGE_KEY = 'ivanor-sidebar-position';
 const EDGE_MARGIN = 0;
 const DRAG_THRESHOLD_PX = 5;
+const TOUCH_DRAG_THRESHOLD_PX = 12;
+const LONG_PRESS_MS = 420;
+
+const POINTER_MOVE_OPTIONS = { capture: true, passive: false };
+const POINTER_UP_OPTIONS = { capture: true };
 
 const INTERACTIVE_SELECTOR =
   '.ant-switch, button, a, input, textarea, select, [data-no-drag]';
@@ -100,6 +105,36 @@ function savePosition(left, top, width, height) {
 
 function isInteractiveTarget(target) {
   return Boolean(target?.closest?.(INTERACTIVE_SELECTOR));
+}
+
+function isCoarsePointerType(pointerType) {
+  return pointerType === 'touch' || pointerType === 'pen';
+}
+
+function clearHoldTimer(drag) {
+  if (drag?.holdTimer == null) return;
+  window.clearTimeout(drag.holdTimer);
+  drag.holdTimer = null;
+}
+
+function trySetPointerCapture(target, pointerId) {
+  if (!target?.setPointerCapture) return;
+  try {
+    if (!target.hasPointerCapture?.(pointerId)) {
+      target.setPointerCapture(pointerId);
+    }
+  } catch {
+    /* already released or unsupported */
+  }
+}
+
+function tryReleasePointerCapture(target, pointerId) {
+  if (!target?.hasPointerCapture?.(pointerId)) return;
+  try {
+    target.releasePointerCapture(pointerId);
+  } catch {
+    /* already released */
+  }
 }
 
 function ModeToggle() {
@@ -223,6 +258,26 @@ function ModeToggle() {
     return () => window.clearTimeout(id);
   }, [isSnapping, position]);
 
+  const detachDragListeners = useCallback((drag) => {
+    if (!drag) return;
+    window.removeEventListener(
+      'pointermove',
+      drag.onPointerMove,
+      POINTER_MOVE_OPTIONS,
+    );
+    window.removeEventListener('pointerup', drag.onPointerUp, POINTER_UP_OPTIONS);
+    window.removeEventListener(
+      'pointercancel',
+      drag.onPointerUp,
+      POINTER_UP_OPTIONS,
+    );
+    window.removeEventListener(
+      'touchmove',
+      drag.onTouchMove,
+      POINTER_MOVE_OPTIONS,
+    );
+  }, []);
+
   useEffect(() => {
     const panelEl = panelRef.current;
 
@@ -234,18 +289,48 @@ function ModeToggle() {
       const drag = dragRef.current;
       if (!drag) return;
 
-      window.removeEventListener('pointermove', drag.onPointerMove);
-      window.removeEventListener('pointerup', drag.onPointerUp);
-      window.removeEventListener('pointercancel', drag.onPointerUp);
+      clearHoldTimer(drag);
+      detachDragListeners(drag);
       dragRef.current = null;
       panelEl?.classList.remove('is-dragging');
     };
-  }, []);
+  }, [detachDragListeners]);
+
+  const beginDrag = useCallback(
+    (dx, dy) => {
+      const drag = dragRef.current;
+      if (!drag || drag.moved) return;
+
+      clearHoldTimer(drag);
+      trySetPointerCapture(drag.captureTarget, drag.pointerId);
+
+      drag.moved = true;
+      const el = panelRef.current;
+      if (el) {
+        el.style.willChange = 'transform';
+      }
+
+      const next = clampPosition(
+        drag.originLeft + dx,
+        drag.originTop + dy,
+        drag.width,
+        drag.height,
+      );
+      pendingPosRef.current = next;
+      positionRef.current = next;
+      writeDragOffset(next.left, next.top, drag.originLeft, drag.originTop);
+      setIsDragging(true);
+      setIsSnapping(false);
+    },
+    [writeDragOffset],
+  );
 
   const endDrag = useCallback(
     (event) => {
       const drag = dragRef.current;
       if (!drag || drag.pointerId !== event.pointerId) return;
+
+      clearHoldTimer(drag);
 
       if (rafRef.current != null) {
         window.cancelAnimationFrame(rafRef.current);
@@ -253,14 +338,8 @@ function ModeToggle() {
         flushPendingPosition();
       }
 
-      const captureTarget = drag.captureTarget;
-      if (captureTarget?.hasPointerCapture?.(event.pointerId)) {
-        captureTarget.releasePointerCapture(event.pointerId);
-      }
-
-      window.removeEventListener('pointermove', drag.onPointerMove);
-      window.removeEventListener('pointerup', drag.onPointerUp);
-      window.removeEventListener('pointercancel', drag.onPointerUp);
+      tryReleasePointerCapture(drag.captureTarget, event.pointerId);
+      detachDragListeners(drag);
 
       const current = positionRef.current;
       if (drag.moved && current) {
@@ -274,13 +353,23 @@ function ModeToggle() {
       setIsDragging(false);
       dragRef.current = null;
     },
-    [clearDragTransform, flushPendingPosition, writeRestingPosition],
+    [
+      clearDragTransform,
+      detachDragListeners,
+      flushPendingPosition,
+      writeRestingPosition,
+    ],
   );
 
   const onPointerDown = (event) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
-    if (isInteractiveTarget(event.target)) return;
     if (!positionRef.current) return;
+
+    const fromInteractive = isInteractiveTarget(event.target);
+    const coarse = isCoarsePointerType(event.pointerType);
+
+    // Mouse click on the switch must still toggle; drag from the chrome around it.
+    if (fromInteractive && !coarse) return;
 
     const { width, height } = measureSize();
     if (!width || !height) return;
@@ -291,25 +380,20 @@ function ModeToggle() {
 
       const dx = moveEvent.clientX - drag.startX;
       const dy = moveEvent.clientY - drag.startY;
+      drag.lastDx = dx;
+      drag.lastDy = dy;
+
+      if ((drag.moved || drag.holdTimer != null) && moveEvent.cancelable) {
+        moveEvent.preventDefault();
+      }
 
       if (!drag.moved) {
-        if (Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
-        drag.moved = true;
-        const el = panelRef.current;
-        if (el) {
-          el.style.willChange = 'transform';
-        }
-        const next = clampPosition(
-          drag.originLeft + dx,
-          drag.originTop + dy,
-          drag.width,
-          drag.height,
-        );
-        pendingPosRef.current = next;
-        positionRef.current = next;
-        writeDragOffset(next.left, next.top, drag.originLeft, drag.originTop);
-        setIsDragging(true);
-        setIsSnapping(false);
+        const threshold =
+          drag.fromInteractive && drag.coarse
+            ? TOUCH_DRAG_THRESHOLD_PX
+            : DRAG_THRESHOLD_PX;
+        if (Math.hypot(dx, dy) < threshold) return;
+        beginDrag(dx, dy);
         return;
       }
 
@@ -321,6 +405,12 @@ function ModeToggle() {
       );
     };
 
+    const onTouchMove = (touchEvent) => {
+      const drag = dragRef.current;
+      if (!drag?.moved || !touchEvent.cancelable) return;
+      touchEvent.preventDefault();
+    };
+
     const onPointerUp = (upEvent) => {
       endDrag(upEvent);
     };
@@ -329,20 +419,49 @@ function ModeToggle() {
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
+      lastDx: 0,
+      lastDy: 0,
       originLeft: positionRef.current.left,
       originTop: positionRef.current.top,
       width,
       height,
       moved: false,
+      fromInteractive,
+      coarse,
+      holdTimer: null,
       captureTarget: event.currentTarget,
       onPointerMove,
+      onTouchMove,
       onPointerUp,
     };
 
-    event.currentTarget.setPointerCapture(event.pointerId);
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
-    window.addEventListener('pointercancel', onPointerUp);
+    // Capture immediately only when the gesture cannot be a switch tap.
+    // Delayed capture lets a short touch still toggle the switch.
+    if (!fromInteractive) {
+      trySetPointerCapture(event.currentTarget, event.pointerId);
+    }
+
+    if (coarse) {
+      dragRef.current.holdTimer = window.setTimeout(() => {
+        const drag = dragRef.current;
+        if (!drag || drag.moved) return;
+        beginDrag(drag.lastDx, drag.lastDy);
+        try {
+          navigator.vibrate?.(10);
+        } catch {
+          /* ignore */
+        }
+      }, LONG_PRESS_MS);
+    }
+
+    window.addEventListener('pointermove', onPointerMove, POINTER_MOVE_OPTIONS);
+    window.addEventListener('pointerup', onPointerUp, POINTER_UP_OPTIONS);
+    window.addEventListener('pointercancel', onPointerUp, POINTER_UP_OPTIONS);
+    window.addEventListener('touchmove', onTouchMove, POINTER_MOVE_OPTIONS);
+  };
+
+  const onContextMenu = (event) => {
+    event.preventDefault();
   };
 
   const onClickCapture = (event) => {
@@ -384,6 +503,7 @@ function ModeToggle() {
         gap={8}
         onPointerDown={onPointerDown}
         onClickCapture={onClickCapture}
+        onContextMenu={onContextMenu}
       >
         <HoverTooltip title={targetModeLabel} placement="top">
           <Switch
