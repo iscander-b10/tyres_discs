@@ -1,6 +1,6 @@
 import indexedDBService from '../../services/indexedDBService';
 import { isIkonBrand } from '../core';
-import { SHOWCASE_CONFIG, isPopularTireSize } from './showcaseConfig';
+import { SHOWCASE_CONFIG, getShowcaseSupplier, isPopularTireSize } from './showcaseConfig';
 import { buildTireShowcase } from './buildTireShowcase';
 import { buildDiscShowcase } from './buildDiscShowcase';
 import { resolveShowcaseSeed } from './showcaseSeed';
@@ -10,12 +10,12 @@ const cache = {
   discs: { workspace: null, version: null, payload: null, promise: null },
 };
 
-const loadTirePayload = async () => {
+const loadTirePayload = async (showcaseSupplier) => {
   const cfg = SHOWCASE_CONFIG.tires;
   return indexedDBService.collectTireShowcaseCandidates({
     candidateLimit: cfg.candidateLimit,
     minAmount: cfg.minAmount,
-    supplier: SHOWCASE_CONFIG.showcaseSupplier,
+    supplier: showcaseSupplier,
     // Ikon первыми в пуле: уникальные модели не отрезаются ранним лимитом 480.
     preferItem: isIkonBrand,
     // Частые размеры до лимита 480, иначе бюджет съедают редкие SKU.
@@ -23,13 +23,13 @@ const loadTirePayload = async () => {
   });
 };
 
-const loadDiscPayload = async () => {
+const loadDiscPayload = async (showcaseSupplier) => {
   const cfg = SHOWCASE_CONFIG.discs;
   return indexedDBService.collectDiscShowcaseCandidates({
-    // RAM: все matching (литые Шинсервиса отбирает buildDiscShowcase).
+    // RAM: все matching (литые showcase-поставщика отбирает buildDiscShowcase).
     candidateLimit: null,
     minAmount: cfg.minAmount,
-    supplier: SHOWCASE_CONFIG.showcaseSupplier,
+    supplier: showcaseSupplier,
   });
 };
 
@@ -43,11 +43,15 @@ export const getCatalogShowcase = async ({
   catalogDataVersion = 0,
   catalogSnapshotVersion = '',
   workspaceResetKey = 'guest',
+  storeId,
   now = new Date(),
 } = {}) => {
   const bucketKey = kind === 'discs' ? 'discs' : 'tires';
   const bucket = cache[bucketKey];
   const cacheVersion = `${workspaceResetKey}:${catalogDataVersion}`;
+  const resolvedStoreId =
+    storeId ?? (String(workspaceResetKey || '').split(':').pop() || undefined);
+  const showcaseSupplier = getShowcaseSupplier(resolvedStoreId);
 
   if (bucket.workspace !== workspaceResetKey) {
     bucket.workspace = workspaceResetKey;
@@ -63,7 +67,9 @@ export const getCatalogShowcase = async ({
     const versionAtStart = cacheVersion;
     bucket.promise = (async () => {
       const payload =
-        bucketKey === 'tires' ? await loadTirePayload() : await loadDiscPayload();
+        bucketKey === 'tires'
+          ? await loadTirePayload(showcaseSupplier)
+          : await loadDiscPayload(showcaseSupplier);
       if (
         `${bucket.workspace}:${bucket.version}` === versionAtStart
       ) {
@@ -115,5 +121,6 @@ export const getCatalogShowcase = async ({
     candidates: payload.candidates,
     isEmpty: payload.isEmpty,
     seed,
+    showcaseSupplier,
   });
 };

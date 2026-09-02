@@ -3,6 +3,8 @@
  * Позже список размеров и топы можно подменить с API без переписывания UI.
  */
 
+import { DEMO_STORE_ID } from '../../app/demoWorkspace';
+
 /** @typedef {{ label: string, width: number, profile: number, diameter: string }} TireSizeChip */
 /** @typedef {{ label: string, diameter: string, pn: number, pcd: number, cb: number, cbFrom?: number, cbTo?: number }} DiscSizeChip */
 
@@ -12,6 +14,8 @@ export const SHOWCASE_CONFIG = {
    * Совпадает с `item.supplier` в IDB (label Шинсервиса).
    */
   showcaseSupplier: 'Шинсервис',
+  /** То же для frozen demo snapshot с анонимизированными именами. */
+  showcaseSupplierDemo: 'ТайрСервис',
   tires: {
     /** @type {TireSizeChip[]} */
     popularSizes: [
@@ -119,6 +123,12 @@ export const SHOWCASE_CONFIG = {
     trySizes: 'Другие размеры',
   },
 };
+
+/** Поставщик полок витрины: live store vs demo workspace. */
+export const getShowcaseSupplier = (storeId) =>
+  storeId === DEMO_STORE_ID
+    ? SHOWCASE_CONFIG.showcaseSupplierDemo
+    : SHOWCASE_CONFIG.showcaseSupplier;
 
 /** Лето: мар–авг; зима: сен–фев. Границы — SHOWCASE_CONFIG.season. */
 export const getCatalogSeasonFromDate = (date = new Date()) => {

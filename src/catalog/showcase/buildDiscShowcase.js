@@ -17,6 +17,7 @@ export const buildDiscShowcase = ({
   candidates,
   isEmpty,
   seed,
+  showcaseSupplier = SHOWCASE_CONFIG.showcaseSupplier,
 }) => {
   const cfg = SHOWCASE_CONFIG.discs;
   const copy = SHOWCASE_CONFIG.copy;
@@ -36,7 +37,7 @@ export const buildDiscShowcase = ({
   const castPool = stocked.filter(
     (item) =>
       item.diskType === cfg.diskType &&
-      item.supplier === SHOWCASE_CONFIG.showcaseSupplier
+      item.supplier === showcaseSupplier
   );
   const popularLimit = clampCount(cfg.popularModelsCount, castPool.length);
   // Пул < лимита — показываем всё что есть, без добивки дублями/другими типами.

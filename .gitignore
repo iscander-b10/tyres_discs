@@ -33,5 +33,6 @@ yarn-error.log*
 
 # local audit artifacts
 /scripts/audit-catalog-loss/.bundle.cjs
+/scripts/build-demo-snapshot-local/.bundle.cjs
 /reports/
 
