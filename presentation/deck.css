@@ -731,7 +731,7 @@ a {
   }
 }
 
-@media (max-width: 980px) {
+@media screen and (max-width: 980px) {
   .grid-2,
   .process {
     grid-template-columns: 1fr;
@@ -749,7 +749,7 @@ a {
   }
 }
 
-@media (max-width: 640px) {
+@media screen and (max-width: 640px) {
   .slide {
     align-content: start;
     padding-top: 3.1rem;
@@ -783,29 +783,47 @@ a {
 
 @media print {
   @page {
-    size: landscape;
-    margin: 12mm;
+    size: A4 landscape;
+    margin: 0;
+  }
+
+  html,
+  body,
+  .slide,
+  .card,
+  .cta-island,
+  .contact,
+  .point::before,
+  .quote,
+  .warn {
+    color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   html,
   body {
+    width: 297mm;
     height: auto;
+    margin: 0;
+    padding: 0;
     overflow: visible;
-    background: #fff;
-    color: #273036;
-    color-scheme: light;
+    background: var(--stage);
+    color: var(--text);
+    color-scheme: dark;
   }
 
   .skip,
   .progress,
   .nav,
-  .counter {
+  .counter,
+  #live {
     display: none !important;
   }
 
   .deck {
     display: block;
-    width: auto;
+    width: 297mm;
     height: auto;
     overflow: visible;
     scroll-snap-type: none;
@@ -813,48 +831,39 @@ a {
   }
 
   .slide {
-    display: block !important;
+    display: grid;
+    align-content: center;
+    justify-items: center;
     position: relative;
-    width: auto;
-    height: auto;
-    max-height: none;
+    box-sizing: border-box;
+    width: 297mm;
+    height: 210mm;
+    max-width: 297mm;
+    max-height: 210mm;
     min-height: 0;
-    overflow: visible;
+    margin: 0;
+    padding: 12mm 16mm;
+    overflow: hidden;
     scroll-snap-align: unset;
     page-break-after: always;
+    page-break-inside: avoid;
     break-after: page;
-    padding: 12mm;
-    background: #fff !important;
-    color: #273036;
+    break-inside: avoid;
+    color: var(--text);
+    background:
+      radial-gradient(ellipse 70% 50% at 88% -10%, var(--glow), transparent 55%),
+      var(--stage);
   }
 
-  .slide h1,
-  .slide h2,
-  .lead,
-  .note,
-  .author,
-  .quote,
-  .kicker,
-  .sub-points p,
-  .warn,
-  .cta-steps,
-  .price-legend li,
-  .price-legend strong,
-  .point,
-  .card p {
-    color: #273036;
+  .slide:nth-child(even) {
+    background:
+      radial-gradient(ellipse 55% 45% at 8% 110%, var(--glow), transparent 50%),
+      var(--stage);
   }
 
-  .lead,
-  .note,
-  .author,
-  .kicker,
-  .sub-points p,
-  .cta-steps,
-  .price-legend li,
-  .point,
-  .card p {
-    color: #595d60;
+  .slide:last-child {
+    page-break-after: auto;
+    break-after: auto;
   }
 
   .enter,
@@ -865,16 +874,319 @@ a {
     animation: none !important;
   }
 
-  .cta-island {
-    box-shadow: none;
-    color: #fff;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+  .slide__frame {
+    width: min(1000px, 86%);
+    max-width: 86%;
+    margin-inline: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .kicker,
+  .slide h1,
+  .slide h2,
+  .points,
+  .note,
+  .quote,
+  .intro-stack,
+  .grid-2,
+  .sub-frame,
+  .cta-stage,
+  .author {
+    margin-inline: auto;
+    text-align: start;
+  }
+
+  .kicker {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin-bottom: 0.55rem;
+    max-width: 42rem;
+    width: 100%;
+  }
+
+  .slide h1,
+  .slide h2 {
+    color: var(--text);
+    font-size: 2.5rem;
+    line-height: 1.12;
+    letter-spacing: -0.03em;
+    max-width: 18em;
+    width: 100%;
+    margin-bottom: 0;
+    text-wrap: balance;
+  }
+
+  .lead,
+  .note,
+  .author,
+  .point,
+  .card p,
+  .sub-points p,
+  .cta-steps,
+  .price-legend li {
+    color: var(--text-muted);
+    text-align: start;
+  }
+
+  .note {
+    margin-top: 1.15rem;
+    font-size: 0.92rem;
+    line-height: 1.45;
+    max-width: 40rem;
+    width: 100%;
+    color: var(--text-subtle);
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: stretch;
+    gap: 1.25rem;
+    margin-top: 1.25rem;
+    max-width: 52rem;
+    width: 100%;
+  }
+
+  .card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--stage-raised);
+    border: 1px solid var(--hairline);
+    color: var(--text);
+    text-align: start;
+  }
+
+  .card--accent {
+    border-color: rgba(228, 49, 65, 0.35);
+  }
+
+  .card h3 {
+    color: var(--text);
+  }
+
+  .points {
+    width: 100%;
+    max-width: 42rem;
+    margin-top: 1.2rem;
+  }
+
+  .point::before {
+    background: var(--accent);
+  }
+
+  .quote {
+    color: var(--text);
+    border-inline-start: 3px solid var(--accent);
+    max-width: 42rem;
+    width: 100%;
+    margin-top: 1rem;
+  }
+
+  /* 1 — титул: симметрия, H1 по центру, лиды одной мерой */
+  .slide--title .slide__frame {
+    max-width: 52rem;
+    width: min(52rem, 86%);
+  }
+
+  .slide--title h1 {
+    text-align: center;
+    max-width: 20em;
+    font-size: 2.55rem;
+    margin-bottom: 1.35rem;
+  }
+
+  .slide--title .intro-stack {
+    width: 100%;
+    max-width: 36rem;
+    gap: 1.15rem;
+    text-align: start;
+  }
+
+  .slide--title .lead {
+    font-size: 1.12rem;
+    line-height: 1.5;
+    max-width: none;
+    text-wrap: pretty;
+  }
+
+  /* 2 и 8 — текстовая колонка в оптическом центре */
+  .slide--copy .slide__frame {
+    max-width: 42rem;
+    width: min(42rem, 86%);
+    align-items: stretch;
+  }
+
+  .slide--copy .kicker,
+  .slide--copy h2,
+  .slide--copy .points,
+  .slide--copy .note,
+  .slide--copy .sub-frame {
+    width: 100%;
+    max-width: none;
+  }
+
+  .slide--copy h2 {
+    font-size: 2.35rem;
+  }
+
+  .slide--copy .sub-frame {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .slide--copy .sub-points {
+    margin-top: 1.25rem;
+    gap: 1rem;
+  }
+
+  .slide--copy .sub-points p {
+    max-width: none;
+    font-size: 1.05rem;
+    line-height: 1.45;
+    text-wrap: pretty;
+  }
+
+  /* 3, 4, 5, 6, 7 — одинаковая ширина сетки и ритм kicker → H2 → cards */
+  .slide--cards .slide__frame {
+    max-width: 52rem;
+    width: min(52rem, 86%);
+    align-items: stretch;
+  }
+
+  .slide--cards .kicker,
+  .slide--cards h2,
+  .slide--cards .grid-2,
+  .slide--cards .quote,
+  .slide--cards .note {
+    width: 100%;
+    max-width: none;
+  }
+
+  .slide--cards h2 {
+    font-size: 2.15rem;
+    max-width: none;
+  }
+
+  .slide--cards .grid-2 {
+    margin-top: 1.25rem;
+    max-width: none;
+  }
+
+  .slide--long-head h2 {
+    font-size: 1.72rem;
+    line-height: 1.18;
+  }
+
+  .slide--dense h2 {
+    font-size: 1.85rem;
+    line-height: 1.16;
+  }
+
+  .slide--dense .quote {
+    margin-top: 0.85rem;
+    font-size: 1.12rem;
+    line-height: 1.4;
+  }
+
+  .slide--dense .grid-2 {
+    margin-top: 1rem;
+    gap: 1rem;
+  }
+
+  .slide--dense .card {
+    padding: 1.05rem 1.15rem;
+  }
+
+  .slide--dense .card p {
+    font-size: 0.9rem;
+    line-height: 1.42;
+  }
+
+  /* 9 — CTA: заголовок по центру, кнопка и контакты в нижней трети блока */
+  .slide--cta .slide__frame {
+    max-width: 40rem;
+    width: min(40rem, 86%);
+  }
+
+  .slide--cta .cta-stage {
+    width: 100%;
+    max-width: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .slide--cta .kicker,
+  .slide--cta h2 {
+    text-align: center;
+    width: 100%;
+    max-width: 18em;
+  }
+
+  .slide--cta h2 {
+    font-size: 2.25rem;
+  }
+
+  .slide--cta .cta-steps {
+    margin-top: 1rem;
+    max-width: 36rem;
+    width: 100%;
+    text-align: start;
+    text-wrap: pretty;
+  }
+
+  .slide--cta .cta-island {
+    margin-top: 1.65rem;
+    width: auto;
+    justify-content: center;
+    background: var(--accent);
+    color: var(--on-accent);
+    box-shadow: 0 10px 28px rgba(228, 49, 65, 0.28);
+  }
+
+  .slide--cta .contacts {
+    justify-content: center;
+    margin-top: 1.35rem;
+    width: 100%;
+  }
+
+  .contact {
+    min-width: 11rem;
+    flex: 0 1 auto;
+    background: var(--stage-raised);
+    border: 1px solid var(--hairline);
+    color: var(--text);
+  }
+
+  .contact small {
+    color: var(--text-subtle);
+  }
+
+  .slide--cta .note {
+    text-align: start;
+    max-width: 36rem;
+  }
+
+  .cta-island,
+  .cta-island:hover,
+  .cta-island:active {
+    background: var(--accent);
+    color: var(--on-accent);
+    transform: none;
+  }
+
+  .contact:hover {
+    background: var(--stage-raised);
+    border-color: var(--hairline);
   }
 
   .warn {
-    background: #f6f7f8;
-    color: #273036;
+    background: var(--accent-muted);
+    color: var(--text);
   }
 }
 

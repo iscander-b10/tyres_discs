@@ -34,7 +34,8 @@ import LoginPage from './components/LoginPage/LoginPage';
 import LandingPage from './components/LandingPage/LandingPage';
 import ModeToggle from './components/ModeToggle/ModeToggle';
 import ScrollToTop from './components/ScrollToTop/ScrollToTop';
-import DemoCatalogBanner from './components/DemoCatalogBanner/DemoCatalogBanner';
+// Временно скрыто для скриншотов презентации — вернуть после съёмки.
+// import DemoCatalogBanner from './components/DemoCatalogBanner/DemoCatalogBanner';
 import { CatalogSyncHost } from './services/catalogSync/CatalogSyncHost';
 import { DemoCatalogHost } from './services/demoCatalog/DemoCatalogHost';
 import './App.scss';
@@ -131,7 +132,8 @@ function AppFrame({ appearance = 'light', onAppearanceChange }) {
                 <LandingPage />
               ) : (
                 <>
-                  {showCatalog && demo ? <DemoCatalogBanner /> : null}
+                  {/* Временно скрыто для скриншотов презентации — вернуть после съёмки. */}
+                  {/* {showCatalog && demo ? <DemoCatalogBanner /> : null} */}
                   {showCatalog ? (
                     <>
                       <div
