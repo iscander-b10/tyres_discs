@@ -72,8 +72,9 @@
 
 | Export | Назначение |
 | --- | --- |
-| `SITE_PHONE` | Телефон в footer |
-| `SITE_DEVELOPER_TELEGRAM` | Credit link |
+| `SITE_PHONE` | Телефон магазина в header/footer |
+| `SITE_DEVELOPER_TELEGRAM` | Credit link и контакт лендинга (`handle`, `name`, `href`) |
+| `SITE_DEVELOPER_PHONE` | Телефон разработчика на CTA лендинга |
 | `SITE_PRODUCT_NAV`, `SITE_SERVICE_NAV` | Nav items |
 | `SITE_NAV_ITEMS` | Combined nav |
 

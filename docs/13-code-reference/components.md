@@ -10,7 +10,8 @@
 | --- | --- | --- | --- | --- |
 | `SiteHeader` | `src/components/SiteHeader/SiteHeader.jsx` | Шапка: nav, корзина, тема, вход | `useAuth`, `useCart`, props `appearance` | [Тема и shell](/10-ui/theme-and-shell-components) |
 | `SiteFooter` | `src/components/SiteFooter/SiteFooter.jsx` | Подвал, телефон, вход | `useAuth` | [Тема и shell](/10-ui/theme-and-shell-components) |
-| `LandingPage` | `src/components/LandingPage/LandingPage.jsx` | Маркетинговая главная; «Посмотреть демо» → `/demo` | — | [Продукт](/00-overview/product-and-users) |
+| `LandingPage` | `src/components/LandingPage/LandingPage.jsx` | Маркетинговая главная по колоде продукта; секции — snap-слайды; «Посмотреть демо» → `/demo` | `useLandingSnap` | [Продукт](/00-overview/product-and-users) |
+| `LandingDeck` | `src/components/LandingPage/LandingDeck.jsx` | Скроллер колоды на guest `/`: один жест → один слайд | `useLandingSnap` | [Продукт](/00-overview/product-and-users) |
 | `ScrollToTop` | `src/components/ScrollToTop/ScrollToTop.jsx` | Сброс scroll при route change | `useLocation` | [Маршруты](/03-routing-shell/routes-and-login-modal) |
 | `ModeToggle` | `src/components/ModeToggle/ModeToggle.jsx` | Переключатель менеджер/клиент | `useAppShell` | [Режим клиента](/10-ui/basket-and-client-mode) |
 | `CatalogBootstrapOverlay` | `src/components/CatalogBootstrapOverlay/CatalogBootstrapOverlay.jsx` | Полноэкранная шторка cold start; exit opacity 50ms после settled витрины | props из AppShell | [AppShell](/03-routing-shell/app-shell-state) |
@@ -26,6 +27,13 @@
 - **Кто вызывает:** `AppFrame` в `App.js`.
 - **Тесты:** `SiteHeader.test.jsx` — badge корзины, login link, скрытие «Войти»/«Выйти» на `/demo*`, отсутствие стрелок nav без overflow.
 - **Страница:** [Тема и shell](/10-ui/theme-and-shell-components).
+
+### `LandingDeck` / `LandingPage`
+
+- **Кто вызывает:** `AppFrame` оборачивает content+footer в `LandingDeck` только при `showLanding`.
+- **Скроллер:** `.app-landing-deck` ниже шапки; секции с классом `landing-page__slide` и `.site-footer` — snap-точки.
+- **Жесты:** `useLandingSnap` (референс `presentation/deck.js`) — колесо/тач/стрелки переводят на соседний слайд за 720 ms; высокий слайд сначала скроллит себя (`is-overflow`). При `prefers-reduced-motion` hijack выключен.
+- **Тесты:** `LandingPage.test.jsx` — CTA и 8 слайдов; `landingSnap.test.js` — индекс, overflow, duration.
 
 ---
 

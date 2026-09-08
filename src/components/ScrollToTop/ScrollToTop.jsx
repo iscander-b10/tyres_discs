@@ -10,6 +10,22 @@ function prefersReducedMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
+function getScroller() {
+  return document.querySelector('.app-landing-deck') || window;
+}
+
+function getScrollY(scroller) {
+  return scroller === window ? window.scrollY : scroller.scrollTop;
+}
+
+function scrollScrollerToTop(scroller, behavior) {
+  if (scroller === window) {
+    window.scrollTo({ top: 0, behavior });
+    return;
+  }
+  scroller.scrollTo({ top: 0, behavior });
+}
+
 function ScrollToTop() {
   const { pathname } = useLocation();
   const [searchParams] = useSearchParams();
@@ -29,25 +45,27 @@ function ScrollToTop() {
       return;
     }
     if (previousPath !== pathname) {
-      window.scrollTo(0, 0);
+      scrollScrollerToTop(getScroller(), 'auto');
     }
   }, [pathname, searchParams]);
 
   useEffect(() => {
+    const scroller = getScroller();
     const onScroll = () => {
-      setVisible(window.scrollY > SHOW_AFTER_PX);
+      setVisible(getScrollY(scroller) > SHOW_AFTER_PX);
     };
 
     onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+    const target = scroller === window ? window : scroller;
+    target.addEventListener('scroll', onScroll, { passive: true });
+    return () => target.removeEventListener('scroll', onScroll);
+  }, [pathname]);
 
   const handleClick = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: prefersReducedMotion() ? 'auto' : 'smooth',
-    });
+    scrollScrollerToTop(
+      getScroller(),
+      prefersReducedMotion() ? 'auto' : 'smooth'
+    );
   };
 
   return (

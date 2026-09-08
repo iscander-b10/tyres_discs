@@ -1,7 +1,7 @@
 # Тестовые наборы
 
 ::: tip Статус: проверено по коду
-69 test-файлов под `src/` входят в корневой `npm test`. Ещё один тестовый файл `yandex/catalog-sync` запускается отдельной cloud-командой. Карта трассировки контрактов — [contract-catalog](/11-testing/contract-catalog).
+70 test-файлов под `src/` входят в корневой `npm test`. Ещё один тестовый файл `yandex/catalog-sync` запускается отдельной cloud-командой. Карта трассировки контрактов — [contract-catalog](/11-testing/contract-catalog).
 :::
 
 ## Инструменты
@@ -75,13 +75,14 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 
 ---
 
-## Components (19 файлов)
+## Components (20 файлов)
 
 | Файл | Инварианты |
 | --- | --- |
 | `SiteHeader.test.jsx` | cart badge, auth links, нет «Войти»/«Выйти» на `/demo*`, нет стрелок nav без overflow |
 | `SiteFooter.test.jsx` | нет «Войти»/«Выйти» на `/demo*`; на `/` «Войти» есть |
-| `LandingPage.test.jsx` | «Посмотреть демо» enabled → `/demo` |
+| `LandingPage.test.jsx` | все «Посмотреть демо» enabled → `/demo`; «Войти» на странице; 8 snap-слайдов |
+| `landingSnap.test.js` | nearest snap, duration cap, inner overflow, typing target |
 | `CatalogItemModalWindow.test.jsx` | лейбл «Размер»; у discs «Цвет» сразу после размера (пусто → «—»); у tyres поля «Цвет» нет |
 | `TiresSearchParameters.searchRace.test.jsx` | stale request discard, spinner, skip facets, reset during pending, pending не blank, timeout, StrictMode settle |
 | `TiresSearchParameters.mobileFilters.test.jsx` | stacked «Фильтры» ↔ панель; idle/open/find/reset/background; sidebar/horizontal без кнопки |

@@ -5,6 +5,7 @@ import LandingPage from './LandingPage';
 import { PATHS } from '../../app/paths';
 
 jest.mock('../../icons/Phone.svg', () => ({ ReactComponent: () => null }));
+jest.mock('../../icons/Telegram.svg', () => ({ ReactComponent: () => null }));
 
 describe('LandingPage demo CTA', () => {
   test('Посмотреть демо включена и ведёт на /demo', () => {
@@ -14,9 +15,13 @@ describe('LandingPage demo CTA', () => {
       </MemoryRouter>
     );
 
-    const demoButton = screen.getByRole('button', { name: 'Посмотреть демо' });
-    expect(demoButton).not.toBeDisabled();
-    expect(demoButton.closest('a')).toHaveAttribute('href', PATHS.demo);
+    const demoButtons = screen.getAllByRole('button', { name: 'Посмотреть демо' });
+    expect(demoButtons.length).toBeGreaterThanOrEqual(1);
+    demoButtons.forEach((demoButton) => {
+      expect(demoButton).not.toBeDisabled();
+      expect(demoButton.closest('a')).toHaveAttribute('href', PATHS.demo);
+    });
     expect(screen.getByRole('button', { name: 'Войти' })).toBeInTheDocument();
+    expect(document.querySelectorAll('.landing-page__slide').length).toBe(8);
   });
 });

@@ -32,6 +32,7 @@ import DiscsSearchParameters from './components/DiscsSearchParameters/DiscsSearc
 import BasketPage from './components/Basket/BasketPage';
 import LoginPage from './components/LoginPage/LoginPage';
 import LandingPage from './components/LandingPage/LandingPage';
+import LandingDeck from './components/LandingPage/LandingDeck';
 import ModeToggle from './components/ModeToggle/ModeToggle';
 import ScrollToTop from './components/ScrollToTop/ScrollToTop';
 // Временно скрыто для скриншотов презентации — вернуть после съёмки.
@@ -117,75 +118,86 @@ function AppFrame({ appearance = 'light', onAppearanceChange }) {
   const showCatalog = appEnabled && !showLanding;
   const backgroundPage = pageFromPathname(location.pathname);
 
+  const frame = (
+    <>
+      <Layout className="app-content-layout">
+        <Layout.Content className="app-content">
+          <Flex className="app-content-wrapper" vertical>
+            {showLanding ? (
+              <LandingPage />
+            ) : (
+              <>
+                {/* Временно скрыто для скриншотов презентации — вернуть после съёмки. */}
+                {/* {showCatalog && demo ? <DemoCatalogBanner /> : null} */}
+                {showCatalog ? (
+                  <>
+                    <div
+                      className="catalog-panel"
+                      hidden={backgroundPage !== 'tyres'}
+                      inert={
+                        isLoginOpen || backgroundPage !== 'tyres'
+                          ? true
+                          : undefined
+                      }
+                    >
+                      <TiresSearchParameters
+                        key={`tires-${workspaceResetKey}-${sessionResetKey}`}
+                        isActive={backgroundPage === 'tyres'}
+                      />
+                    </div>
+                    <div
+                      className="catalog-panel"
+                      hidden={backgroundPage !== 'wheels'}
+                      inert={
+                        isLoginOpen || backgroundPage !== 'wheels'
+                          ? true
+                          : undefined
+                      }
+                    >
+                      <DiscsSearchParameters
+                        key={`discs-${workspaceResetKey}-${sessionResetKey}`}
+                        isActive={backgroundPage === 'wheels'}
+                      />
+                    </div>
+                  </>
+                ) : null}
+                {showCatalog ? (
+                  <div
+                    className="catalog-panel"
+                    hidden={backgroundPage !== 'basket'}
+                    inert={
+                      isLoginOpen || backgroundPage !== 'basket'
+                        ? true
+                        : undefined
+                    }
+                  >
+                    <BasketPage key={`basket-${workspaceResetKey}`} />
+                  </div>
+                ) : null}
+              </>
+            )}
+          </Flex>
+        </Layout.Content>
+      </Layout>
+      <SiteFooter />
+    </>
+  );
+
   return (
     <>
-      <Layout className="app-layout" inert={isLoginOpen ? true : undefined}>
+      <Layout
+        className={
+          showLanding ? 'app-layout app-layout--landing' : 'app-layout'
+        }
+        inert={isLoginOpen ? true : undefined}
+      >
         <SiteHeader
           appearance={appearance}
           onAppearanceChange={onAppearanceChange}
         />
 
-        <Layout className="app-content-layout">
-          <Layout.Content className="app-content">
-            <Flex className="app-content-wrapper" vertical>
-              {showLanding ? (
-                <LandingPage />
-              ) : (
-                <>
-                  {/* Временно скрыто для скриншотов презентации — вернуть после съёмки. */}
-                  {/* {showCatalog && demo ? <DemoCatalogBanner /> : null} */}
-                  {showCatalog ? (
-                    <>
-                      <div
-                        className="catalog-panel"
-                        hidden={backgroundPage !== 'tyres'}
-                        inert={
-                          isLoginOpen || backgroundPage !== 'tyres'
-                            ? true
-                            : undefined
-                        }
-                      >
-                        <TiresSearchParameters
-                          key={`tires-${workspaceResetKey}-${sessionResetKey}`}
-                          isActive={backgroundPage === 'tyres'}
-                        />
-                      </div>
-                      <div
-                        className="catalog-panel"
-                        hidden={backgroundPage !== 'wheels'}
-                        inert={
-                          isLoginOpen || backgroundPage !== 'wheels'
-                            ? true
-                            : undefined
-                        }
-                      >
-                        <DiscsSearchParameters
-                          key={`discs-${workspaceResetKey}-${sessionResetKey}`}
-                          isActive={backgroundPage === 'wheels'}
-                        />
-                      </div>
-                    </>
-                  ) : null}
-                  {showCatalog ? (
-                    <div
-                      className="catalog-panel"
-                      hidden={backgroundPage !== 'basket'}
-                      inert={
-                        isLoginOpen || backgroundPage !== 'basket'
-                          ? true
-                          : undefined
-                      }
-                    >
-                      <BasketPage key={`basket-${workspaceResetKey}`} />
-                    </div>
-                  ) : null}
-                </>
-              )}
-            </Flex>
-          </Layout.Content>
-        </Layout>
+        {showLanding ? <LandingDeck>{frame}</LandingDeck> : frame}
 
-        <SiteFooter />
         {appEnabled ? <ModeToggle /> : null}
         <ScrollToTop />
         <Outlet />

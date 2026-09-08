@@ -352,9 +352,9 @@ Footer использует тот же `loginLinkTarget`, поэтому header
 
 **Props:** нет.  
 **State:** `visible`; refs предыдущего path и login state.  
-**Effects:** scroll listener и route-driven `window.scrollTo`.
+**Effects:** scroll listener и route-driven scroll-to-top.
 
-При настоящей смене pathname прокручивает вверх. Открытие/закрытие query-modal не меняет scroll: если login открыт сейчас или был открыт до перехода, effect возвращается раньше. Кнопка появляется после 320 px и учитывает `prefers-reduced-motion`.
+При настоящей смене pathname прокручивает вверх. На guest landing скроллер — `.app-landing-deck`, иначе `window`. Открытие/закрытие query-modal не меняет scroll: если login открыт сейчас или был открыт до перехода, effect возвращается раньше. Кнопка появляется после 320 px и учитывает `prefers-reduced-motion`.
 
 Отдельного unit-теста нет. При изменении важно не трактовать query-only login navigation как новую страницу.
 

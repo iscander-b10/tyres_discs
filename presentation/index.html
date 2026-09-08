@@ -56,29 +56,47 @@
 
   <div class="deck" id="deck">
       <!-- 1. Что это -->
-      <section class="slide slide--title is-active" data-title="Что это" id="slide-1">
-        <div class="slide__frame">
-          <h1 class="enter" style="--d:0">Единый каталог шин и дисков под ваш магазин</h1>
-          <div class="intro-stack">
-            <p class="lead enter" style="--d:1">Рабочее место, которое помогает команде вести подбор без лишних вкладок</p>
-            <p class="lead enter" style="--d:2">
-              Ваши поставщики, ваши цены — в одном окне браузера.
-            </p>
-          </div>
+      <section class="slide slide--title slide--hero-bleed slide--composed is-active" data-title="Что это" id="slide-1">
+        <div class="hero-bleed__bg" aria-hidden="true">
+          <img
+            src="./assets/slide-01-hero.png"
+            width="1728"
+            height="1117"
+            alt=""
+            loading="eager"
+            decoding="sync"
+            fetchpriority="high"
+            draggable="false"
+          />
         </div>
+        <h1 class="visually-hidden">Единый каталог шин и дисков под ваш магазин</h1>
       </section>
 
       <!-- 2. Единый поиск -->
-      <section class="slide slide--copy" data-title="Единый поиск">
-        <div class="slide__frame">
-          <p class="kicker enter" style="--d:0">Меньше рутины</p>
-          <h2 class="enter" style="--d:1">Один запрос вместо повторного поиска у каждого поставщика</h2>
-          <ul class="points">
-            <li class="point enter" style="--d:2">Один поиск по всем подключённым поставщикам — без переключения вкладок и повторного ввода размера, бренда и модели.</li>
-            <li class="point enter" style="--d:3">Шины и диски в одном каталоге. Для каждой категории — своя форма и подходящие фильтры.</li>
-            <li class="point enter" style="--d:4">Ежедневное обновление цен и остатков.</li>
-          </ul>
-          <p class="note enter" style="--d:5">Меньше переключений — больше внимания клиенту.</p>
+      <section class="slide slide--copy slide--stacked slide--visual slide--search" data-title="Единый поиск">
+        <div class="slide__frame slide__frame--stack">
+          <div class="slide__copy">
+            <p class="kicker enter" style="--d:0">Меньше рутины</p>
+            <h2 class="enter" style="--d:1">Один запрос вместо повторного поиска у каждого поставщика</h2>
+            <ul class="points points--compact">
+              <li class="point enter" style="--d:2">Один поиск по всем подключённым поставщикам — без переключения вкладок и повторного ввода размера, бренда и модели.</li>
+              <li class="point enter" style="--d:3">Шины и диски в одном каталоге. Для каждой категории — своя форма и подходящие фильтры.</li>
+              <li class="point enter" style="--d:4">Ежедневное обновление цен и остатков.</li>
+            </ul>
+            <p class="note enter" style="--d:5">Меньше переключений — больше внимания клиенту.</p>
+          </div>
+          <figure class="slide-visual slide-visual--wide enter" style="--d:6">
+            <div class="visual-frame">
+              <img
+                src="./assets/slide-02-search-compare.png"
+                width="1280"
+                height="720"
+                alt="Сравнение: много вкладок поставщиков слева и один каталог silvertyres.pro справа"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+          </figure>
         </div>
       </section>
 
@@ -87,93 +105,188 @@
         <div class="slide__frame">
           <p class="kicker enter" style="--d:0">Оптимальные решения</p>
           <h2 class="enter" style="--d:1">Опыт сотрудников подсказывает, где искать. Сервис, где есть недостающая модель.</h2>
-          <div class="grid-2">
-            <div class="card enter" style="--d:2">
+          <div class="grid-2 grid-2--compare">
+            <div class="card card--now enter" style="--d:2">
               <h3>3 на складе</h3>
               <p>Разукомплектованный товар лежит на складе, оборота нет.</p>
             </div>
-            <aside class="card card--accent enter" style="--d:3">
+            <aside class="card card--ok enter" style="--d:2">
               <h3>+1 у поставщика</h3>
               <p>Один запрос: видно, у кого есть эта модель и остаток. Комплект реализован, остатки под контролем.</p>
             </aside>
-            <div class="card enter" style="--d:4">
+            <div class="card card--now enter" style="--d:3">
               <h3>Клиент ушёл</h3>
               <p>Просят конкретную модель, у привычного поставщика её нет.</p>
             </div>
-            <aside class="card card--accent enter" style="--d:5">
+            <aside class="card card--ok enter" style="--d:3">
               <h3>Забрали заказ</h3>
               <p>Товар оказался у другого поставщика.</p>
             </aside>
           </div>
-          <p class="note enter" style="--d:6">Бренды и модели пересекаются между поставщиками. То, что привычно искать у одного, иногда лежит у другого.</p>
+          <p class="note enter" style="--d:4">Бренды и модели пересекаются между поставщиками. То, что привычно искать у одного, иногда лежит у другого.</p>
         </div>
       </section>
 
       <!-- 4. Фокус на вашем бренде -->
-      <section class="slide slide--copy" data-title="Фокус на вашем бренде">
-        <div class="slide__frame">
-          <p class="kicker enter" style="--d:0">Фокус на вашем бренде. WhiteLabel.</p>
-          <h2 class="enter" style="--d:1">Шины можно продать без демонстрации, диски нужно показывать.</h2>
-          <div class="intro-stack">
-            <p class="lead enter" style="--d:2">Логотип на фото подчеркнёт ваш бренд, а не поставщика.</p>
-            <p class="lead enter" style="--d:3">Подбор производится на витрине вашего магазина — каталог брендируется под вас. Тему и фирменные цвета выбираете вы.</p>
-          </div>
+      <section class="slide slide--hero-bleed slide--composed" data-title="Фокус на вашем бренде">
+        <div class="hero-bleed__bg" aria-hidden="true">
+          <img
+            src="./assets/slide-04-whitelabel.png"
+            width="1728"
+            height="1117"
+            alt=""
+            loading="eager"
+            decoding="sync"
+            fetchpriority="high"
+            draggable="false"
+          />
         </div>
+        <h2 class="visually-hidden">Шины можно продать без демонстрации, диски нужно показывать. Логотип на фото подчеркнёт ваш бренд, а не поставщика.</h2>
       </section>
 
       <!-- 5. С любого устройства -->
-      <section class="slide slide--cards" data-title="С любого устройства">
-        <div class="slide__frame">
-          <p class="kicker enter" style="--d:0">С любого устройства</p>
-          <h2 class="enter" style="--d:1">Заказ собирают там, где удобно — не через общий компьютер, и не через менеджера по заказам.</h2>
-          <div class="grid-2">
-            <div class="card enter" style="--d:2">
-              <p>Подбор завязан на менеджера по заказам. Взять запрос в работу или понять, какую модель можно раскомплектовать, сопряжено с дополнительными действиями, увеличивая время обработки.</p>
-            </div>
-            <aside class="card card--accent enter" style="--d:3">
-              <p>У любого сотрудника появляется возможность через любое устройство смотреть позиции на заказ, что можно отдать по одной или две единицы. Минуя узкое горлышко и ускоряя процесс формирования заказа.</p>
-            </aside>
+      <section class="slide slide--devices" data-title="С любого устройства">
+        <div class="slide__frame slide__frame--stack">
+          <div class="slide__copy">
+            <p class="kicker enter" style="--d:0">С любого устройства</p>
+            <h2 class="devices-claim enter" style="--d:1">Заказ собирают там, где удобно. Не через общий компьютер. Не через менеджера по заказам.</h2>
+            <p class="devices-note enter" style="--d:2">У любого сотрудника появляется возможность через любое устройство смотреть позиции на заказ, что можно отдать по одной или две единицы. Минуя узкое горлышко и ускоряя процесс формирования заказа.</p>
           </div>
+          <figure class="devices-stage enter" style="--d:3">
+            <div class="visual-frame visual-frame--device">
+              <img
+                src="./assets/slide-05-devices.png"
+                width="1523"
+                height="748"
+                alt="Каталог на компьютере, планшете и телефоне: один интерфейс подбора на любом устройстве"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+          </figure>
         </div>
       </section>
 
       <!-- 6. База для индивидуальных условий -->
-      <section class="slide slide--copy" data-title="База для индивидуальных условий">
-        <div class="slide__frame">
-          <p class="kicker enter" style="--d:0">База для индивидуальных условий</p>
-          <p class="quote enter" style="--d:1">Не все поставщики передают интернет-цену.</p>
-          <p class="lead enter" style="--d:2">Располагая информацией о розничной цене поставщика, есть возможность сравнить с вашей и дать индивидуальные условия для покупателя. Таким образом сотрудник принимает более эффективное решение, увеличивая ваш оборот и лояльность клиента.</p>
+      <section class="slide slide--copy slide--stacked slide--visual slide--cart" data-title="База для индивидуальных условий">
+        <div class="slide__frame slide__frame--stack">
+          <div class="slide__copy">
+            <p class="kicker enter" style="--d:0">База для индивидуальных условий</p>
+            <h2 class="enter" style="--d:1">Розничная цена поставщика рядом со своей</h2>
+            <p class="quote enter" style="--d:2">Не все поставщики передают интернет-цену.</p>
+            <p class="lead enter" style="--d:3">Располагая информацией о розничной цене поставщика, есть возможность сравнить с вашей и дать индивидуальные условия для покупателя. Таким образом сотрудник принимает более эффективное решение, увеличивая ваш оборот и лояльность клиента.</p>
+          </div>
+          <figure class="slide-visual enter" style="--d:4">
+            <div class="visual-frame">
+              <img
+                src="./assets/slide-06-cart-prices.png"
+                width="1432"
+                height="747"
+                alt="Корзина с тремя уровнями цен: B2B, интернет-цена поставщика и розничная цена магазина"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+          </figure>
         </div>
       </section>
 
       <!-- 7. Два режима работы -->
-      <section class="slide slide--cards" data-title="Два режима работы">
-        <div class="slide__frame">
-          <p class="kicker enter" style="--d:0">Два режима работы</p>
-          <h2 class="enter" style="--d:1">У каталога два режима: менеджера и клиента.</h2>
-          <div class="grid-2">
-            <div class="card enter" style="--d:2">
-              <h3>Режим менеджера</h3>
-              <p>На экране все служебные данные: поставщик, B2B, интернет-цена (если поставщик её передал), отпускная цена магазина и остаток.</p>
-            </div>
-            <aside class="card card--accent enter" style="--d:3">
-              <h3>Режим клиента</h3>
-              <p>Клиенту видны только цена магазина и остаток.</p>
-            </aside>
+      <section class="slide slide--modes slide--visual slide--stacked" data-title="Два режима работы">
+        <div class="slide__frame slide__frame--stack">
+          <div class="slide__copy">
+            <p class="kicker enter" style="--d:0">Два режима работы</p>
+            <h2 class="enter" style="--d:1">У каталога два режима: менеджера и клиента</h2>
+            <p class="lead enter" style="--d:2">Менеджер видит поставщика и служебные цены. Клиенту — только цена магазина и остаток.</p>
+          </div>
+          <div class="modes-grid">
+            <figure class="mode-panel enter" style="--d:3">
+              <figcaption class="mode-panel__caption">
+                <p class="mode-panel__label">Режим менеджера</p>
+                <p class="mode-panel__desc">Поставщик, B2B, интернет-цена, цена магазина</p>
+              </figcaption>
+              <div class="mode-panel__shots">
+                <img
+                  class="mode-panel__shot mode-panel__shot--card"
+                  src="./assets/slide-07-manager.png"
+                  width="364"
+                  height="655"
+                  alt="Карточка товара в режиме менеджера: поставщик, B2B, интернет-цена и цена магазина"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <div class="mode-panel__cluster">
+                  <img
+                    class="mode-panel__shot mode-panel__shot--modal"
+                    src="./assets/slide-07-manager-modal.png"
+                    width="1283"
+                    height="856"
+                    alt="Окно товара в режиме менеджера: поставщик и служебные цены"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <img
+                    class="mode-panel__shot mode-panel__shot--cart"
+                    src="./assets/slide-07-manager-cart.png"
+                    width="895"
+                    height="200"
+                    alt="Позиция корзины в режиме менеджера: B2B, интернет-цена и цена магазина"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+              </div>
+            </figure>
+            <figure class="mode-panel mode-panel--client enter" style="--d:4">
+              <figcaption class="mode-panel__caption">
+                <p class="mode-panel__label">Режим клиента</p>
+                <p class="mode-panel__desc">Только цена магазина и остаток</p>
+              </figcaption>
+              <div class="mode-panel__shots">
+                <img
+                  class="mode-panel__shot mode-panel__shot--card"
+                  src="./assets/slide-07-client.png"
+                  width="364"
+                  height="561"
+                  alt="Карточка товара в режиме клиента: только цена магазина и остаток"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <div class="mode-panel__cluster">
+                  <img
+                    class="mode-panel__shot mode-panel__shot--modal"
+                    src="./assets/slide-07-client-modal.png"
+                    width="1284"
+                    height="859"
+                    alt="Окно товара в режиме клиента: цена магазина без служебных полей"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <img
+                    class="mode-panel__shot mode-panel__shot--cart"
+                    src="./assets/slide-07-client-cart.png"
+                    width="898"
+                    height="169"
+                    alt="Позиция корзины в режиме клиента: только цена магазина"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+              </div>
+            </figure>
           </div>
         </div>
       </section>
 
       <!-- 8. CTA -->
       <section class="slide slide--cta" data-title="Следующий шаг">
-        <div class="slide__frame">
-          <div class="cta-stage">
+        <div class="slide__frame slide__frame--stack">
+          <div class="slide__copy">
             <p class="kicker enter" style="--d:0">Проверка перед решением</p>
             <h2 class="enter" style="--d:1">Проверьте каталог на реальном запросе вместе с командой</h2>
-            <p class="cta-steps enter" style="--d:2">
-              Сотруднику — пройти знакомый подбор и показать демо владельцу.
-              Владельцу — предложить команде проверить каталог и поделиться впечатлением.
-            </p>
+            <p class="lead enter" style="--d:2">Сотруднику — пройти знакомый подбор и показать демо владельцу. Владельцу — предложить команде проверить каталог и поделиться впечатлением.</p>
+          </div>
+          <div class="cta-actions">
             <a
               class="cta-island enter"
               style="--d:3"
@@ -186,7 +299,7 @@
             <div class="contacts enter" style="--d:4">
               <a class="contact" href="https://t.me/Iscander_b10" target="_blank" rel="noopener noreferrer">
                 <small>Telegram</small>
-                <span>@Iscander_b10</span>
+                <span>SilverTyres</span>
               </a>
               <a class="contact" href="tel:+79653093932">
                 <small>Телефон</small>

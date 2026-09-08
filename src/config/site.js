@@ -11,7 +11,14 @@ export const SITE_PHONE = {
 /** Developer credit channel — site author, not store support. */
 export const SITE_DEVELOPER_TELEGRAM = {
   handle: '@Iscander_b10',
+  name: 'SilverTyres',
   href: 'https://t.me/Iscander_b10',
+};
+
+/** Developer contact on the marketing landing CTA (not the store phone). */
+export const SITE_DEVELOPER_PHONE = {
+  display: '+7 (965) 309-39-32',
+  href: 'tel:+79653093932',
 };
 
 export const SITE_PRODUCT_NAV = [

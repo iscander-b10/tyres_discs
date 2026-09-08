@@ -41,6 +41,7 @@ jest.mock('./components/Basket/BasketPage', () => () => (
 jest.mock('./components/LandingPage/LandingPage', () => () => (
   <div data-testid="landing-page" />
 ));
+jest.mock('./components/LandingPage/LandingDeck', () => ({ children }) => children);
 jest.mock('./components/LoginPage/LoginPage', () => () => (
   <div data-testid="login-page" />
 ));

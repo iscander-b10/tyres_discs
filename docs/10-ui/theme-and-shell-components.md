@@ -130,6 +130,8 @@ Footer использует те же nav/contact constants, поэтому те
 disabled «Личный кабинет» со статусом «Скоро». На `/demo*` кнопок входа и выхода нет. Внешняя ссылка разработчика
 открывается с `noopener noreferrer nofollow`. `SiteFooter.test.jsx` проверяет скрытие «Войти»/«Выйти» на demo-path.
 
+На guest landing `AppFrame` ставит `app-layout--landing`: шапка остаётся на месте, content и footer живут в `.app-landing-deck`. Секции лендинга и подвал — snap-слайды (`useLandingSnap`, референс колоды в `presentation/`). Каталог эту оболочку не использует.
+
 ## `ModeToggle`
 
 Компонент монтируется в `document.body` через portal для доступного app UI (`AppFrame`), включая `/demo*`. Он читает `clientMode` из AppShell, переключает режим Ant
