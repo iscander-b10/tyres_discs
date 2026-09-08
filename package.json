@@ -1,7 +1,7 @@
 {
   "name": "ivanor",
   "version": "0.1.0",
-  "homepage": "https://silverytyres.pro",
+  "homepage": "https://silvertyres.pro",
   "private": true,
   "dependencies": {
     "antd": "^5.27.4",

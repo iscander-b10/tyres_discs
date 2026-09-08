@@ -31,7 +31,7 @@ npm start
 | `prestart` | `node scripts/generate-auth-verifier.js development` |
 | `start` | dev-server на `http://localhost:3000` |
 
-Basename приложения: пустой (корень), из `homepage` `https://silverytyres.pro` → `PUBLIC_URL`.
+Basename приложения: пустой (корень), из `homepage` `https://silvertyres.pro` → `PUBLIC_URL`.
 
 Для UI и hot reload — `npm start` (включён `React.StrictMode`). Если «Найти» крутится без конца, а `preview:prod` ок — это не «нет каталога», см. [Troubleshooting](/14-development/troubleshooting). Чтобы локально гонять **тот же production-путь**, что на GitHub Pages (поиск после sync, без StrictMode/dev proxy), см. ниже и [Сборка и deploy](/01-getting-started/dev-production-deploy).
 

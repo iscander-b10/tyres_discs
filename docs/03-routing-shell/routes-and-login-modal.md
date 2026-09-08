@@ -37,7 +37,7 @@ Login реализован как query-modal `/?login=1`, а не как отд
 | `/demo/*` неизвестный | `UnmatchedDemoRoute` | `replace` → `/demo/tyres` | то же | не маркетинговый `/` |
 | любой другой | `UnmatchedRoute` | `replace` → `/` | `replace` → `/`, затем → `/tyres` | безопасный fallback |
 
-`ROUTER_BASENAME` вычисляется из `process.env.PUBLIC_URL` с удалением завершающего `/`. На `https://silverytyres.pro` basename пустой: URL `/tyres` Router видит как `/tyres`.
+`ROUTER_BASENAME` вычисляется из `process.env.PUBLIC_URL` с удалением завершающего `/`. На `https://silvertyres.pro` basename пустой: URL `/tyres` Router видит как `/tyres`.
 
 ## Как выбирается маршрут: пошагово
 
