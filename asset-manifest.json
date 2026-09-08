@@ -1,7 +1,7 @@
 {
   "files": {
-    "main.css": "/static/css/main.e046b72e.css",
-    "main.js": "/static/js/main.a5fe9fb9.js",
+    "main.css": "/static/css/main.fc5d6f6d.css",
+    "main.js": "/static/js/main.74ad13f8.js",
     "static/media/runflat.jpg": "/static/media/runflat.9dbf3e8e9472eaa9cf38.jpg",
     "static/media/TireFittingGift.svg": "/static/media/TireFittingGift.79482b12b22a39c3c37e5b81e54245da.svg",
     "static/media/Website.svg": "/static/media/Website.05dcf5157a148bdf01d5fba89f0b83ab.svg",
@@ -15,16 +15,15 @@
     "index.html": "/index.html",
     "static/media/Reset.svg": "/static/media/Reset.dde83b0666421fdbe6990fe09d335483.svg",
     "static/media/Search.svg": "/static/media/Search.71d162a753aec427b4c35e2823ec9472.svg",
-    "static/media/Telegram.svg": "/static/media/Telegram.9aad611fb7bea7ff83abf3350369ed5b.svg",
     "static/media/Clear.svg": "/static/media/Clear.8fb0854402ab178a3e36108535a764ce.svg",
     "static/media/Moon.svg": "/static/media/Moon.3795372f79b55d2d165c92c5fde5e9e5.svg",
     "static/media/Loading.svg": "/static/media/Loading.e37cb141b309c3940b23b0a5c06f603f.svg",
     "static/media/Sotring.svg": "/static/media/Sotring.5b478b7fd577635905080483751ba280.svg",
-    "main.e046b72e.css.map": "/static/css/main.e046b72e.css.map",
-    "main.a5fe9fb9.js.map": "/static/js/main.a5fe9fb9.js.map"
+    "main.fc5d6f6d.css.map": "/static/css/main.fc5d6f6d.css.map",
+    "main.74ad13f8.js.map": "/static/js/main.74ad13f8.js.map"
   },
   "entrypoints": [
-    "static/css/main.e046b72e.css",
-    "static/js/main.a5fe9fb9.js"
+    "static/css/main.fc5d6f6d.css",
+    "static/js/main.74ad13f8.js"
   ]
 }
