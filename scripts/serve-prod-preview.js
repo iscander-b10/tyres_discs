@@ -1,13 +1,14 @@
 /**
- * Serves the CRA production build at the same basename as GitHub Pages.
+ * Serves the CRA production build at the same basename as production Pages.
  *
  * Prerequisite: `npm run build` with the same REACT_APP_* as Pages
  * (via `.env` / `.env.production` / `.env.production.local` — no secrets in docs).
  *
- * Open: http://127.0.0.1:<port>/tyres_discs/
+ * Basename comes from `package.json` → `homepage` pathname (empty for apex domain).
+ * Open: http://127.0.0.1:<port>/  (or http://127.0.0.1:<port>/<basename>/)
  * (prefer 127.0.0.1 — on Windows `localhost` often resolves to ::1 first)
  *
- * IndexedDB is origin-scoped: localhost preview never shares DB with github.io.
+ * IndexedDB is origin-scoped: localhost preview never shares DB with production host.
  */
 'use strict';
 
@@ -19,9 +20,22 @@ const { exec } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
 const BUILD = path.join(ROOT, 'build');
-const BASENAME = '/tyres_discs';
 const PORT = Number(process.env.PORT || process.argv[2] || 5000);
 const OPEN_BROWSER = process.env.BROWSER !== 'none';
+
+function homepageBasename() {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+    const homepage = String(pkg.homepage || '').trim();
+    if (!homepage) return '';
+    const pathname = new URL(homepage).pathname || '';
+    return pathname.replace(/\/$/, '') || '';
+  } catch {
+    return '';
+  }
+}
+
+const BASENAME = homepageBasename();
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -59,8 +73,10 @@ function sendFile(res, filePath) {
 }
 
 function resolveUnderBuild(urlPath) {
-  const rel = decodeURIComponent(urlPath.slice(BASENAME.length)).replace(/^\/+/, '');
-  const candidate = path.normalize(path.join(BUILD, rel || 'index.html'));
+  const relativePath = BASENAME
+    ? decodeURIComponent(urlPath.slice(BASENAME.length)).replace(/^\/+/, '')
+    : decodeURIComponent(urlPath).replace(/^\/+/, '');
+  const candidate = path.normalize(path.join(BUILD, relativePath || 'index.html'));
   const buildRoot = BUILD.endsWith(path.sep) ? BUILD : BUILD + path.sep;
   if (candidate !== BUILD && !candidate.startsWith(buildRoot)) {
     return null;
@@ -90,21 +106,23 @@ const server = http.createServer((req, res) => {
   const url = new URL(req.url || '/', `http://127.0.0.1:${PORT}`);
   const pathname = url.pathname;
 
-  if (pathname === '/' || pathname === '') {
-    res.writeHead(302, { Location: `${BASENAME}/` });
-    res.end();
-    return;
-  }
+  if (BASENAME) {
+    if (pathname === '/' || pathname === '') {
+      res.writeHead(302, { Location: `${BASENAME}/` });
+      res.end();
+      return;
+    }
 
-  if (pathname !== BASENAME && !pathname.startsWith(`${BASENAME}/`)) {
-    send(res, 404, `Not found. Open ${BASENAME}/\n`);
-    return;
-  }
+    if (pathname !== BASENAME && !pathname.startsWith(`${BASENAME}/`)) {
+      send(res, 404, `Not found. Open ${BASENAME}/\n`);
+      return;
+    }
 
-  if (pathname === BASENAME) {
-    res.writeHead(302, { Location: `${BASENAME}/` });
-    res.end();
-    return;
+    if (pathname === BASENAME) {
+      res.writeHead(302, { Location: `${BASENAME}/` });
+      res.end();
+      return;
+    }
   }
 
   let filePath = resolveUnderBuild(pathname);
@@ -142,9 +160,14 @@ server.on('error', (err) => {
 // Bind IPv4 + IPv6 when available. Prefer printing 127.0.0.1 — some Windows
 // browsers resolve `localhost` to ::1 only and fail if IPv6 listen is off.
 server.listen(PORT, () => {
-  const url = `http://127.0.0.1:${PORT}${BASENAME}/`;
+  const url = `http://127.0.0.1:${PORT}${BASENAME || ''}/`;
   console.log(`Production preview (Pages-like): ${url}`);
+  console.log(
+    BASENAME
+      ? `Basename: ${BASENAME} (from package.json homepage)`
+      : 'Basename: / (apex custom domain from package.json homepage)'
+  );
   console.log('Keep this terminal open. Uses REACT_APP_* from the last build.');
-  console.log('IndexedDB is per-origin (not shared with github.io).');
+  console.log('IndexedDB is per-origin (not shared with production host).');
   openBrowser(url);
 });

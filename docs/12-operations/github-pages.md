@@ -1,7 +1,7 @@
 # GitHub Pages
 
 ::: tip Статус: проверено по коду
-SPA на CRA + gh-pages. Отдельно от VitePress docs.
+SPA на CRA + gh-pages. Отдельно от VitePress docs. Production URL — кастомный домен.
 :::
 
 ## URL и basename
@@ -9,12 +9,22 @@ SPA на CRA + gh-pages. Отдельно от VitePress docs.
 `package.json`:
 
 ```json
-"homepage": "https://iscander-b10.github.io/tyres_discs"
+"homepage": "https://silverytyres.pro"
 ```
 
-`ROUTER_BASENAME` = `PUBLIC_URL` без trailing slash → `/tyres_discs`.
+`ROUTER_BASENAME` = `PUBLIC_URL` без trailing slash → пустая строка (корень домена).
 
 React Router: `BrowserRouter basename={ROUTER_BASENAME}`.
+
+Исторический project URL `https://iscander-b10.github.io/tyres_discs` может открываться как запасной путь GitHub; канонический адрес — `https://silverytyres.pro`.
+
+## Custom domain и CNAME
+
+Файл [`public/CNAME`](https://github.com/iscander-b10/tyres_discs/blob/main/public/CNAME) содержит `silverytyres.pro` и копируется в `build/` при CRA build.
+
+Без этого файла каждый `npm run deploy` (`gh-pages -d build`) затирает `CNAME` на ветке `gh-pages`, и GitHub отвечает «There isn't a GitHub Pages site here» на кастомном домене.
+
+В Settings → Pages должен быть указан Custom domain `silverytyres.pro` (DNS A/AAAA/CNAME у регистратора → GitHub Pages).
 
 ## Deploy pipeline
 
@@ -27,11 +37,11 @@ npm run deploy
 | `predeploy` | `npm run build` |
 | | copy `build/index.html` → `build/404.html` (SPA fallback) |
 | | write `build/.nojekyll` |
-| `deploy` | `gh-pages -d build` |
+| `deploy` | `gh-pages -d build` (включая `CNAME` из `public/`) |
 
 ## SPA fallback
 
-GitHub Pages отдаёт `404.html` на неизвестные пути. Копия `index.html` позволяет client-side routing работать при прямом открытии `/tyres_discs/tyres`, `/tyres_discs/demo`, `/tyres_discs/demo/wheels`.
+GitHub Pages отдаёт `404.html` на неизвестные пути. Копия `index.html` позволяет client-side routing работать при прямом открытии `/tyres`, `/demo`, `/demo/wheels`.
 
 ## Отличие от документации
 
@@ -39,7 +49,7 @@ GitHub Pages отдаёт `404.html` на неизвестные пути. Ко�
 | --- | --- | --- |
 | Tool | CRA | VitePress |
 | Deploy | `npm run deploy` → gh-pages | локально / отдельный hosting |
-| URL | `/tyres_discs` | не на GitHub Pages repo |
+| URL | `https://silverytyres.pro` | не на GitHub Pages repo |
 
 ## Production env
 
@@ -50,10 +60,11 @@ Build-time `REACT_APP_*` должны быть заданы **до** `npm run bu
 ```mermaid
 flowchart LR
   Src[src/] --> Build[npm run build]
-  Build --> Static[build/]
+  Build --> Static[build/ + CNAME]
   Static --> GH[gh-pages branch]
   GH --> Pages[GitHub Pages CDN]
-  Browser --> Pages
+  Browser --> Domain[silverytyres.pro]
+  Domain --> Pages
 ```
 
 ## Связанные страницы

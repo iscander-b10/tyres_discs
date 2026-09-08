@@ -31,7 +31,7 @@ npm start
 | `prestart` | `node scripts/generate-auth-verifier.js development` |
 | `start` | dev-server на `http://localhost:3000` |
 
-Basename приложения: `/tyres_discs` (из `homepage` в `package.json` → `PUBLIC_URL`).
+Basename приложения: пустой (корень), из `homepage` `https://silverytyres.pro` → `PUBLIC_URL`.
 
 Для UI и hot reload — `npm start` (включён `React.StrictMode`). Если «Найти» крутится без конца, а `preview:prod` ок — это не «нет каталога», см. [Troubleshooting](/14-development/troubleshooting). Чтобы локально гонять **тот же production-путь**, что на GitHub Pages (поиск после sync, без StrictMode/dev proxy), см. ниже и [Сборка и deploy](/01-getting-started/dev-production-deploy).
 
@@ -44,7 +44,7 @@ npm run start:prod
 # или: npm run build && npm run preview:prod
 ```
 
-Откройте `http://127.0.0.1:5000/tyres_discs/` (скрипт обычно открывает браузер сам). Терминал не закрывайте.
+Откройте `http://127.0.0.1:5000/` (скрипт обычно открывает браузер сам). Терминал не закрывайте.
 
 | Script | Что делает |
 | --- | --- |
@@ -75,7 +75,7 @@ npm run docs:preview  # preview build → http://localhost:4173
 | `start` | CRA dev server | hot reload |
 | `prebuild` | HMAC verifier для production | пишет `.env.production.local` |
 | `build` | Production bundle → `build/` | |
-| `preview:prod` | Статика `build/` на `:5000` с `/tyres_discs` | нужен готовый `build/` |
+| `preview:prod` | Статика `build/` на `:5000` (basename из `homepage`) | нужен готовый `build/` |
 | `start:prod` | `build` + `preview:prod` | Pages-like локально |
 | `test` | Jest watch mode | |
 | `test:ci` | Jest single run (CI) | |

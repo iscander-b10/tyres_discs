@@ -9,7 +9,7 @@
 | Цель | Команда | Что получаете |
 | --- | --- | --- |
 | Обычная разработка UI, hot reload | `npm start` | CRA dev: StrictMode, `setupProxy`, отдельный IndexedDB origin |
-| Проверить поиск/sync «как на Pages» | `npm run start:prod` | Production-бандл + статика с basename `/tyres_discs` |
+| Проверить поиск/sync «как на Pages» | `npm run start:prod` | Production-бандл + статика с basename из `homepage` (корень домена) |
 | Уже есть `build/` — только раздать | `npm run preview:prod` | То же без повторной сборки |
 
 `npm start` **не** обязан совпадать с github.io по **скорости** «Найти»: другой origin → другая IndexedDB, холодный hydrate, очередь за `applyCatalogSnapshot`. Кнопка одна; медленнее — окружение.
@@ -23,7 +23,7 @@
 | Аспект | Поведение |
 | --- | --- |
 | Сервер | `react-scripts start`, port 3000 |
-| Basename | `/tyres_discs` (`PUBLIC_URL`) |
+| Basename | пустой / корень (`PUBLIC_URL` из `homepage`) |
 | Supplier fetch | `/api/*` → `setupProxy.js` → upstream |
 | Catalog sync | Требует env gateway URL; читает `/v2/catalog/...` |
 | Auth verifier | `.env.development.local` от prestart |
@@ -66,16 +66,16 @@ npm run build
 npm run preview:prod
 ```
 
-Откройте `http://127.0.0.1:5000/tyres_discs/` (порт: `PORT` или аргумент скрипта, по умолчанию 5000). Скрипт сам открывает браузер; терминал нужно **оставить открытым**. На Windows лучше `127.0.0.1`, не `localhost` (`localhost` часто резолвится в `::1`).
+Откройте `http://127.0.0.1:5000/` (порт: `PORT` или аргумент скрипта, по умолчанию 5000). Скрипт сам открывает браузер; терминал нужно **оставить открытым**. На Windows лучше `127.0.0.1`, не `localhost` (`localhost` часто резолвится в `::1`). Basename берётся из pathname `homepage` в `package.json` (для `https://silverytyres.pro` — корень).
 
 | Аспект | Поведение |
 | --- | --- |
 | Сервер | `scripts/serve-prod-preview.js` (Node http, без CRA) |
-| Basename | `/tyres_discs` — как `homepage` / Pages |
+| Basename | как `homepage` / Pages (сейчас корень) |
 | Supplier / catalog | Production: Gateway `/v2...`, **без** `setupProxy` |
 | SPA deep links | fallback на `index.html` (роль Pages `404.html`) |
 
-Не используйте голый `npx serve -s build` для этого репо: ассеты собраны под префикс `/tyres_discs`, а файлы лежат в корне `build/` — без монтирования basename путь сломается.
+Для текущей apex-сборки подойдёт и `npx serve -s build`. Скрипт `preview:prod` всё равно предпочтителен: тот же basename, что у production, и SPA fallback как у Pages.
 
 ## Production runtime (GitHub Pages)
 

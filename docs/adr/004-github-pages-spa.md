@@ -40,9 +40,10 @@ Create React App 5 + `homepage` URL + `BrowserRouter basename` + deploy чере
 
 ## Последствия
 
-- `PUBLIC_URL` / basename обязателен в links
+- `PUBLIC_URL` / basename обязателен в links (сейчас корень кастомного домена `silverytyres.pro`)
 - Документация — отдельно VitePress (не gh-pages app)
 - `predeploy` копирует index → 404
+- `public/CNAME` обязателен, иначе `gh-pages -d build` сбрасывает custom domain
 
 ## Связанные файлы
 
