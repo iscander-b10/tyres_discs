@@ -87,14 +87,14 @@ URL поставщиков обязательны. Значения секрет
 
 ## Важные функции active-пути
 
-### `loadSupplierData(key)`
+### `loadSupplierData(key, storeId)`
 
 **Роль.** Выполнить полный адаптер одного поставщика.
 
 **Сигнатура и параметры.**
 
 ```js
-async function loadSupplierData(key: string): Promise<{
+async function loadSupplierData(key: string, storeId?: string): Promise<{
   key: string,
   label: string,
   tyres: object[],
@@ -103,6 +103,7 @@ async function loadSupplierData(key: string): Promise<{
 ```
 
 - `key` должен быть одним из пяти ключей реестра `suppliers`;
+- `storeId` прокидывается в `transformTyres` / `transformDiscs` для маржи профиля;
 - функция `async`;
 - caller: `loadAllSuppliersData`;
 - callees: `supplier.fetchRaw`, затем синхронный `supplier.transform`.
@@ -111,7 +112,7 @@ async function loadSupplierData(key: string): Promise<{
 
 1. Найти описание поставщика; неизвестный ключ приводит к `Error`.
 2. Дождаться всех raw-ответов, предусмотренных данным адаптером.
-3. Синхронно вызвать transformers шин и дисков.
+3. Синхронно вызвать transformers шин и дисков, передав `storeId` для маржи.
 4. Если transformer вернул не массив, подставить `[]`.
 5. Вернуть ключ, label и обе категории.
 
@@ -128,7 +129,7 @@ Object Storage/IndexedDB и транзакций здесь нет. Нормал
 нагрузку на upstream и порядок ошибок. Частичное принятие одной категории
 изменит семантику snapshot и требует согласованного изменения тестов команд.
 
-### `loadAllSuppliersData()`
+### `loadAllSuppliersData(storeId)`
 
 **Роль.** Изолировать отказы поставщиков и вернуть полный отчёт для snapshot.
 
@@ -141,9 +142,10 @@ Promise<Array<
 >>
 ```
 
-**Алгоритм и async.** Функция `async`; выполняет `await loadSupplierData(key)` в
+**Алгоритм и async.** Функция `async`; выполняет `await loadSupplierData(key, storeId)` в
 цикле. На успех добавляет `fulfilled`, на ошибку пишет `console.error` и
 добавляет `rejected`. Массив всегда следует `SUPPLIER_LOAD_ORDER`.
+`runCatalogSync` передаёт `getStoreId()`.
 
 **Callers/callees.** Единственный production caller — `runCatalogSync`;
 непосредственный callee — `loadSupplierData`.

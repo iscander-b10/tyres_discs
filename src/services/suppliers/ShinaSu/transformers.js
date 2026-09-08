@@ -1,4 +1,4 @@
-import { calculateSellingPrice, getMargin } from '../../dataTransformers';
+import { calculateSellingPrice, getDiscMargin, getMargin } from '../../dataTransformers';
 import { normalizeModelText } from '../shared/deriveModel';
 
 const normalizeBrand = (brand) => (
@@ -38,7 +38,7 @@ const parseIndexSpeed = (is) => is.split('/')[0];
 /**
  * Преобразует данные шин
  */
-export const transformTyres = (rawData) => {
+export const transformTyres = (rawData, storeId) => {
   if (!Array.isArray(rawData)) {
     throw new Error('Неверная структура данных от ШинаСу');
   }
@@ -76,7 +76,7 @@ export const transformTyres = (rawData) => {
       sizeTitle = `${width}/${profile}${diameter}`;
     }
   
-    const margin = getMargin(normalizedBrand);
+    const margin = getMargin(normalizedBrand, storeId);
     const sellingPrice = calculateSellingPrice(price, margin);
 
     return {
@@ -144,7 +144,7 @@ const parseDiskType = (rawType, brand) => {
 /**
  * Преобразует данные дисков
  */
-export const transformDiscs = (rawData) => {
+export const transformDiscs = (rawData, storeId) => {
   if (!Array.isArray(rawData)) {
     throw new Error('Неверная структура данных от ШинаСу');
   }
@@ -193,7 +193,7 @@ export const transformDiscs = (rawData) => {
       title,
       sizeTitle,
       price,
-      sellingPrice: Math.round(price * 1.2),
+      sellingPrice: calculateSellingPrice(price, getDiscMargin(storeId)),
       photoUrl,
       supplier: 'ШинаСу',
     };

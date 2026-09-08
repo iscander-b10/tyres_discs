@@ -35,8 +35,7 @@ import LandingPage from './components/LandingPage/LandingPage';
 import LandingDeck from './components/LandingPage/LandingDeck';
 import ModeToggle from './components/ModeToggle/ModeToggle';
 import ScrollToTop from './components/ScrollToTop/ScrollToTop';
-// Временно скрыто для скриншотов презентации — вернуть после съёмки.
-// import DemoCatalogBanner from './components/DemoCatalogBanner/DemoCatalogBanner';
+import DemoCatalogBanner from './components/DemoCatalogBanner/DemoCatalogBanner';
 import { CatalogSyncHost } from './services/catalogSync/CatalogSyncHost';
 import { DemoCatalogHost } from './services/demoCatalog/DemoCatalogHost';
 import './App.scss';
@@ -127,8 +126,7 @@ function AppFrame({ appearance = 'light', onAppearanceChange }) {
               <LandingPage />
             ) : (
               <>
-                {/* Временно скрыто для скриншотов презентации — вернуть после съёмки. */}
-                {/* {showCatalog && demo ? <DemoCatalogBanner /> : null} */}
+                {showCatalog && demo ? <DemoCatalogBanner /> : null}
                 {showCatalog ? (
                   <>
                     <div
@@ -179,7 +177,7 @@ function AppFrame({ appearance = 'light', onAppearanceChange }) {
           </Flex>
         </Layout.Content>
       </Layout>
-      <SiteFooter />
+      {showLanding ? null : <SiteFooter />}
     </>
   );
 

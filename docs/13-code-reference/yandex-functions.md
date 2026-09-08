@@ -62,7 +62,7 @@
 
 | Модуль | Exports | Назначение |
 | --- | --- | --- |
-| `loadAll.js` | `loadAllSuppliersData`, `SUPPLIER_LOAD_ORDER` | Parallel upstream fetch |
+| `loadAll.js` | `loadAllSuppliersData(storeId)`, `SUPPLIER_LOAD_ORDER` | Sequential upstream fetch + store-aware transform |
 | `fetch.js` | `fetchJson`, `fetchXmlJson`, `fetchExcelRows` | HTTP helpers |
 | `transforms.js` | re-export frontend transformers | Shared normalization |
 

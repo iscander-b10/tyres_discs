@@ -11,6 +11,7 @@
   height: 100dvh;
   max-height: 100dvh;
   overflow: hidden;
+  background: $color-surface;
 }
 
 .app-landing-deck {
@@ -23,6 +24,12 @@
   overscroll-behavior-y: contain;
   scroll-snap-type: y mandatory;
   overflow-anchor: none;
+  background: $color-surface;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .app-layout--landing .app-content-layout,
@@ -32,17 +39,7 @@
   height: auto;
   min-height: 0;
   overflow: visible;
-}
-
-.app-landing-deck .site-footer {
-  display: flex;
-  flex: 0 0 auto;
-  flex-direction: column;
-  justify-content: center;
-  min-height: var(--landing-slide-size, 100dvh);
-  margin-top: 0;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
+  background: $color-surface;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -74,12 +71,6 @@
 
 .app-content:has(.landing-page) {
   padding-block: 0;
-}
-
-.app-content-wrapper:has(.landing-page) {
-  width: 100%;
-  max-width: none;
-  padding-inline: 0;
 }
 
 .catalog-panel[hidden] {

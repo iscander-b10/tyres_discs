@@ -1,7 +1,7 @@
-import { calculateSellingPrice, getMargin } from '../../dataTransformers';
+import { calculateSellingPrice, getDiscMargin, getMargin } from '../../dataTransformers';
 import { normalizeModelText } from '../shared/deriveModel';
 
-export const transformTyres = (rawData) => {
+export const transformTyres = (rawData, storeId) => {
   if (!rawData.tyre || !Array.isArray(rawData.tyre)) {
     throw new Error('Неверная структура данных от Шинсервис');
   }
@@ -17,7 +17,7 @@ export const transformTyres = (rawData) => {
     const newTitle = `${tyre.brand} ${model ?? ''} ${tyre.loadIndex}${tyre.speedIndex}`.replace(/\s+/g, ' ').trim();
     const sizeTitle = `${tyre.width}/${tyre.profile}${diameter}`;
 
-    const margin = getMargin(tyre.brand);
+    const margin = getMargin(tyre.brand, storeId);
     const sellingPrice = calculateSellingPrice(tyre.price, margin);
 
     return {
@@ -85,7 +85,7 @@ const normalizeDiscBrand = (rawBrand) => {
   return brandMap[key] || brand;   
 };
 
-export const transformDiscs = (rawData) => {
+export const transformDiscs = (rawData, storeId) => {
   if (!rawData.disk || !Array.isArray(rawData.disk)) {
     throw new Error('Неверная структура данных от Шинсервис');
   }
@@ -116,7 +116,7 @@ export const transformDiscs = (rawData) => {
       sizeTitle,
       price: disc.price,
       websitePrice: disc.priceRetail,
-      sellingPrice: Math.round(disc.price * 1.2),
+      sellingPrice: calculateSellingPrice(disc.price, getDiscMargin(storeId)),
       photoUrl: disc.photoUrl,
       supplier: 'Шинсервис',
     };

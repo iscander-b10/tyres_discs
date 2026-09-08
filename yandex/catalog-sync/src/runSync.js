@@ -26,7 +26,7 @@ export async function runCatalogSync(opts = {}) {
   logJson({ event: 'catalog-sync-start', storeId, slot, version });
 
   const previous = await readSnapshot(storeId);
-  const loadResults = await loadAllSuppliersData();
+  const loadResults = await loadAllSuppliersData(storeId);
   const { suppliers, metaSuppliers } = buildSnapshotSuppliers({
     previousSnapshot: previous,
     loadResults,

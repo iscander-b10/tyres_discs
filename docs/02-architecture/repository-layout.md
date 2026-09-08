@@ -46,7 +46,7 @@ src/
 ├── cart/             Корзина, sync вкладок, reconciliation
 ├── catalog/          Domain: search mapping, showcase, core
 ├── components/       UI страницы и shared-компоненты
-├── config/           site.js — контакты и nav
+├── config/           site.js (продукт), stores.js (профили магазинов)
 ├── icons/            SVG и статичные изображения
 ├── services/         IndexedDB, sync, demo catalog, supplier adapters
 ├── theme/            appearance (светлая/тёмная)

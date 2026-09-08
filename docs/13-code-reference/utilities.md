@@ -72,13 +72,36 @@
 
 | Export | Назначение |
 | --- | --- |
-| `SITE_PHONE` | Телефон магазина в header/footer |
-| `SITE_DEVELOPER_TELEGRAM` | Credit link и контакт лендинга (`handle`, `name`, `href`) |
-| `SITE_DEVELOPER_PHONE` | Телефон разработчика на CTA лендинга |
+| `SITE_BRAND` | Продуктовый бренд лендинга (`SilverTyres`); header/footer на `/demo*` берут `Ivanor` из профиля магазина |
+| `SITE_PHONE` | Продуктовый телефон лендинга в header/footer (`display`) и на CTA-слайде (`ctaDisplay`); на `/demo*` — телефон профиля Иванор |
+| `SITE_TELEGRAM` | Telegram CTA-слайда лендинга (`t.me/AlexandrKorobeinikoff`); подпись карточки — `SITE_TELEGRAM.display` |
 | `SITE_PRODUCT_NAV`, `SITE_SERVICE_NAV` | Nav items |
 | `SITE_NAV_ITEMS` | Combined nav |
 
 Static constants; без side effects. **Страница:** [Продукт и пользователи](/00-overview/product-and-users).
+
+---
+
+## config/ — `src/config/stores.js`
+
+Реестр витринных и ценовых настроек магазина. Ключ — `storeId`. Списки брендов,
+`tyreMargins` и `discMargin` живут только здесь.
+
+| Export | Назначение |
+| --- | --- |
+| `STORE_PROFILES` | Карта `storeId → { id, displayName, phone, pricing }` |
+| `DEFAULT_STORE_PROFILE_ID` | `'ElistaIvanor'` — единственный tenant и fallback |
+| `getStoreProfile(storeId)` | Известный id → профиль; `demo` → `null`; любой другой неизвестный → Иванор |
+
+Staff header/footer читают `displayName` и `phone` по `workspace.storeId`.
+На `/demo*` те же поля берутся из `DEFAULT_STORE_PROFILE_ID` (Иванор), хотя
+`getStoreProfile('demo')` остаётся `null`.
+`getMargin(brand, storeId?)` и `getDiscMargin(storeId?)` в
+`src/services/dataTransformers.js` читают `pricing` того же профиля;
+`calculateSellingPrice(price, margin)` считает `Math.round(price * (1 + margin / 100))`.
+Клиент IndexedDB цену заново не считает.
+
+**Тесты:** `stores.test.js`, `dataTransformers.test.js`, `SiteHeader.test.jsx`, `SiteFooter.test.jsx`. **Страницы:** [Тема и shell](/10-ui/theme-and-shell-components), [Transformers](/07-suppliers/transformers).
 
 ---
 

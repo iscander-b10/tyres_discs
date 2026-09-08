@@ -1,14 +1,18 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ReactComponent as PhoneIcon } from '../../icons/Phone.svg';
-import { ReactComponent as TelegramIcon } from '../../icons/Telegram.svg';
 import {
-  SITE_DEVELOPER_TELEGRAM,
+  SITE_BRAND,
   SITE_PHONE,
   SITE_PRODUCT_NAV,
   SITE_SERVICE_NAV,
 } from '../../config/site';
+import {
+  DEFAULT_STORE_PROFILE_ID,
+  getStoreProfile,
+} from '../../config/stores';
 import { DEFAULT_APP_HOME, PATHS, isDemoPath, loginLinkTarget, toAppPath } from '../../app/paths';
+import { canUseApp } from '../../app/appMode';
 import { useAppShell } from '../../app/AppShellContext';
 import { useAuth } from '../../auth/AuthContext';
 import HoverTooltip from '../shared/HoverTooltip';
@@ -47,9 +51,17 @@ function NavColumn({ label, items }) {
 
 function SiteFooter() {
   const { handleBrandClick } = useAppShell();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, workspace } = useAuth();
   const location = useLocation();
   const demo = isDemoPath(location.pathname);
+  const staffCatalog = canUseApp(isAuthenticated, location.pathname) && !demo;
+  const storeProfile = demo
+    ? getStoreProfile(DEFAULT_STORE_PROFILE_ID)
+    : staffCatalog
+      ? getStoreProfile(workspace?.storeId)
+      : null;
+  const brandName = storeProfile?.displayName ?? SITE_BRAND;
+  const phone = storeProfile?.phone ?? SITE_PHONE;
   const brandPath = demo
     ? toAppPath(location.pathname, PATHS.tyres)
     : isAuthenticated
@@ -67,7 +79,7 @@ function SiteFooter() {
               to={brandPath}
               onClick={handleBrandClick}
             >
-              <span className="site-footer__brand-mark">IVANOR</span>
+              <span className="site-footer__brand-mark">{brandName}</span>
             </Link>
           </div>
 
@@ -85,12 +97,12 @@ function SiteFooter() {
             <h2 className="site-footer__heading">Контакты</h2>
             <ul className="site-footer__list">
               <li className="site-footer__list-item">
-                <a className="site-footer__contact-link" href={SITE_PHONE.href}>
+                <a className="site-footer__contact-link" href={phone.href}>
                   <PhoneIcon
                     className="site-footer__contact-icon"
                     aria-hidden
                   />
-                  <span>{SITE_PHONE.display}</span>
+                  <span>{phone.display}</span>
                 </a>
               </li>
             </ul>
@@ -124,22 +136,6 @@ function SiteFooter() {
           </nav>
           )}
         </div>
-
-        <p className="site-footer__credit">
-          <span className="site-footer__credit-label">Разработка</span>
-          <a
-            className="site-footer__credit-link"
-            href={SITE_DEVELOPER_TELEGRAM.href}
-            target="_blank"
-            rel="noopener noreferrer nofollow"
-          >
-            <TelegramIcon
-              className="site-footer__credit-icon"
-              aria-hidden
-            />
-            <span>{SITE_DEVELOPER_TELEGRAM.handle}</span>
-          </a>
-        </p>
       </div>
     </footer>
   );

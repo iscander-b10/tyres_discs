@@ -34,10 +34,10 @@ const suppliers = {
       const rawDiscs = await fetchJson(discsUrl);
       return { rawTyres, rawDiscs };
     },
-    transform(rawTyres, rawDiscs) {
+    transform(rawTyres, rawDiscs, storeId) {
       return {
-        tyres: transformShinserviceTyres(rawTyres),
-        discs: transformShinserviceDiscs(rawDiscs),
+        tyres: transformShinserviceTyres(rawTyres, storeId),
+        discs: transformShinserviceDiscs(rawDiscs, storeId),
       };
     },
   },
@@ -53,10 +53,10 @@ const suppliers = {
       const rawDiscs = await fetchXmlJson(discsUrl);
       return { rawTyres, rawDiscs };
     },
-    transform(rawTyres, rawDiscs) {
+    transform(rawTyres, rawDiscs, storeId) {
       return {
-        tyres: transformSemisotnovTyres(rawTyres),
-        discs: transformSemisotnovDiscs(rawDiscs),
+        tyres: transformSemisotnovTyres(rawTyres, storeId),
+        discs: transformSemisotnovDiscs(rawDiscs, storeId),
       };
     },
   },
@@ -69,10 +69,10 @@ const suppliers = {
       const raw = await fetchJson(url);
       return { rawTyres: raw, rawDiscs: null };
     },
-    transform(rawTyres) {
+    transform(rawTyres, _rawDiscs, storeId) {
       return {
-        tyres: transformFourtochkiTyres(rawTyres),
-        discs: transformFourtochkiDiscs(rawTyres),
+        tyres: transformFourtochkiTyres(rawTyres, storeId),
+        discs: transformFourtochkiDiscs(rawTyres, storeId),
       };
     },
   },
@@ -85,10 +85,10 @@ const suppliers = {
       const rows = await fetchExcelRows(url);
       return { rawTyres: rows, rawDiscs: null };
     },
-    transform(rawTyres) {
+    transform(rawTyres, _rawDiscs, storeId) {
       return {
-        tyres: transformShinasuTyres(rawTyres),
-        discs: transformShinasuDiscs(rawTyres),
+        tyres: transformShinasuTyres(rawTyres, storeId),
+        discs: transformShinasuDiscs(rawTyres, storeId),
       };
     },
   },
@@ -104,10 +104,10 @@ const suppliers = {
       const rawDiscs = await fetchXmlJson(discsUrl);
       return { rawTyres, rawDiscs };
     },
-    transform(rawTyres, rawDiscs) {
+    transform(rawTyres, rawDiscs, storeId) {
       return {
-        tyres: transformVershinaTyres(rawTyres),
-        discs: transformVershinaDiscs(rawDiscs),
+        tyres: transformVershinaTyres(rawTyres, storeId),
+        discs: transformVershinaDiscs(rawDiscs, storeId),
       };
     },
   },
@@ -117,12 +117,12 @@ const suppliers = {
  * Загрузка одного поставщика (последовательно, как prod через CORS).
  * @returns {Promise<{ key: string, label: string, tyres: object[], discs: object[] }>}
  */
-export async function loadSupplierData(key) {
+export async function loadSupplierData(key, storeId) {
   const supplier = suppliers[key];
   if (!supplier) throw new Error(`Неизвестный поставщик: ${key}`);
 
   const { rawTyres, rawDiscs } = await supplier.fetchRaw();
-  const { tyres, discs } = supplier.transform(rawTyres, rawDiscs);
+  const { tyres, discs } = supplier.transform(rawTyres, rawDiscs, storeId);
   return {
     key: supplier.key,
     label: supplier.label,
@@ -134,11 +134,11 @@ export async function loadSupplierData(key) {
 /**
  * @returns {Promise<Array<{ key: string, status: 'fulfilled'|'rejected', value?: object, reason?: Error }>>}
  */
-export async function loadAllSuppliersData() {
+export async function loadAllSuppliersData(storeId) {
   const results = [];
   for (const key of SUPPLIER_LOAD_ORDER) {
     try {
-      const value = await loadSupplierData(key);
+      const value = await loadSupplierData(key, storeId);
       results.push({ key, status: 'fulfilled', value });
     } catch (reason) {
       console.error(`catalog-sync supplier fail ${key}:`, reason?.message || reason);

@@ -109,28 +109,30 @@ Notification настроен на верхний правый угол и не 
 
 - `useAuth` определяет кнопку «Войти»/«Выйти» на маркетинговых и staff URL;
 - на `/demo*` «Войти» и «Выйти» скрыты (`isDemoPath`); login modal с демо не открывается;
+- бренд и телефон: на лендинге `/` — продуктовые `SITE_BRAND` / `SITE_PHONE` из `src/config/site.js`; на `/demo*` и в staff catalog (`canUseApp && !demo`) — `displayName` и `phone` профиля магазина из `src/config/stores.js` (`getStoreProfile(DEFAULT_STORE_PROFILE_ID)` для демо, `getStoreProfile(workspace.storeId)` для staff). `LandingPage` профиль не получает; `getStoreProfile('demo')` по-прежнему `null` (демо не tenant);
 - `useCart` показывает badge только когда одновременно готовы workspace и cart;
 - badge ограничивает визуальный текст значением `99+`, но accessible label
   содержит фактическое количество;
 - `loginLinkTarget(location)` сохраняет безопасный post-login return path;
 - `handleBrandClick` сбрасывает поисковые панели и ведёт staff на `/tyres`, гостя на `/`, демо на `/demo/tyres`;
 - disabled пункты `SITE_NAV_ITEMS` показываются как «Скоро»;
+- на `/` (guest landing) категорийный nav не рендерится;
 - category nav (`site-header__nav-list`) — горизонтальный overflow без видимого
   scrollbar: на touch — swipe, на desktop — wheel→горизонталь, soft edge-fade и
   стрелки только при `(hover: hover) and (pointer: fine)` и реальном overflow;
   активный пункт и focus прокручиваются в видимую зону (`useSiteHeaderNavScroll`).
 
 `SiteHeader.test.jsx` подтверждает важный readiness-инвариант badge: старое
-количество нельзя показывать до загрузки корзины текущего workspace.
+количество нельзя показывать до загрузки корзины текущего workspace. Телефон:
+гость на `/` видит `SITE_PHONE` (`8 965 309-39-32`); staff catalog с `workspace.storeId = ElistaIvanor` и `/demo*` — `tel:+79371920959` и display `8 937 192-09-59` / бренд `Ivanor`. Тест category nav проверяет отсутствие nav на `/` и рендер list на каталоге.
 
 ### `SiteFooter`
 
-Footer использует те же nav/contact constants, поэтому телефон и подписи не
-дублируются. Для гостя вне демо отображается вход через query-modal target, для staff —
-disabled «Личный кабинет» со статусом «Скоро». На `/demo*` кнопок входа и выхода нет. Внешняя ссылка разработчика
-открывается с `noopener noreferrer nofollow`. `SiteFooter.test.jsx` проверяет скрытие «Войти»/«Выйти» на demo-path.
+Footer использует ту же ветку контактов, что и header, поэтому телефон и бренд не
+дублируются отдельным источником. Для гостя вне демо отображается вход через query-modal target, для staff —
+disabled «Личный кабинет» со статусом «Скоро». На `/demo*` кнопок входа и выхода нет; бренд/телефон — профиль Иванор. `AppFrame` не монтирует `SiteFooter` на guest landing (`showLanding`). `SiteFooter.test.jsx` проверяет скрытие «Войти»/«Выйти» на demo-path и ту же вилку телефона, что у шапки.
 
-На guest landing `AppFrame` ставит `app-layout--landing`: шапка остаётся на месте, content и footer живут в `.app-landing-deck`. Секции лендинга и подвал — snap-слайды (`useLandingSnap`, референс колоды в `presentation/`). Каталог эту оболочку не использует.
+На guest landing `AppFrame` ставит `app-layout--landing`: шапка остаётся на месте (без category nav), content живёт в `.app-landing-deck`. Фон layout, deck и content — `$color-surface`, как у шапки. Обёртка контента не full-bleed: та же колонка, что у каталога (`.app-content-wrapper`: `min(100%, 1380px)` и `padding-inline` шапки). Первый слайд — монитор с кадром главной, как slide 1 в `presentation/`. Второй слайд — тот же текст и сравнение поиска, что slide 2 колоды. Третий слайд — монитор с карточкой диска и overlay WhiteLabel, как slide 3 колоды. Четвёртый слайд — kicker «Оптимальные решения» и пары проблема/решение, как slide 4 колоды. Пятый слайд — kicker «С любого устройства», тот же текст и кадр устройств, что slide 5 колоды, в stacked-сцене второго слайда. Шестой слайд — CTA колоды: kicker «Проверка перед решением», «Открыть демо», карточки Telegram и телефона. Секции — snap-слайды (`useLandingSnap`, референс колоды в `presentation/`). Каталог эту оболочку не использует.
 
 ## `ModeToggle`
 

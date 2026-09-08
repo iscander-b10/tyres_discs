@@ -4,7 +4,7 @@ const SLIDE_MS_STEP = 70;
 const SLIDE_MS_MAX = 1400;
 const EASE_SLIDE = cubicBezier(0.4, 0, 0.6, 1);
 
-export const LANDING_SLIDE_SELECTOR = '.landing-page__slide, .site-footer';
+export const LANDING_SLIDE_SELECTOR = '.landing-page__slide';
 
 function cubicBezier(x1, y1, x2, y2) {
   function calc(t, a, b) {

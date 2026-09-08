@@ -71,7 +71,7 @@ async function main() {
   const version = versionForSlot(slot);
 
   console.log('Загружаю upstream поставщиков…');
-  const loadResults = await loadAllSuppliersData();
+  const loadResults = await loadAllSuppliersData(DEMO_STORE_ID);
   const okCount = loadResults.filter((r) => r.status === 'fulfilled').length;
   const failCount = loadResults.length - okCount;
   console.log(`Загрузка: ok=${okCount}, fail=${failCount}`);

@@ -12,8 +12,8 @@
 
     Пять преимуществ (явно в колоде):
     1 Меньше рутины — слайд 2: один запрос вместо повторного ввода у каждого поставщика.
-    2 Полнее выбор — слайд 3: опыт + поиск по подключённым; доукомплектация и заказ клиенту.
-    3 В кадре ваш магазин — слайд 4: WhiteLabel, логотип на фото, брендинг каталога.
+    2 Полнее выбор — слайд 4: опыт + поиск по подключённым; доукомплектация и заказ клиенту.
+    3 В кадре ваш магазин — слайд 3: WhiteLabel, логотип на фото, брендинг каталога.
     4 С любого устройства — слайд 5: заказ там, где удобно; без узкого горлышка менеджера по заказам.
     5 База для индивидуальных условий — слайд 6: интернет-цена поставщика рядом со своей.
 
@@ -25,10 +25,10 @@
        Вырос из пилота с реальным магазином.
     2 Единый поиск / преимущ. 1. Один запрос без повторного ввода. Шины и диски —
        в одном каталоге, но в отдельных формах со своими фильтрами. Автообновление по расписанию.
-    3 Оптимальные решения / преимущ. 2. Опыт подсказывает, где искать; каталог показывает,
+    3 WhiteLabel / преимущ. 3. Фокус на бренде магазина. Шины без демонстрации, диски
+       нужно показать. Подбор на витрине: каталог брендируется под магазин.
+    4 Оптимальные решения / преимущ. 2. Опыт подсказывает, где искать; каталог показывает,
        где есть модель у другого поставщика. 3+1 на остатке, заказ клиенту не уходит.
-    4 WhiteLabel / преимущ. 3. Шины без демонстрации, диски с фото и логотипом магазина.
-       Подбор на витрине магазина: тема и фирменные цвета на выбор.
     5 С любого устройства / преимущ. 4. Заказ там, где удобно, не через менеджера по заказам.
        Любой сотрудник смотрит позиции на заказ и раскомплектацию.
     6 База для индивидуальных условий / преимущ. 5. Розничная цена поставщика рядом со своей.
@@ -56,20 +56,35 @@
 
   <div class="deck" id="deck">
       <!-- 1. Что это -->
-      <section class="slide slide--title slide--hero-bleed slide--composed is-active" data-title="Что это" id="slide-1">
-        <div class="hero-bleed__bg" aria-hidden="true">
-          <img
-            src="./assets/slide-01-hero.png"
-            width="1728"
-            height="1117"
-            alt=""
-            loading="eager"
-            decoding="sync"
-            fetchpriority="high"
-            draggable="false"
-          />
+      <section class="slide slide--title slide--monitor is-active" data-title="Что это" id="slide-1">
+        <div class="monitor-stage">
+          <figure class="monitor">
+            <div class="monitor__bezel">
+              <span class="monitor__camera" aria-hidden="true"></span>
+              <div class="monitor__screen">
+                <img
+                  src="./assets/slide-01-home.png"
+                  width="1482"
+                  height="897"
+                  alt="Главная каталога: поиск шин и витрина с фотографиями колёс"
+                  loading="eager"
+                  decoding="sync"
+                  fetchpriority="high"
+                  draggable="false"
+                />
+                <div class="monitor__veil" aria-hidden="true"></div>
+                <div class="hero-copy">
+                  <h1 class="hero-copy__title enter" style="--d:0">
+                    SilverTyres&nbsp;—
+                    <span class="hero-copy__line">единый каталог шин и дисков под ваш магазин</span>
+                  </h1>
+                  <p class="hero-copy__lead enter" style="--d:1">Ваши поставщики, ваши цены — в одном окне браузера</p>
+                  <p class="hero-copy__caption enter" style="--d:2">Рабочее место, которое помогает команде вести подбор без лишних вкладок</p>
+                </div>
+              </div>
+            </div>
+          </figure>
         </div>
-        <h1 class="visually-hidden">Единый каталог шин и дисков под ваш магазин</h1>
       </section>
 
       <!-- 2. Единый поиск -->
@@ -100,7 +115,57 @@
         </div>
       </section>
 
-      <!-- 3. Оптимальные решения -->
+      <!-- 3. Фокус на вашем бренде -->
+      <section class="slide slide--monitor slide--brand" data-title="Фокус на вашем бренде">
+        <div class="monitor-stage">
+          <figure class="monitor">
+            <div class="monitor__bezel">
+              <span class="monitor__camera" aria-hidden="true"></span>
+              <div class="monitor__screen">
+                <img
+                  src="./assets/slide-04-discs.png"
+                  width="1281"
+                  height="853"
+                  alt="Карточка диска: фото с логотипом магазина Ivanor, поставщик и цены справа"
+                  loading="eager"
+                  decoding="sync"
+                  fetchpriority="high"
+                  draggable="false"
+                />
+                <div class="monitor__veil monitor__veil--brand" aria-hidden="true"></div>
+                <div class="hero-copy hero-copy--brand">
+                  <h2 class="hero-copy__title enter" style="--d:0">
+                    <span class="hero-copy__eyebrow">Фокус на вашем бренде. WhiteLabel</span>
+                    <span class="hero-copy__line">Шины можно продать без демонстрации, диски нужно показать</span>
+                  </h2>
+                  <p class="hero-copy__lead enter" style="--d:1">Подбор производится на витрине вашего магазина — каталог брендируется под вас. Тему и фирменные цвета выбираете вы.</p>
+                </div>
+                <aside class="brand-callout enter" style="--d:2">
+                  <p>Логотип на фото подчёркивает ваш бренд,<br>а не поставщика</p>
+                </aside>
+                <svg class="brand-pointer" viewBox="0 0 1281 853" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                  <defs>
+                    <marker id="brand-arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto">
+                      <path d="M0 0 L10 5 L0 10 z" fill="currentColor" />
+                    </marker>
+                  </defs>
+                  <path
+                    class="brand-pointer__line"
+                    d="M 941 400 C 890 430, 840 510, 792 568"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="4"
+                    stroke-linecap="round"
+                    marker-end="url(#brand-arrowhead)"
+                  />
+                </svg>
+              </div>
+            </div>
+          </figure>
+        </div>
+      </section>
+
+      <!-- 4. Оптимальные решения -->
       <section class="slide slide--cards" data-title="Оптимальные решения">
         <div class="slide__frame">
           <p class="kicker enter" style="--d:0">Оптимальные решения</p>
@@ -125,23 +190,6 @@
           </div>
           <p class="note enter" style="--d:4">Бренды и модели пересекаются между поставщиками. То, что привычно искать у одного, иногда лежит у другого.</p>
         </div>
-      </section>
-
-      <!-- 4. Фокус на вашем бренде -->
-      <section class="slide slide--hero-bleed slide--composed" data-title="Фокус на вашем бренде">
-        <div class="hero-bleed__bg" aria-hidden="true">
-          <img
-            src="./assets/slide-04-whitelabel.png"
-            width="1728"
-            height="1117"
-            alt=""
-            loading="eager"
-            decoding="sync"
-            fetchpriority="high"
-            draggable="false"
-          />
-        </div>
-        <h2 class="visually-hidden">Шины можно продать без демонстрации, диски нужно показывать. Логотип на фото подчеркнёт ваш бренд, а не поставщика.</h2>
       </section>
 
       <!-- 5. С любого устройства -->
@@ -284,22 +332,31 @@
           <div class="slide__copy">
             <p class="kicker enter" style="--d:0">Проверка перед решением</p>
             <h2 class="enter" style="--d:1">Проверьте каталог на реальном запросе вместе с командой</h2>
-            <p class="lead enter" style="--d:2">Сотруднику — пройти знакомый подбор и показать демо владельцу. Владельцу — предложить команде проверить каталог и поделиться впечатлением.</p>
+            <p class="lead enter" style="--d:2">
+              <span>
+                <strong>Сотруднику</strong> — пройти знакомый подбор и показать
+                демо владельцу.
+              </span>
+              <span>
+                <strong>Владельцу</strong> — предложить команде проверить каталог
+                и поделиться впечатлением.
+              </span>
+            </p>
           </div>
           <div class="cta-actions">
             <a
               class="cta-island enter"
               style="--d:3"
-              href="https://iscander-b10.github.io/tyres_discs/demo"
+              href="https://silvertyres.pro/demo"
               target="_blank"
               rel="noopener noreferrer"
             >
               Открыть демо
             </a>
             <div class="contacts enter" style="--d:4">
-              <a class="contact" href="https://t.me/Iscander_b10" target="_blank" rel="noopener noreferrer">
+              <a class="contact" href="https://t.me/AlexandrKorobeinikoff" target="_blank" rel="noopener noreferrer">
                 <small>Telegram</small>
-                <span>SilverTyres</span>
+                <span>AlexandrKorobeinikoff</span>
               </a>
               <a class="contact" href="tel:+79653093932">
                 <small>Телефон</small>

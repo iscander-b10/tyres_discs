@@ -1,24 +1,22 @@
 import { PATHS } from '../app/paths';
 
-/** Shared site contact & nav — used by SiteHeader / SiteFooter. */
+/** Shared product chrome on guest landing `/`, not a tenant store profile. */
 
-/** Store phone — client / shop contact (not the developer). */
+/** Product brand mark on landing. Demo and staff catalog use store profile displayName. */
+export const SITE_BRAND = 'SilverTyres';
+
+/** Product contact on landing header/footer and CTA (not a store phone). */
 export const SITE_PHONE = {
-  display: '8 800 250 88 50',
-  href: 'tel:+78002508850',
-};
-
-/** Developer credit channel — site author, not store support. */
-export const SITE_DEVELOPER_TELEGRAM = {
-  handle: '@Iscander_b10',
-  name: 'SilverTyres',
-  href: 'https://t.me/Iscander_b10',
-};
-
-/** Developer contact on the marketing landing CTA (not the store phone). */
-export const SITE_DEVELOPER_PHONE = {
-  display: '+7 (965) 309-39-32',
+  display: '8 965 309-39-32',
+  /** CTA slide matches presentation/ deck copy. */
+  ctaDisplay: '+7 (965) 309-39-32',
   href: 'tel:+79653093932',
+};
+
+/** Product Telegram on landing CTA (same handle as presentation/). */
+export const SITE_TELEGRAM = {
+  href: 'https://t.me/AlexandrKorobeinikoff',
+  display: 'AlexandrKorobeinikoff',
 };
 
 export const SITE_PRODUCT_NAV = [

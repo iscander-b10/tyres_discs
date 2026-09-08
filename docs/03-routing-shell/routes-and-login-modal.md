@@ -155,12 +155,12 @@ flowchart TD
 ### Основные layout-компоненты
 
 1. `Layout.app-layout` — вся background surface. Получает `inert`, пока открыт login.
-2. `SiteHeader` — brand, тема, auth action, basket badge и category navigation.
+2. `SiteHeader` — brand, тема, auth action, basket badge; category navigation скрыта на `/`.
 3. `Layout.Content` + `Flex` — основная область.
 4. `LandingPage` для guest marketing/login background.
 5. Keep-alive panels шин, дисков и basket для доступного app.
 6. `DemoCatalogBanner` на `/demo*` при `showCatalog` — немодальный Alert с датой frozen каталога.
-7. `SiteFooter`.
+7. `SiteFooter` — не монтируется при `showLanding`.
 8. `ModeToggle` только при `appEnabled`.
 9. `ScrollToTop`.
 10. `Outlet` для guard/redirect route elements.
@@ -329,7 +329,7 @@ Callback выполняет порядок `flush cart → detach cart/sync → 
 **Context:** AppShell, Auth, Router.  
 **Результат:** brand, product/service navigation, контакты и account action.
 
-Footer использует тот же `loginLinkTarget`, поэтому header и footer не расходятся в правилах deep-link. Отдельного unit-теста нет.
+Footer использует тот же `loginLinkTarget`, поэтому header и footer не расходятся в правилах deep-link. На guest landing (`showLanding`) footer не монтируется. Отдельного unit-теста на mount нет; `SiteFooter.test.jsx` покрывает demo account и телефон.
 
 ### `ModeToggle`
 

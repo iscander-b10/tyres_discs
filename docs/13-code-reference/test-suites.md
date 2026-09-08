@@ -1,7 +1,7 @@
 # Тестовые наборы
 
 ::: tip Статус: проверено по коду
-70 test-файлов под `src/` входят в корневой `npm test`. Ещё один тестовый файл `yandex/catalog-sync` запускается отдельной cloud-командой. Карта трассировки контрактов — [contract-catalog](/11-testing/contract-catalog).
+72 test-файлов под `src/` входят в корневой `npm test`. Ещё один тестовый файл `yandex/catalog-sync` запускается отдельной cloud-командой. Карта трассировки контрактов — [contract-catalog](/11-testing/contract-catalog).
 :::
 
 ## Инструменты
@@ -79,9 +79,9 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 
 | Файл | Инварианты |
 | --- | --- |
-| `SiteHeader.test.jsx` | cart badge, auth links, нет «Войти»/«Выйти» на `/demo*`, нет стрелок nav без overflow |
-| `SiteFooter.test.jsx` | нет «Войти»/«Выйти» на `/demo*`; на `/` «Войти» есть |
-| `LandingPage.test.jsx` | все «Посмотреть демо» enabled → `/demo`; «Войти» на странице; 8 snap-слайдов |
+| `SiteHeader.test.jsx` | cart badge, auth links, нет «Войти»/«Выйти» на `/demo*`, телефон `/` vs Ivanor на staff и `/demo*`, нет стрелок nav без overflow |
+| `SiteFooter.test.jsx` | нет «Войти»/«Выйти» на `/demo*`; на `/` «Войти» и `SITE_PHONE`; staff и `/demo*` — бренд/телефон профиля Иванор |
+| `LandingPage.test.jsx` | все «Посмотреть демо» enabled → `/demo`; «Открыть демо» на CTA; «Войти» на странице; H2 второго–шестого слайдов, Telegram и `SITE_PHONE.ctaDisplay`; 6 snap-слайдов |
 | `landingSnap.test.js` | nearest snap, duration cap, inner overflow, typing target |
 | `CatalogItemModalWindow.test.jsx` | лейбл «Размер»; у discs «Цвет» сразу после размера (пусто → «—»); у tyres поля «Цвет» нет |
 | `TiresSearchParameters.searchRace.test.jsx` | stale request discard, spinner, skip facets, reset during pending, pending не blank, timeout, StrictMode settle |
@@ -104,7 +104,7 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 
 ---
 
-## Services / IDB / Sync (17 файлов)
+## Services / IDB / Sync (18 файлов)
 
 | Файл | Инварианты |
 | --- | --- |
@@ -125,14 +125,17 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 | `catalogSync/CatalogSyncHost.test.jsx` | triggers, empty → blocking, non-empty без кадра blocking, onProgress → label, warmup до notify, waiting lock; на `/demo*` `checkAndSyncCatalog` не вызывается |
 | `demoCatalog/demoCatalogService.test.js` | fetch static snapshot, progress от meta.bytes, `hideBytesLabel` |
 | `demoCatalog/DemoCatalogHost.test.jsx` | пустой IDB → overlay + download; непустой → без overlay и без повторного fetch |
+| `dataTransformers.test.js` | getMargin 15/23/18, discMargin 20 → 1200, изоляция второго storeId, нет `* 1.2` в transformDiscs |
 
 **Страницы:** [IndexedDB](/05-catalog-storage/indexeddb-schema), [Autosync](/06-catalog-sync/frontend-autosync), [Locks](/06-catalog-sync/locks-and-channels).
 
 ---
 
-## Utils (1 файл)
+## Utils / config (2 файла)
 
 `utils/appLog.test.js` — sanitization, expected errors.
+
+`config/stores.test.js` — `getStoreProfile`: ElistaIvanor, `demo` → null, неизвестный → fallback Иванор.
 
 ---
 

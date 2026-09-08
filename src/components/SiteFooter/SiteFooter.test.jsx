@@ -8,7 +8,6 @@ import SiteFooter from './SiteFooter';
 jest.mock('../../app/AppShellContext', () => ({ useAppShell: jest.fn() }));
 jest.mock('../../auth/AuthContext', () => ({ useAuth: jest.fn() }));
 jest.mock('../../icons/Phone.svg', () => ({ ReactComponent: () => null }));
-jest.mock('../../icons/Telegram.svg', () => ({ ReactComponent: () => null }));
 jest.mock('../shared/HoverTooltip', () => ({ children }) => children);
 
 describe('SiteFooter demo account', () => {
@@ -30,7 +29,7 @@ describe('SiteFooter demo account', () => {
   });
 
   test('на / гость видит Войти', async () => {
-    useAuth.mockReturnValue({ isAuthenticated: false });
+    useAuth.mockReturnValue({ isAuthenticated: false, workspace: null });
     await act(async () => {
       root.render(
         <MemoryRouter initialEntries={['/']}>
@@ -42,7 +41,7 @@ describe('SiteFooter demo account', () => {
   });
 
   test('на /demo* нет Войти и Выйти', async () => {
-    useAuth.mockReturnValue({ isAuthenticated: false });
+    useAuth.mockReturnValue({ isAuthenticated: false, workspace: { storeId: 'demo' } });
     await act(async () => {
       root.render(
         <MemoryRouter initialEntries={['/demo/tyres']}>
@@ -52,5 +51,87 @@ describe('SiteFooter demo account', () => {
     });
     expect(container.textContent).not.toContain('Войти');
     expect(container.textContent).not.toContain('Выйти');
+  });
+});
+
+describe('SiteFooter phone', () => {
+  let container;
+  let root;
+
+  beforeEach(() => {
+    global.IS_REACT_ACT_ENVIRONMENT = true;
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    useAppShell.mockReturnValue({ handleBrandClick: jest.fn() });
+  });
+
+  afterEach(async () => {
+    await act(async () => root.unmount());
+    container.remove();
+    jest.clearAllMocks();
+  });
+
+  test('на / гость видит продуктовый телефон, не номер Иванора', async () => {
+    useAuth.mockReturnValue({ isAuthenticated: false, workspace: null });
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={['/']}>
+          <SiteFooter />
+        </MemoryRouter>
+      );
+    });
+    expect(container.textContent).toContain('8 965 309-39-32');
+    expect(container.textContent).not.toContain('8 937 192-09-59');
+    expect(container.querySelector('.site-footer__brand-mark')?.textContent).toBe(
+      'SilverTyres'
+    );
+    expect(container.querySelector('.site-footer__contact-link')?.getAttribute('href')).toBe(
+      'tel:+79653093932'
+    );
+  });
+
+  test('staff catalog ElistaIvanor берёт телефон из профиля магазина', async () => {
+    useAuth.mockReturnValue({
+      isAuthenticated: true,
+      workspace: { storeId: 'ElistaIvanor' },
+    });
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={['/tyres']}>
+          <SiteFooter />
+        </MemoryRouter>
+      );
+    });
+    expect(container.textContent).toContain('8 937 192-09-59');
+    expect(container.textContent).not.toContain('8 965 309-39-32');
+    expect(container.querySelector('.site-footer__brand-mark')?.textContent).toBe(
+      'Ivanor'
+    );
+    expect(container.querySelector('.site-footer__contact-link')?.getAttribute('href')).toBe(
+      'tel:+79371920959'
+    );
+  });
+
+  test('на /demo* бренд и телефон из профиля Иванора, не SITE_*', async () => {
+    useAuth.mockReturnValue({
+      isAuthenticated: false,
+      workspace: { storeId: 'demo' },
+    });
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={['/demo/tyres']}>
+          <SiteFooter />
+        </MemoryRouter>
+      );
+    });
+    expect(container.textContent).toContain('8 937 192-09-59');
+    expect(container.textContent).not.toContain('8 965 309-39-32');
+    expect(container.querySelector('.site-footer__brand-mark')?.textContent).toBe(
+      'Ivanor'
+    );
+    expect(container.querySelector('.site-footer__contact-link')?.getAttribute('href')).toBe(
+      'tel:+79371920959'
+    );
   });
 });

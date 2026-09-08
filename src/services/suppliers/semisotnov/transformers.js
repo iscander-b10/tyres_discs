@@ -1,4 +1,4 @@
-import { calculateSellingPrice, getMargin } from '../../dataTransformers';
+import { calculateSellingPrice, getDiscMargin, getMargin } from '../../dataTransformers';
 import {
   extractLoadSpeedFromTitle,
   normalizeModelText,
@@ -143,7 +143,7 @@ const parseSeason = (season) => season.includes('Да') ? 's' : 'w';
 
 const parseSpikes = (spikes) => spikes.includes('шипованная') ? true : false;
 
-export const transformTyres = (rawData) => {
+export const transformTyres = (rawData, storeId) => {
   const tyresArray = rawData.Выгрузка_Шины.Шина;
   if (!tyresArray || !Array.isArray(tyresArray)) {
     throw new Error('Неверная структура данных шин от Семисотнова');
@@ -162,7 +162,7 @@ export const transformTyres = (rawData) => {
     const model = pickTyreModel(tyre.Модель, nameForModel, normalizedBrand);
     const title = buildTyreTitle(normalizedBrand, model, indices, keepYear);
 
-    const margin = getMargin(normalizedBrand);
+    const margin = getMargin(normalizedBrand, storeId);
     const sellingPrice = calculateSellingPrice(tyre.Цена, margin);
     return {
       id: `semisotnov_${tyre.Код}`,
@@ -337,7 +337,7 @@ const cleanDiscModel = (rawModel, rawBrand, normalizedBrand) => {
   return normalizeModelText(text);
 };
 
-export const transformDiscs = (rawData) => {
+export const transformDiscs = (rawData, storeId) => {
   const discsArray = rawData.Выгрузка_Диски.Диск;
   if (!discsArray || !Array.isArray(discsArray)) {
     throw new Error('Неверная структура данных дисков от Семисотнова');
@@ -367,7 +367,7 @@ export const transformDiscs = (rawData) => {
       title,
       sizeTitle,
       price: disc.Цена,
-      sellingPrice: Math.round(disc.Цена * 1.2),
+      sellingPrice: calculateSellingPrice(disc.Цена, getDiscMargin(storeId)),
       photoUrl: disc.Фото,
       supplier: 'Семисотнов',
     };

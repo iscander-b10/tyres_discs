@@ -13,7 +13,8 @@ import {
 /**
  * Полноэкранный snap-скролл секций лендинга.
  * Референс: presentation/deck.js — один жест / один слайд, внутренний
- * overflow у высоких слайдов, без hijack при prefers-reduced-motion.
+ * overflow у высоких слайдов, enter при активации, без hijack при
+ * prefers-reduced-motion.
  */
 export function useLandingSnap(deckRef) {
   useEffect(() => {
@@ -31,6 +32,7 @@ export function useLandingSnap(deckRef) {
     const hasScrollEnd = 'onscrollend' in window;
     let slides = collectLandingSlides(deck);
     let index = 0;
+    let settledIndex = -1;
     let programmatic = false;
     let wheelLock = false;
     let settleTimer = 0;
@@ -74,6 +76,64 @@ export function useLandingSnap(deckRef) {
       });
     }
 
+    function prepareIncoming(i) {
+      if (i < 0 || i >= slides.length || i === settledIndex) return;
+      const slide = slides[i];
+      slide.classList.remove('is-ready');
+      slide.classList.remove('is-entering');
+    }
+
+    function markReady(slide) {
+      slide.classList.add('is-ready');
+      slide.classList.remove('is-entering');
+    }
+
+    function playEnter(slide) {
+      if (prefersReduce()) {
+        markReady(slide);
+        return;
+      }
+      if (slide.classList.contains('is-ready')) return;
+      if (slide.classList.contains('is-entering')) return;
+      slide.classList.add('is-entering');
+
+      const items = slide.querySelectorAll('.enter');
+      let left = items.length;
+      if (!left) {
+        markReady(slide);
+        return;
+      }
+
+      const onEnd = (e) => {
+        if (!e.target.classList.contains('enter') || !slide.contains(e.target)) {
+          return;
+        }
+        left -= 1;
+        if (left > 0) return;
+        slide.removeEventListener('animationend', onEnd);
+        markReady(slide);
+      };
+      slide.addEventListener('animationend', onEnd);
+    }
+
+    function settle(i) {
+      if (i < 0 || i >= slides.length) return;
+
+      markActive(i);
+
+      slides.forEach((slide, n) => {
+        if (n !== i && slide.classList.contains('is-entering')) {
+          markReady(slide);
+        }
+      });
+
+      if (i === settledIndex) return;
+      settledIndex = i;
+      if (slides[i].scrollTop) slides[i].scrollTop = 0;
+
+      playEnter(slides[i]);
+    }
+
     function scrollToSlide(i, instant, fromIndex) {
       const top = slides[i] ? slideScrollTop(deck, slides[i]) : 0;
       if (instant || prefersReduce()) {
@@ -95,19 +155,30 @@ export function useLandingSnap(deckRef) {
     function go(next, { instant = false } = {}) {
       if (next < 0 || next >= slides.length) return;
       const here = slideFromScroll();
-      if (next === here && !instant && !programmatic) {
-        index = next;
-        markActive(next);
+      if (next === here && next === settledIndex && !instant && !programmatic) {
         return;
+      }
+
+      if (!(instant || prefersReduce())) {
+        prepareIncoming(next);
+        // Enter сразу при уходе на слайд — иначе весь scroll пустой (чёрный фон).
+        playEnter(slides[next]);
       }
 
       index = next;
       markActive(next);
+
+      if (next === here && !instant) {
+        settle(next);
+        return;
+      }
+
       programmatic = true;
       window.clearTimeout(settleTimer);
 
       const travel = scrollToSlide(next, instant, here);
       if (instant || prefersReduce()) {
+        settle(next);
         programmatic = false;
         return;
       }
@@ -116,7 +187,7 @@ export function useLandingSnap(deckRef) {
         if (gen !== travelGen || unmounted) return;
         programmatic = false;
         index = slideFromScroll();
-        markActive(index);
+        settle(index);
         wheelLock = true;
         window.setTimeout(() => {
           wheelLock = false;
@@ -125,11 +196,9 @@ export function useLandingSnap(deckRef) {
     }
 
     function onScrollEnd() {
-      if (programmatic || prefersReduce()) return;
+      if (programmatic) return;
       window.clearTimeout(settleTimer);
-      const next = slideFromScroll();
-      index = next;
-      markActive(next);
+      settle(slideFromScroll());
     }
 
     function armScrollEnd() {
@@ -218,8 +287,15 @@ export function useLandingSnap(deckRef) {
       go(slideFromScroll(), { instant: true });
     }
 
+    function onReduceChange() {
+      if (prefersReduce()) {
+        slides.forEach((slide) => markReady(slide));
+      }
+      onResize();
+    }
+
     refreshSlides();
-    markActive(0);
+    settle(slideFromScroll());
 
     deck.addEventListener('scroll', onScroll, { passive: true });
     deck.addEventListener('scrollend', onScrollEnd);
@@ -229,7 +305,7 @@ export function useLandingSnap(deckRef) {
     deck.addEventListener('touchend', onTouchEnd, { passive: true });
     document.addEventListener('keydown', onKeyDown);
     window.addEventListener('resize', onResize);
-    reduceMotion.addEventListener('change', onResize);
+    reduceMotion.addEventListener('change', onReduceChange);
 
     const resizeObserver =
       typeof ResizeObserver === 'function'
@@ -255,7 +331,7 @@ export function useLandingSnap(deckRef) {
       deck.removeEventListener('touchend', onTouchEnd);
       document.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('resize', onResize);
-      reduceMotion.removeEventListener('change', onResize);
+      reduceMotion.removeEventListener('change', onReduceChange);
       if (resizeObserver) resizeObserver.disconnect();
     };
   }, [deckRef]);

@@ -1,4 +1,4 @@
-import { calculateSellingPrice, getMargin } from '../../dataTransformers';
+import { calculateSellingPrice, getDiscMargin, getMargin } from '../../dataTransformers';
 import { joinBrandAndModel, normalizeModelText } from '../shared/deriveModel';
 
 const parseSeason = (season) => season === 'Зимняя' ? 'w' : 's';
@@ -31,14 +31,14 @@ const normalizeBrand = (brand) => (
   brand
 );
 
-export const transformTyres = (rawData) => {
+export const transformTyres = (rawData, storeId) => {
   if (!rawData.tires || !Array.isArray(rawData.tires)) {
     throw new Error('Неверная структура данных от Форточек');
   }
   return rawData.tires.map((tyre) => {
       const normalizedBrand = normalizeBrand(tyre.brand);
       const model = normalizeModelText(tyre.model);
-      const margin = getMargin(normalizedBrand);
+      const margin = getMargin(normalizedBrand, storeId);
       const sellingPrice = calculateSellingPrice(tyre.price_krd, margin);
       const newTitle = `${joinBrandAndModel(normalizedBrand, model)} ${tyre.load_index}${tyre.speed_index}`.replace(/\s+/g, ' ').trim();
       const normalizeDiameter = (diameter) => {
@@ -91,7 +91,7 @@ const normalizeDiscBrand = (rawBrand) => {
 
   return brandMap[key] || brand;  
 }
-export const transformDiscs = (rawData) => {
+export const transformDiscs = (rawData, storeId) => {
   if (!rawData.rims || !Array.isArray(rawData.rims)) {
     throw new Error('Неверная структура данных от Форточек');
   }
@@ -120,7 +120,7 @@ export const transformDiscs = (rawData) => {
         sizeTitle,
         price: disc.price_krd,
         websitePrice: disc.price_krd_rozn,
-        sellingPrice: Math.round(disc.price_krd * 1.2),
+        sellingPrice: calculateSellingPrice(disc.price_krd, getDiscMargin(storeId)),
         photoUrl: disc.img_big_my,
         supplier: 'Форточки',
       };

@@ -7,7 +7,11 @@ import {
 } from '@ant-design/icons';
 import { ReactComponent as PhoneIcon } from '../../icons/Phone.svg';
 import { ReactComponent as UserIcon } from '../../icons/User.svg';
-import { SITE_NAV_ITEMS, SITE_PHONE } from '../../config/site';
+import { SITE_BRAND, SITE_NAV_ITEMS, SITE_PHONE } from '../../config/site';
+import {
+  DEFAULT_STORE_PROFILE_ID,
+  getStoreProfile,
+} from '../../config/stores';
 import {
   DEFAULT_APP_HOME,
   PATHS,
@@ -35,13 +39,21 @@ function SiteHeader({
   onAppearanceChange,
 }) {
   const { handleBrandClick } = useAppShell();
-  const { isAuthenticated, isWorkspaceReady } = useAuth();
+  const { isAuthenticated, isWorkspaceReady, workspace } = useAuth();
   const logout = useLogout();
   const { isLoaded, totalQuantity } = useCart();
   const location = useLocation();
   const demo = isDemoPath(location.pathname);
   const loginTarget = loginLinkTarget(location);
   const appEnabled = canUseApp(isAuthenticated, location.pathname);
+  const staffCatalog = appEnabled && !demo;
+  const storeProfile = demo
+    ? getStoreProfile(DEFAULT_STORE_PROFILE_ID)
+    : staffCatalog
+      ? getStoreProfile(workspace?.storeId)
+      : null;
+  const brandName = storeProfile?.displayName ?? SITE_BRAND;
+  const phone = storeProfile?.phone ?? SITE_PHONE;
 
   const visibleQuantity =
     isWorkspaceReady && isLoaded ? totalQuantity : 0;
@@ -56,6 +68,7 @@ function SiteHeader({
     : appEnabled
       ? DEFAULT_APP_HOME
       : PATHS.home;
+  const showCategoryNav = location.pathname !== PATHS.home;
 
   const { listRef, canPrev, canNext, hasOverflow, scrollByDir } =
     useSiteHeaderNavScroll(location.pathname);
@@ -69,7 +82,7 @@ function SiteHeader({
             to={brandPath}
             onClick={handleBrandClick}
           >
-            <span className="site-brand__mark">IVANOR</span>
+            <span className="site-brand__mark">{brandName}</span>
           </Link>
 
           <div className="site-header__actions">
@@ -81,12 +94,12 @@ function SiteHeader({
 
               <a
                 className="site-header__phone"
-                href={SITE_PHONE.href}
-                aria-label={SITE_PHONE.display}
+                href={phone.href}
+                aria-label={phone.display}
               >
                 <PhoneIcon className="site-header__phone-icon" aria-hidden />
                 <span className="site-header__phone-text">
-                  {SITE_PHONE.display}
+                  {phone.display}
                 </span>
               </a>
             </div>
@@ -154,6 +167,7 @@ function SiteHeader({
           </div>
         </div>
 
+        {showCategoryNav ? (
         <nav
           className={[
             'site-header__nav',
@@ -229,6 +243,7 @@ function SiteHeader({
             </button>
           ) : null}
         </nav>
+        ) : null}
       </div>
     </header>
   );

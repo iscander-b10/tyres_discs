@@ -254,7 +254,11 @@
     const here = slideFromScroll();
     if (next === here && next === settledIndex && !instant && !programmatic) return;
 
-    if (!(instant || prefersReduce())) prepareIncoming(next);
+    if (!(instant || prefersReduce())) {
+      prepareIncoming(next);
+      // Enter сразу при уходе на слайд — иначе весь scroll пустой.
+      playEnter(slides[next]);
+    }
 
     syncChrome(next);
 

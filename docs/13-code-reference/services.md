@@ -159,12 +159,14 @@ Re-export schema, filters, validation + **default** `catalogIdbSession`.
 
 ## 4. dataTransformers.js
 
-| Export | Сигнatura | Назначение |
+| Export | Сигнатура | Назначение |
 | --- | --- | --- |
-| `getMargin(supplier)` | sync | Коэффициент маржи |
-| `calculateSellingPrice(base, supplier)` | sync | B2B цена |
+| `getMargin(brand, storeId?)` | sync | % маржи шин из профиля магазина |
+| `getDiscMargin(storeId?)` | sync | % маржи дисков (`discMargin` профиля) |
+| `calculateSellingPrice(price, margin)` | sync | `Math.round(price * (1 + margin / 100))` |
 
-Pure; используется transformers и UI price strip.
+Pure; вызывают supplier transformers при сборке snapshot. Списки брендов и
+проценты — в `src/config/stores.js`. UI цену из snapshot не пересчитывает.
 
 ---
 

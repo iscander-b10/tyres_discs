@@ -57,6 +57,7 @@ describe('SiteHeader cart badge', () => {
     useAuth.mockReturnValue({
       isAuthenticated: true,
       isWorkspaceReady: true,
+      workspace: { storeId: 'ElistaIvanor' },
     });
   });
 
@@ -134,6 +135,7 @@ describe('SiteHeader auth actions', () => {
     useAuth.mockReturnValue({
       isAuthenticated: false,
       isWorkspaceReady: true,
+      workspace: { storeId: 'demo' },
     });
     await render();
     expect(container.querySelector('[aria-label="Войти"]')).toBeNull();
@@ -145,6 +147,7 @@ describe('SiteHeader auth actions', () => {
     useAuth.mockReturnValue({
       isAuthenticated: true,
       isWorkspaceReady: true,
+      workspace: { storeId: 'demo' },
     });
     await render();
     expect(container.querySelector('[aria-label="Войти"]')).toBeNull();
@@ -182,11 +185,54 @@ describe('SiteHeader phone', () => {
     });
 
     const phone = container.querySelector('.site-header__phone');
-    expect(phone.getAttribute('href')).toBe('tel:+78002508850');
-    expect(phone.getAttribute('aria-label')).toBe('8 800 250 88 50');
+    expect(phone.getAttribute('href')).toBe('tel:+79653093932');
+    expect(phone.getAttribute('aria-label')).toBe('8 965 309-39-32');
     expect(
       container.querySelector('.site-header__phone-text')?.textContent
-    ).toBe('8 800 250 88 50');
+    ).toBe('8 965 309-39-32');
+  });
+
+  test('staff catalog ElistaIvanor берёт телефон из профиля магазина', async () => {
+    mockLocationPathname = '/tyres';
+    useAuth.mockReturnValue({
+      isAuthenticated: true,
+      isWorkspaceReady: true,
+      workspace: { storeId: 'ElistaIvanor' },
+    });
+    await act(async () => {
+      root.render(<SiteHeader />);
+    });
+
+    const phone = container.querySelector('.site-header__phone');
+    expect(phone.getAttribute('href')).toBe('tel:+79371920959');
+    expect(phone.getAttribute('aria-label')).toBe('8 937 192-09-59');
+    expect(
+      container.querySelector('.site-header__phone-text')?.textContent
+    ).toBe('8 937 192-09-59');
+    expect(container.querySelector('.site-brand__mark')?.textContent).toBe(
+      'Ivanor'
+    );
+  });
+
+  test('на /demo* бренд и телефон из профиля Иванора, не SITE_*', async () => {
+    mockLocationPathname = '/demo/tyres';
+    useAuth.mockReturnValue({
+      isAuthenticated: true,
+      isWorkspaceReady: true,
+      workspace: { storeId: 'demo' },
+    });
+    await act(async () => {
+      root.render(<SiteHeader />);
+    });
+
+    const phone = container.querySelector('.site-header__phone');
+    expect(phone.getAttribute('href')).toBe('tel:+79371920959');
+    expect(
+      container.querySelector('.site-header__phone-text')?.textContent
+    ).toBe('8 937 192-09-59');
+    expect(container.querySelector('.site-brand__mark')?.textContent).toBe(
+      'Ivanor'
+    );
   });
 });
 
@@ -196,7 +242,7 @@ describe('SiteHeader category nav', () => {
 
   beforeEach(() => {
     global.IS_REACT_ACT_ENVIRONMENT = true;
-    mockLocationPathname = '/';
+    mockLocationPathname = '/tyres';
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -227,5 +273,15 @@ describe('SiteHeader category nav', () => {
     expect(
       container.querySelector('[aria-label="Показать следующие категории"]')
     ).toBeNull();
+  });
+
+  test('на / категорийный nav скрыт', async () => {
+    mockLocationPathname = '/';
+    await act(async () => {
+      root.render(<SiteHeader />);
+    });
+
+    expect(container.querySelector('.site-header__nav')).toBeNull();
+    expect(container.querySelector('.site-header__nav-list')).toBeNull();
   });
 });

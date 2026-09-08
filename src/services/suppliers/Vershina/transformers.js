@@ -1,4 +1,4 @@
-import { calculateSellingPrice, getMargin } from '../../dataTransformers';
+import { calculateSellingPrice, getDiscMargin, getMargin } from '../../dataTransformers';
 import { joinBrandAndModel, normalizeModelText } from '../shared/deriveModel';
 
 const normalizeBrand = (brand) => {
@@ -32,7 +32,7 @@ const parseSeason = (season) => season === 'Зимние' ? 'w' : 's';
 const parseSpikes = (spikes) => spikes === 'Да';
 const parseRunflat = (value) => String(value ?? '').trim().toUpperCase().includes('ДА');
 
-export const transformTyres = (rawData) => {
+export const transformTyres = (rawData, storeId) => {
   const tyresArray = rawData.data.tyres;
   if (!tyresArray || !Array.isArray(tyresArray)) {
     throw new Error('Неверная структура данных шин от Вершины');
@@ -41,7 +41,7 @@ export const transformTyres = (rawData) => {
   return tyresArray.map((tyre) => {
     const normalizedBrand = normalizeBrand(tyre.brand);
     const model = normalizeModel(tyre.model);
-    const margin = getMargin(normalizedBrand);
+    const margin = getMargin(normalizedBrand, storeId);
     const sellingPrice = calculateSellingPrice(tyre.price_opt, margin);
     const rim = parseDiameter(tyre.diameter, tyre.commercial);
     const newTitle = `${joinBrandAndModel(normalizedBrand, model)} ${tyre.load_speed_index}`.replace(/\s+/g, ' ').trim();
@@ -92,7 +92,7 @@ const normalizeDiscBrand = (rawBrand) => {
   return brandMap[key] || brand;   
 };
 
-export const transformDiscs = (rawData) => {
+export const transformDiscs = (rawData, storeId) => {
   const discsArray = rawData.data.rims;
   if (!discsArray || !Array.isArray(discsArray)) {
     throw new Error('Неверная структура данных дисков от Вершины');
@@ -122,7 +122,7 @@ export const transformDiscs = (rawData) => {
       sizeTitle,
       price: disc.price_opt,
       websitePrice: disc.price_mic,
-      sellingPrice: Math.round(disc.price_opt * 1.2),
+      sellingPrice: calculateSellingPrice(disc.price_opt, getDiscMargin(storeId)),
       photoUrl: disc.photo,
       supplier: 'Вершина'
     };

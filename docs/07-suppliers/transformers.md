@@ -35,7 +35,8 @@ Transformers переводят пять несовместимых прайс-�
 
 ### HELPERS
 
-- `src/services/dataTransformers.js` — правила наценки;
+- `src/config/stores.js` — реестр профилей магазина: имя, телефон, списки брендов, `tyreMargins` и `discMargin`;
+- `src/services/dataTransformers.js` — `getMargin(brand, storeId?)` и `getDiscMargin(storeId?)` читают профиль, `calculateSellingPrice` считает цену;
 - `src/services/suppliers/shared/deriveModel.js` — model/title helpers;
 - локальные `parse*`, `normalize*`, `clean*` внутри transformer-файлов —
   supplier-specific helpers.
@@ -69,12 +70,14 @@ flowchart LR
 У каждого поставщика есть:
 
 ```js
-transformTyres(rawData: unknown): TireItem[]
-transformDiscs(rawData: unknown): DiscItem[]
+transformTyres(rawData: unknown, storeId?: string): TireItem[]
+transformDiscs(rawData: unknown, storeId?: string): DiscItem[]
 ```
 
 **Роль.** Проверить ожидаемый корневой массив, затем сопоставить каждую запись с
-общей моделью.
+общей моделью. `storeId` задаёт профиль маржи из `src/config/stores.js`;
+`catalog-sync` передаёт `STORE_ID` / `getStoreId()`. Без аргумента helpers
+падают на профиль `ElistaIvanor`.
 
 **Async.** Нет: обе функции синхронные.
 
@@ -199,7 +202,7 @@ transformDiscs(rawData: unknown): DiscItem[]
 - diameter шин очищает от `Z`, а ведущий дефис заменяет на `R`;
 - runflat определяется по вхождению `ДА`;
 - для дисков собирает цвет из `color` и `rim_base_color`;
-- selling price дисков — фиксированные `price_krd * 1.2`.
+- selling price дисков — `calculateSellingPrice(price_krd, discMargin)` профиля магазина (Иванор: 20).
 
 **Ограничение.** Любое season, отличное от точной строки `Зимняя`, становится
 летним; любое thorn, отличное от `Да`, становится `false`.
@@ -239,15 +242,28 @@ parser даст строки, возможно склеивание (`"2" + "3" 
 
 ## Общие helpers
 
-### `getMargin(brand)`
+### `getMargin(brand, storeId?)`
 
 ```js
-getMargin(brand: string): 15 | 18 | 23
+getMargin(brand: string, storeId?: string): number
 ```
 
-Синхронная чистая функция: trim/lowercase, затем точное сравнение с российским
-и импортным списками. Возвращает 15%, 23% или default 18%. `null` brand вызовет
-ошибку на `.trim()`.
+Синхронная чистая функция: trim/lowercase, затем точное сравнение со списками
+`russianBrands` / `importBrands` профиля магазина. Для `ElistaIvanor` это
+15 / 23 / default 18. `null` brand вызовет ошибку на `.trim()`. Неизвестный
+`storeId` (кроме `demo`) берёт fallback-профиль Иванора; `demo` не является
+tenant-профилем, но pricing-helpers всё равно падают на Иванора, чтобы
+трансформация snapshot не падала.
+
+### `getDiscMargin(storeId?)`
+
+```js
+getDiscMargin(storeId?: string): number
+```
+
+Возвращает `pricing.discMargin` профиля. У Иванора одна ставка 20 на литые и
+штампованные; отдельной ставки на штампы нет. Все пять `transformDiscs` считают
+`sellingPrice` через `calculateSellingPrice(price, getDiscMargin(storeId))`.
 
 ### `calculateSellingPrice(price, margin)`
 
@@ -257,8 +273,9 @@ calculateSellingPrice(price: number, margin: number): number
 
 При falsy или `price <= 0` возвращает `0`; иначе округляет
 `price * (1 + margin / 100)` через `Math.round`. Приведение numeric strings
-происходит неявно. Диски всех поставщиков используют отдельное правило `* 1.2`,
-поэтому изменение ценовой политики требует проверки обеих ветвей.
+происходит неявно. Для Иванора `calculateSellingPrice(price, 20)` совпадает с
+прежним `Math.round(price * 1.2)`. Смена маржи — новый cloud sync, не клиентский
+пересчёт `sellingPrice` в IndexedDB.
 
 ### Model helpers
 
@@ -313,9 +330,11 @@ Helpers синхронны, чисты и не имеют commit boundary.
 
 ## Ошибки, тесты и риски изменения
 
-Прямых unit-тестов пяти transformer-файлов и `dataTransformers.js` сейчас нет.
-Это реальный пробел покрытия, особенно для сложных regex Семисотнова и XLSX
-ШинаСу.
+`dataTransformers.test.js` фиксирует `getMargin` (Кама 15, Michelin/Ikon 23,
+неизвестный 18, trim/регистр), `getDiscMargin` / `calculateSellingPrice(1000, 20) → 1200`,
+изоляцию второго тестового storeId и отсутствие литерала `* 1.2` в пяти
+`transformDiscs`. Поставщиковые mapping-тесты по-прежнему не покрывают regex
+Семисотнова и XLSX ШинаСу.
 
 Downstream-тесты в `catalogSnapshotValidation.test.js` подтверждают принимаемый
 результат: identity, supplier match, числовые строки/запятые, amount, diameter,
