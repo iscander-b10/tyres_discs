@@ -73,7 +73,7 @@
 | Export | Назначение |
 | --- | --- |
 | `SITE_BRAND` | Продуктовый бренд лендинга (`SilverTyres`); header/footer на `/demo*` берут `Ivanor` из профиля магазина |
-| `SITE_PHONE` | Продуктовый телефон лендинга в header/footer (`display`) и на CTA-слайде (`ctaDisplay`); на `/demo*` — телефон профиля Иванор |
+| `SITE_PHONE` | Продуктовый телефон лендинга и `/demo*` в header/footer (`display`) и на CTA-слайде (`ctaDisplay`); staff catalog берёт телефон профиля магазина |
 | `SITE_TELEGRAM` | Telegram CTA-слайда лендинга (`t.me/AlexandrKorobeinikoff`); подпись карточки — `SITE_TELEGRAM.display` |
 | `SITE_PRODUCT_NAV`, `SITE_SERVICE_NAV` | Nav items |
 | `SITE_NAV_ITEMS` | Combined nav |
@@ -94,8 +94,8 @@ Static constants; без side effects. **Страница:** [Продукт и 
 | `getStoreProfile(storeId)` | Известный id → профиль; `demo` → `null`; любой другой неизвестный → Иванор |
 
 Staff header/footer читают `displayName` и `phone` по `workspace.storeId`.
-На `/demo*` те же поля берутся из `DEFAULT_STORE_PROFILE_ID` (Иванор), хотя
-`getStoreProfile('demo')` остаётся `null`.
+На `/demo*` бренд берётся из `DEFAULT_STORE_PROFILE_ID` (Иванор), телефон —
+`SITE_PHONE`; `getStoreProfile('demo')` остаётся `null`.
 `getMargin(brand, storeId?)` и `getDiscMargin(storeId?)` в
 `src/services/dataTransformers.js` читают `pricing` того же профиля;
 `calculateSellingPrice(price, margin)` считает `Math.round(price * (1 + margin / 100))`.

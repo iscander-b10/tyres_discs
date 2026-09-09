@@ -53,7 +53,7 @@ function SiteHeader({
       ? getStoreProfile(workspace?.storeId)
       : null;
   const brandName = storeProfile?.displayName ?? SITE_BRAND;
-  const phone = storeProfile?.phone ?? SITE_PHONE;
+  const phone = demo ? SITE_PHONE : (storeProfile?.phone ?? SITE_PHONE);
 
   const visibleQuantity =
     isWorkspaceReady && isLoaded ? totalQuantity : 0;

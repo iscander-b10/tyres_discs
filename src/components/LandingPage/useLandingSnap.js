@@ -161,8 +161,6 @@ export function useLandingSnap(deckRef) {
 
       if (!(instant || prefersReduce())) {
         prepareIncoming(next);
-        // Enter сразу при уходе на слайд — иначе весь scroll пустой (чёрный фон).
-        playEnter(slides[next]);
       }
 
       index = next;

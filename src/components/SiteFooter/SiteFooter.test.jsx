@@ -113,7 +113,7 @@ describe('SiteFooter phone', () => {
     );
   });
 
-  test('на /demo* бренд и телефон из профиля Иванора, не SITE_*', async () => {
+  test('на /demo* бренд Иванор, телефон продуктовый как на лендинге', async () => {
     useAuth.mockReturnValue({
       isAuthenticated: false,
       workspace: { storeId: 'demo' },
@@ -125,13 +125,13 @@ describe('SiteFooter phone', () => {
         </MemoryRouter>
       );
     });
-    expect(container.textContent).toContain('8 937 192-09-59');
-    expect(container.textContent).not.toContain('8 965 309-39-32');
+    expect(container.textContent).toContain('8 965 309-39-32');
+    expect(container.textContent).not.toContain('8 937 192-09-59');
     expect(container.querySelector('.site-footer__brand-mark')?.textContent).toBe(
       'Ivanor'
     );
     expect(container.querySelector('.site-footer__contact-link')?.getAttribute('href')).toBe(
-      'tel:+79371920959'
+      'tel:+79653093932'
     );
   });
 });

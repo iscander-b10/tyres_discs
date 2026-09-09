@@ -79,8 +79,8 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 
 | Файл | Инварианты |
 | --- | --- |
-| `SiteHeader.test.jsx` | cart badge, auth links, нет «Войти»/«Выйти» на `/demo*`, телефон `/` vs Ivanor на staff и `/demo*`, нет стрелок nav без overflow |
-| `SiteFooter.test.jsx` | нет «Войти»/«Выйти» на `/demo*`; на `/` «Войти» и `SITE_PHONE`; staff и `/demo*` — бренд/телефон профиля Иванор |
+| `SiteHeader.test.jsx` | cart badge, auth links, нет «Войти»/«Выйти» на `/demo*`, телефон `/` и `/demo*` = `SITE_PHONE`, staff = профиль Иванор / бренд `Ivanor` на demo, нет стрелок nav без overflow |
+| `SiteFooter.test.jsx` | нет «Войти»/«Выйти» на `/demo*`; на `/` «Войти» и `SITE_PHONE`; staff — бренд/телефон профиля Иванор; `/demo*` — бренд Иванор + `SITE_PHONE` |
 | `LandingPage.test.jsx` | все «Посмотреть демо» enabled → `/demo`; «Открыть демо» на CTA; «Войти» на странице; H2 второго–шестого слайдов, Telegram и `SITE_PHONE.ctaDisplay`; 6 snap-слайдов |
 | `landingSnap.test.js` | nearest snap, duration cap, inner overflow, typing target |
 | `CatalogItemModalWindow.test.jsx` | лейбл «Размер»; у discs «Цвет» сразу после размера (пусто → «—»); у tyres поля «Цвет» нет |

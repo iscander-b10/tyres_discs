@@ -43,7 +43,7 @@
   --ease-mass: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-slide: cubic-bezier(0.4, 0, 0.6, 1);
   --duration-slide: 720ms;
-  --duration-enter: 600ms;
+  --duration-enter: 900ms;
   --stagger: 100ms;
 
   --nav-h: 4.75rem;
@@ -1506,30 +1506,26 @@ a {
   width: 100%;
 }
 
-.cta-island {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.85rem;
-  margin-top: 0;
-  padding: 0.75rem 1.35rem;
-  background: var(--accent);
-  color: var(--on-accent);
-  text-decoration: none;
-  border-radius: var(--radius-pill);
-  font-weight: 700;
-  font-size: 1.05rem;
-  box-shadow: 0 10px 28px rgba(228, 49, 65, 0.28);
-  transition:
-    background 180ms var(--ease-mass),
-    transform 160ms var(--ease-mass);
+.cta-demo {
+  margin: 0;
+  max-width: 46rem;
+  color: var(--text);
+  font-size: clamp(1rem, 1.35vw, 1.15rem);
+  font-weight: 600;
+  line-height: 1.45;
+  text-wrap: pretty;
 }
 
-.cta-island:hover {
-  background: var(--accent-hover);
+.cta-demo a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  word-break: break-all;
+  transition: color 180ms var(--ease-mass);
 }
 
-.cta-island:active {
-  transform: scale(0.96);
+.cta-demo a:hover {
+  color: var(--accent-hover);
 }
 
 .contacts {
@@ -1691,7 +1687,7 @@ a {
   outline-offset: 3px;
 }
 
-.cta-island:focus-visible {
+.cta-demo a:focus-visible {
   outline-offset: 4px;
 }
 
@@ -1743,7 +1739,7 @@ a {
 
 @media (prefers-reduced-motion: reduce) {
   .progress__bar,
-  .cta-island,
+  .cta-demo a,
   .nav-btn,
   .dot,
   .contact {
@@ -1900,9 +1896,8 @@ a {
     font-size: 0.88rem;
   }
 
-  .cta-island {
+  .cta-demo {
     width: 100%;
-    justify-content: center;
   }
 
   .contact {
@@ -1953,7 +1948,7 @@ a {
   body,
   .slide,
   .card,
-  .cta-island,
+  .cta-demo,
   .contact,
   .point::before,
   .quote,
@@ -2502,13 +2497,13 @@ a {
     gap: 3.5mm;
   }
 
-  .slide--cta .cta-island {
+  .slide--cta .cta-demo {
     margin-top: 0;
     width: auto;
-    justify-content: center;
-    background: var(--accent);
-    color: var(--on-accent);
-    box-shadow: 0 10px 28px rgba(228, 49, 65, 0.28);
+  }
+
+  .slide--cta .cta-demo a {
+    color: var(--accent);
   }
 
   .slide--cta .contacts {
@@ -2534,14 +2529,6 @@ a {
     margin-inline: 0;
     text-align: start;
     max-width: 46rem;
-  }
-
-  .cta-island,
-  .cta-island:hover,
-  .cta-island:active {
-    background: var(--accent);
-    color: var(--on-accent);
-    transform: none;
   }
 
   .contact:hover {
@@ -2862,7 +2849,7 @@ a {
 @media (forced-colors: active) {
   .nav-btn,
   .dot,
-  .cta-island,
+  .cta-demo a,
   .contact {
     border: 1px solid ButtonText;
   }

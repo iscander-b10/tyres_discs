@@ -256,8 +256,6 @@
 
     if (!(instant || prefersReduce())) {
       prepareIncoming(next);
-      // Enter сразу при уходе на слайд — иначе весь scroll пустой.
-      playEnter(slides[next]);
     }
 
     syncChrome(next);

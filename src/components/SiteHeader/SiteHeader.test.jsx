@@ -214,7 +214,7 @@ describe('SiteHeader phone', () => {
     );
   });
 
-  test('на /demo* бренд и телефон из профиля Иванора, не SITE_*', async () => {
+  test('на /demo* бренд Иванор, телефон продуктовый как на лендинге', async () => {
     mockLocationPathname = '/demo/tyres';
     useAuth.mockReturnValue({
       isAuthenticated: true,
@@ -226,10 +226,11 @@ describe('SiteHeader phone', () => {
     });
 
     const phone = container.querySelector('.site-header__phone');
-    expect(phone.getAttribute('href')).toBe('tel:+79371920959');
+    expect(phone.getAttribute('href')).toBe('tel:+79653093932');
+    expect(phone.getAttribute('aria-label')).toBe('8 965 309-39-32');
     expect(
       container.querySelector('.site-header__phone-text')?.textContent
-    ).toBe('8 937 192-09-59');
+    ).toBe('8 965 309-39-32');
     expect(container.querySelector('.site-brand__mark')?.textContent).toBe(
       'Ivanor'
     );

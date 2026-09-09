@@ -1,5 +1,7 @@
 /**
  * Raster PDF: one screenshot per slide, no HTML layers.
+ * Last slide gets a URI link annotation over the visible demo URL
+ * so phones can open https://silvertyres.pro/demo from the PDF.
  * Usage:
  *   node export-raster-pdf.mjs <out.pdf> <presentation-dir>
  */
@@ -9,7 +11,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import puppeteer from "puppeteer-core";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, PDFName, PDFString } from "pdf-lib";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = process.env.PRESENTATION_ROOT || process.argv[3] || __dirname;
@@ -19,6 +21,7 @@ const VIEW_W = 1920;
 const VIEW_H = 1358;
 const PAGE_W = 841.89;
 const PAGE_H = 595.28;
+const DEMO_URI = "https://silvertyres.pro/demo";
 const MIME = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -73,6 +76,51 @@ async function waitForVisuals(page) {
     );
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
   });
+}
+
+/** Normalized box of .cta-demo relative to its slide (0..1). */
+async function measureDemoLinkBox(page, slideIndex) {
+  return page.evaluate((index) => {
+    const slide = document.querySelectorAll(".slide")[index];
+    const target = slide?.querySelector(".cta-demo");
+    if (!slide || !target) return null;
+    const sr = slide.getBoundingClientRect();
+    const r = target.getBoundingClientRect();
+    const padX = 8 / sr.width;
+    const padY = 10 / sr.height;
+    return {
+      x: Math.max(0, (r.left - sr.left) / sr.width - padX),
+      y: Math.max(0, (r.top - sr.top) / sr.height - padY),
+      w: Math.min(1, r.width / sr.width + padX * 2),
+      h: Math.min(1, r.height / sr.height + padY * 2),
+    };
+  }, slideIndex);
+}
+
+function addUriLink(pageDoc, uri, box) {
+  if (!box) return;
+  const x1 = box.x * PAGE_W;
+  const x2 = (box.x + box.w) * PAGE_W;
+  const y1 = (1 - box.y - box.h) * PAGE_H;
+  const y2 = (1 - box.y) * PAGE_H;
+  const { context } = pageDoc.doc;
+  const annotRef = context.register(
+    context.obj({
+      Type: "Annot",
+      Subtype: "Link",
+      Rect: [x1, y1, x2, y2],
+      Border: [0, 0, 0],
+      A: {
+        Type: "Action",
+        S: "URI",
+        URI: PDFString.of(uri),
+      },
+    }),
+  );
+  const annotsKey = PDFName.of("Annots");
+  const existing = pageDoc.node.lookup(annotsKey);
+  if (existing) existing.push(annotRef);
+  else pageDoc.node.set(annotsKey, context.obj([annotRef]));
 }
 
 const server = await startServer();
@@ -130,6 +178,7 @@ try {
   if (count !== 8) throw new Error(`Expected 8 slides, got ${count}`);
 
   const pngs = [];
+  let demoLinkBox = null;
   for (let i = 0; i < count; i += 1) {
     await page.evaluate((index) => {
       const deck = document.getElementById("deck");
@@ -141,6 +190,10 @@ try {
       deck.scrollTop = slides[index].offsetTop;
     }, i);
     await new Promise((r) => setTimeout(r, 250));
+    if (i === count - 1) {
+      demoLinkBox = await measureDemoLinkBox(page, i);
+      if (!demoLinkBox) throw new Error("Missing .cta-demo on last slide");
+    }
     const file = path.join(tmp, `slide-${String(i + 1).padStart(2, "0")}.png`);
     const handle = await page.$(`.slide:nth-of-type(${i + 1})`);
     if (!handle) throw new Error(`Missing slide ${i + 1}`);
@@ -154,10 +207,12 @@ try {
   const pdf = await PDFDocument.create();
   pdf.setTitle("SilverTyres");
   pdf.setAuthor("SilverTyres");
-  for (const file of pngs) {
+  for (let i = 0; i < pngs.length; i += 1) {
+    const file = pngs[i];
     const image = await pdf.embedPng(fs.readFileSync(file));
     const pageDoc = pdf.addPage([PAGE_W, PAGE_H]);
     pageDoc.drawImage(image, { x: 0, y: 0, width: PAGE_W, height: PAGE_H });
+    if (i === pngs.length - 1) addUriLink(pageDoc, DEMO_URI, demoLinkBox);
   }
   fs.writeFileSync(OUT_PDF, await pdf.save());
   const keepDir = process.env.KEEP_PNG_DIR;

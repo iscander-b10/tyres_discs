@@ -109,7 +109,7 @@ Notification настроен на верхний правый угол и не 
 
 - `useAuth` определяет кнопку «Войти»/«Выйти» на маркетинговых и staff URL;
 - на `/demo*` «Войти» и «Выйти» скрыты (`isDemoPath`); login modal с демо не открывается;
-- бренд и телефон: на лендинге `/` — продуктовые `SITE_BRAND` / `SITE_PHONE` из `src/config/site.js`; на `/demo*` и в staff catalog (`canUseApp && !demo`) — `displayName` и `phone` профиля магазина из `src/config/stores.js` (`getStoreProfile(DEFAULT_STORE_PROFILE_ID)` для демо, `getStoreProfile(workspace.storeId)` для staff). `LandingPage` профиль не получает; `getStoreProfile('demo')` по-прежнему `null` (демо не tenant);
+- бренд и телефон: на лендинге `/` — продуктовые `SITE_BRAND` / `SITE_PHONE` из `src/config/site.js`; в staff catalog (`canUseApp && !demo`) — `displayName` и `phone` профиля магазина (`getStoreProfile(workspace.storeId)`); на `/demo*` — бренд `displayName` Иванора (`getStoreProfile(DEFAULT_STORE_PROFILE_ID)`), телефон — продуктовый `SITE_PHONE` (как на лендинге), не номер профиля. `LandingPage` профиль не получает; `getStoreProfile('demo')` по-прежнему `null` (демо не tenant);
 - `useCart` показывает badge только когда одновременно готовы workspace и cart;
 - badge ограничивает визуальный текст значением `99+`, но accessible label
   содержит фактическое количество;
@@ -124,13 +124,13 @@ Notification настроен на верхний правый угол и не 
 
 `SiteHeader.test.jsx` подтверждает важный readiness-инвариант badge: старое
 количество нельзя показывать до загрузки корзины текущего workspace. Телефон:
-гость на `/` видит `SITE_PHONE` (`8 965 309-39-32`); staff catalog с `workspace.storeId = ElistaIvanor` и `/demo*` — `tel:+79371920959` и display `8 937 192-09-59` / бренд `Ivanor`. Тест category nav проверяет отсутствие nav на `/` и рендер list на каталоге.
+гость на `/` и `/demo*` видит `SITE_PHONE` (`8 965 309-39-32`); staff catalog с `workspace.storeId = ElistaIvanor` — `tel:+79371920959` и display `8 937 192-09-59` / бренд `Ivanor`; на `/demo*` бренд `Ivanor`, телефон продуктовый. Тест category nav проверяет отсутствие nav на `/` и рендер list на каталоге.
 
 ### `SiteFooter`
 
 Footer использует ту же ветку контактов, что и header, поэтому телефон и бренд не
 дублируются отдельным источником. Для гостя вне демо отображается вход через query-modal target, для staff —
-disabled «Личный кабинет» со статусом «Скоро». На `/demo*` кнопок входа и выхода нет; бренд/телефон — профиль Иванор. `AppFrame` не монтирует `SiteFooter` на guest landing (`showLanding`). `SiteFooter.test.jsx` проверяет скрытие «Войти»/«Выйти» на demo-path и ту же вилку телефона, что у шапки.
+disabled «Личный кабинет» со статусом «Скоро». На `/demo*` кнопок входа и выхода нет; бренд — Иванор, телефон — `SITE_PHONE`. `AppFrame` не монтирует `SiteFooter` на guest landing (`showLanding`). `SiteFooter.test.jsx` проверяет скрытие «Войти»/«Выйти» на demo-path и ту же вилку телефона, что у шапки.
 
 На guest landing `AppFrame` ставит `app-layout--landing`: шапка остаётся на месте (без category nav), content живёт в `.app-landing-deck`. Фон layout, deck и content — `$color-surface`, как у шапки. Обёртка контента не full-bleed: та же колонка, что у каталога (`.app-content-wrapper`: `min(100%, 1380px)` и `padding-inline` шапки). Первый слайд — монитор с кадром главной, как slide 1 в `presentation/`. Второй слайд — тот же текст и сравнение поиска, что slide 2 колоды. Третий слайд — монитор с карточкой диска и overlay WhiteLabel, как slide 3 колоды. Четвёртый слайд — kicker «Оптимальные решения» и пары проблема/решение, как slide 4 колоды. Пятый слайд — kicker «С любого устройства», тот же текст и кадр устройств, что slide 5 колоды, в stacked-сцене второго слайда. Шестой слайд — CTA колоды: kicker «Проверка перед решением», «Открыть демо», карточки Telegram и телефона. Секции — snap-слайды (`useLandingSnap`, референс колоды в `presentation/`). Каталог эту оболочку не использует.
 

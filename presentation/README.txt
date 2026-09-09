@@ -26,6 +26,8 @@
 
 6. PDF для рассылки — 8 альбомных страниц-картинок
    (нормально открывается во встроенном просмотрщике телефона).
+   На последней странице поверх «Демо-версия - https://silvertyres.pro/demo»
+   лежит кликабельная ссылка (аннотация PDF).
    Нужны Node, Chrome и пакеты puppeteer-core + pdf-lib.
    В каталоге с этими пакетами:
      node export-raster-pdf.mjs C:\Users\ALEX\Desktop\SilverTyres.pdf <путь-к-presentation>

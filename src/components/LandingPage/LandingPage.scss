@@ -4,7 +4,7 @@ $landing-ease: cubic-bezier(0.32, 0.72, 0, 1);
 
 .landing-page {
   --ease-slide: cubic-bezier(0.4, 0, 0.6, 1);
-  --duration-enter: 600ms;
+  --duration-enter: 900ms;
   --stagger: 100ms;
   width: 100%;
   color: $color-text;

@@ -10,7 +10,7 @@
 | --- | --- | --- | --- | --- |
 | `SiteHeader` | `src/components/SiteHeader/SiteHeader.jsx` | Шапка: nav, корзина, тема, вход | `useAuth`, `useCart`, props `appearance` | [Тема и shell](/10-ui/theme-and-shell-components) |
 | `SiteFooter` | `src/components/SiteFooter/SiteFooter.jsx` | Подвал, телефон, вход | `useAuth` | [Тема и shell](/10-ui/theme-and-shell-components) |
-| `LandingPage` | `src/components/LandingPage/LandingPage.jsx` | Маркетинговая главная по колоде продукта; первый слайд = slide 1 презентации (монитор + overlay); второй = slide 2 (поиск и сравнение); третий = slide 3 (WhiteLabel, монитор + overlay); четвёртый = slide 4 (kicker «Оптимальные решения», пары проблема/решение); пятый = slide 5 (kicker «С любого устройства», кадр `slide-05-devices.png`, stacked-сцена как у второго слайда); шестой = CTA колоды (kicker «Проверка перед решением», «Открыть демо», Telegram и телефон); секции — snap-слайды; «Посмотреть демо» / «Открыть демо» → `/demo` | `useLandingSnap` | [Продукт](/00-overview/product-and-users) |
+| `LandingPage` | `src/components/LandingPage/LandingPage.jsx` | Маркетинговая главная по колоде продукта; первый слайд = slide 1 презентации (монитор + overlay); второй = slide 2 (поиск и сравнение); третий = slide 3 (WhiteLabel, монитор + overlay); четвёртый = slide 4 (kicker «Оптимальные решения», пары проблема/решение); пятый = slide 5 (kicker «С любого устройства», кадр `slide-05-devices.png`, stacked-сцена как у второго слайда); шестой = CTA колоды (kicker «Проверка перед решением», кнопка «Открыть демо», Telegram и телефон); секции — snap-слайды; «Посмотреть демо» / «Открыть демо» → `/demo` | — | [Продукт](/00-overview/product-and-users) |
 | `LandingDeck` | `src/components/LandingPage/LandingDeck.jsx` | Скроллер колоды на guest `/`: один жест → один слайд | `useLandingSnap` | [Продукт](/00-overview/product-and-users) |
 | `ScrollToTop` | `src/components/ScrollToTop/ScrollToTop.jsx` | Сброс scroll при route change | `useLocation` | [Маршруты](/03-routing-shell/routes-and-login-modal) |
 | `ModeToggle` | `src/components/ModeToggle/ModeToggle.jsx` | Переключатель менеджер/клиент | `useAppShell` | [Режим клиента](/10-ui/basket-and-client-mode) |
@@ -25,20 +25,20 @@
   горизонтальный overflow category nav через `useSiteHeaderNavScroll`
   (`src/components/SiteHeader/useSiteHeaderNavScroll.js`).
 - **Кто вызывает:** `AppFrame` в `App.js`.
-- **Тесты:** `SiteHeader.test.jsx` — badge корзины, login link, скрытие «Войти»/«Выйти» на `/demo*`, телефон лендинга vs Ivanor на staff и `/demo*`, отсутствие стрелок nav без overflow.
+- **Тесты:** `SiteHeader.test.jsx` — badge корзины, login link, скрытие «Войти»/«Выйти» на `/demo*`, телефон лендинга/`demo*` (`SITE_PHONE`) vs профиль Иванор на staff, отсутствие стрелок nav без overflow.
 - **Страница:** [Тема и shell](/10-ui/theme-and-shell-components).
 
 ### `LandingDeck` / `LandingPage`
 
-- **Кто вызывает:** `AppFrame` оборачивает content+footer в `LandingDeck` только при `showLanding`.
-- **Скроллер:** `.app-landing-deck` ниже шапки; секции с классом `landing-page__slide` и `.site-footer` — snap-точки.
-- **Жесты:** `useLandingSnap` (референс `presentation/deck.js`) — колесо/тач/стрелки переводят на соседний слайд за 720 ms; высокий слайд сначала скроллит себя (`is-overflow`). При `prefers-reduced-motion` hijack выключен.
+- **Кто вызывает:** при `showLanding` `AppFrame` оборачивает в `LandingDeck` только content с `LandingPage`. `SiteHeader` снаружи колоды. `SiteFooter` не монтируется.
+- **Скроллер:** `.app-landing-deck` ниже шапки; snap-точки — только секции `.landing-page__slide` (6 штук; селектор `LANDING_SLIDE_SELECTOR` в `landingSnap.js`).
+- **Жесты:** `useLandingSnap` вызывается в `LandingDeck` (референс `presentation/deck.js`) — колесо/тач/стрелки переводят на соседний слайд за 720 ms; высокий слайд сначала скроллит себя (`is-overflow`). При `prefers-reduced-motion` hijack выключен.
 - **Первый слайд:** монитор с `public/landing/slide-01-home.png` и overlay как slide 1 в `presentation/`; CTA «Посмотреть демо» и «Войти» поверх кадра.
 - **Второй слайд:** тот же текст и кадр, что slide 2 в `presentation/` (`public/landing/slide-02-search-compare.png`, тёмная сцена, kicker → H2 → пункты → примечание).
 - **Третий слайд:** тот же монитор, кадр и overlay, что slide 3 в `presentation/` (`public/landing/slide-04-discs.png`, WhiteLabel, callout со стрелкой на логотип магазина).
 - **Четвёртый слайд:** тот же текст, что slide 4 в `presentation/` (kicker «Оптимальные решения», H2 про опыт и недостающую модель, четыре карточки: слева проблема с красным бордером, справа решение с зелёным).
 - **Пятый слайд:** тот же текст и кадр, что slide 5 в `presentation/` (`public/landing/slide-05-devices.png`, kicker «С любого устройства», H2 про заказ там, где удобно, примечание про любое устройство); stacked-сцена общая со вторым слайдом (`landing-page__stack`).
-- **Шестой слайд:** тот же CTA, что последний слайд колоды в `presentation/` (kicker «Проверка перед решением», H2 «вместе с командой», «Открыть демо» → `/demo`, карточки Telegram `SITE_TELEGRAM` и `SITE_PHONE.ctaDisplay`, примечание про демо-поставщиков).
+- **Шестой слайд:** тот же CTA-текст, что последний слайд колоды в `presentation/` (kicker «Проверка перед решением», H2 «вместе с командой», карточки Telegram `SITE_TELEGRAM` и `SITE_PHONE.ctaDisplay`, примечание про демо-поставщиков). На лендинге демо — кнопка «Открыть демо» → `/demo`; в `presentation/` вместо кнопки строка «Демо-версия - https://silvertyres.pro/demo» (кликабельна в raster PDF).
 - **Тесты:** `LandingPage.test.jsx` — CTA «Открыть демо», Telegram и `SITE_PHONE.ctaDisplay`, заголовок `SITE_BRAND`, H2 второго–шестого слайдов, карточки slide 4 и 6 snap-слайдов; без слайдов про розничную цену и два режима; `landingSnap.test.js` — индекс, overflow, duration.
 
 ---
