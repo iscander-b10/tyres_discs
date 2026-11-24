@@ -256,4 +256,207 @@ describe('catalogSync commit-boundary (реальный IndexedDBService)', () =
     const tires = await indexedDBService.searchTires({});
     expect(tires.map((item) => item.id)).toEqual(['tire-1']);
   });
+
+  test('битая секция дисков не затирает уже лежавшие строки и пишет чужие шины', async () => {
+    const disc = (over = {}) => ({
+      id: 'disc-1',
+      code: 'D1',
+      supplier: 'Вершина',
+      amount: 2,
+      price: 3000,
+      sellingPrice: 3500,
+      width: 5.5,
+      diameter: 'R14',
+      pn: 4,
+      pcd: 98,
+      et: 35,
+      cb: 58.5,
+      diskType: 'Штампованный',
+      ...over,
+    });
+
+    await applyCatalogSnapshot(
+      snapshotWith({
+        version: VERSION_OLD,
+        supplier: 'Вершина',
+        tyres: replace([
+          tire({
+            id: 'old-vershina-tyre',
+            code: 'ovt',
+            supplier: 'Вершина',
+          }),
+        ]),
+        discs: replace([
+          disc({ id: 'old-vershina-disc', code: 'ovd' }),
+        ]),
+        extraSuppliers: {
+          shinservice: {
+            supplier: 'Шинсервис',
+            tyres: replace([
+              tire({
+                id: 'old-shinservice-tyre',
+                code: 'ost',
+                supplier: 'Шинсервис',
+              }),
+            ]),
+            discs: replace([
+              disc({
+                id: 'old-shinservice-disc',
+                code: 'osd',
+                supplier: 'Шинсервис',
+              }),
+            ]),
+          },
+        },
+      }),
+      { storeId: STORE_ID }
+    );
+
+    await applyCatalogSnapshot(
+      {
+        version: VERSION,
+        suppliers: {
+          vershina: {
+            supplier: 'Вершина',
+            tyres: [
+              tire({
+                id: 'new-vershina-tyre',
+                code: 'nvt',
+                supplier: 'Вершина',
+              }),
+            ],
+            discs: [
+              disc({ id: 'vershina_1230', code: 'a1' }),
+              disc({ id: 'vershina-good-disc', code: 'good' }),
+              disc({ id: 'vershina_1230', code: 'a2' }),
+              disc({
+                id: 'vershina_MEFRO 5.5*14 4*98 ET35 d5',
+                code: 'b1',
+              }),
+              disc({
+                id: 'vershina_MEFRO 5.5*14 4*98 ET35 d5',
+                code: 'b2',
+              }),
+            ],
+          },
+          shinservice: {
+            supplier: 'Шинсервис',
+            tyres: [
+              tire({
+                id: 'new-shinservice-tyre',
+                code: 'nst',
+                supplier: 'Шинсервис',
+              }),
+            ],
+            discs: [
+              disc({
+                id: 'new-shinservice-disc',
+                code: 'nsd',
+                supplier: 'Шинсервис',
+              }),
+            ],
+          },
+        },
+      },
+      { storeId: STORE_ID }
+    );
+
+    const tireIds = (await indexedDBService.searchTires({})).map((item) => item.id);
+    const discIds = (await indexedDBService.searchDiscs({})).map((item) => item.id);
+    expect(tireIds.sort()).toEqual([
+      'new-shinservice-tyre',
+      'new-vershina-tyre',
+    ]);
+    expect(discIds.sort()).toEqual([
+      'new-shinservice-disc',
+      'old-vershina-disc',
+    ]);
+    expect(await indexedDBService.getPersistedCatalogVersion()).toBe(VERSION);
+    expect(window.localStorage.getItem(VERSION_KEY)).toBe(VERSION);
+  });
+
+  test('холодный старт с битой секцией пишет остальной каталог и version', async () => {
+    const disc = (over = {}) => ({
+      id: 'disc-1',
+      code: 'D1',
+      supplier: 'Вершина',
+      amount: 2,
+      price: 3000,
+      sellingPrice: 3500,
+      width: 5.5,
+      diameter: 'R14',
+      pn: 4,
+      pcd: 98,
+      et: 35,
+      cb: 58.5,
+      diskType: 'Штампованный',
+      ...over,
+    });
+    const snapshot = {
+      version: VERSION,
+      suppliers: {
+        vershina: {
+          supplier: 'Вершина',
+          tyres: [
+            tire({
+              id: 'vershina-tyre-1',
+              code: 'vt',
+              supplier: 'Вершина',
+            }),
+          ],
+          discs: [
+            disc({ id: 'vershina_1230', code: 'a1' }),
+            disc({ id: 'vershina_1230', code: 'a2' }),
+          ],
+        },
+        shinservice: {
+          supplier: 'Шинсервис',
+          tyres: [
+            tire({
+              id: 'shinservice-tyre-1',
+              code: 'st',
+              supplier: 'Шинсервис',
+            }),
+          ],
+          discs: [
+            disc({
+              id: 'shinservice-disc-1',
+              code: 'sd',
+              supplier: 'Шинсервис',
+            }),
+          ],
+        },
+      },
+    };
+
+    global.fetch
+      .mockResolvedValueOnce(jsonResponse({ version: VERSION }))
+      .mockResolvedValueOnce(jsonResponse(snapshot));
+
+    await expect(
+      checkAndSyncCatalog({ storeId: STORE_ID })
+    ).resolves.toEqual({
+      status: 'applied',
+      version: VERSION,
+    });
+
+    const tireIds = (await indexedDBService.searchTires({})).map((item) => item.id);
+    const discIds = (await indexedDBService.searchDiscs({})).map((item) => item.id);
+    expect(tireIds.sort()).toEqual(['shinservice-tyre-1', 'vershina-tyre-1']);
+    expect(discIds).toEqual(['shinservice-disc-1']);
+    expect(await indexedDBService.getPersistedCatalogVersion()).toBe(VERSION);
+    expect(await indexedDBService.isCatalogEmpty()).toBe(false);
+
+    global.fetch.mockClear();
+    global.fetch.mockResolvedValueOnce(jsonResponse({ version: VERSION }));
+    await expect(
+      checkAndSyncCatalog({ storeId: STORE_ID })
+    ).resolves.toEqual({
+      status: 'up-to-date',
+      version: VERSION,
+    });
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(String(global.fetch.mock.calls[0][0])).toContain('/meta');
+    expect(String(global.fetch.mock.calls[0][0])).not.toContain('/snapshot');
+  });
 });

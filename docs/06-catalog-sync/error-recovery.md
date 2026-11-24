@@ -92,7 +92,7 @@ Web Locks waiter ждёт освобождения без собственног
 
 ### 6. Validation
 
-`validateAndNormalizeCatalogSnapshot` — синхронная чистая функция: не открывает IDB и не мутирует source object. Fatal-проблемы дают `report.valid === false`, пустые `commands` и `Error.validationReport` в apply layer.
+`validateAndNormalizeCatalogSnapshot` — синхронная чистая функция: не открывает IDB и не мутирует source object. Blocking fatal дают `report.valid === false`, пустые `commands` и `Error.validationReport` в apply layer. Секционный `DUPLICATE_ID` тоже оставляет `valid === false` и ошибку в report, но чужие команды сохраняет: битая пара supplier+category становится `keepPrevious`/`failed`, apply её не бросает.
 
 Первая проблема формирует message вида:
 
@@ -116,9 +116,9 @@ appLog.error({
 });
 ```
 
-Warning не блокирует commit: например, invalid price нормализуется в `null`, отрицательный amount — в `0`. Fatal блокирует весь snapshot: unsupported schema, отсутствующая команда, unknown action, duplicate id, supplier mismatch и другие structural нарушения.
+Warning не блокирует commit: например, invalid price нормализуется в `null`, отрицательный amount — в `0`. Blocking fatal блокирует весь snapshot: unsupported schema, отсутствующая команда, unknown action, supplier mismatch и другие structural нарушения. Повтор id внутри шин или дисков блокирует только свою секцию.
 
-**Восстановление:** исправить producer/snapshot и опубликовать новую монотонную version. Повторная доставка того же исправленного payload с той же version может быть остановлена IDB version gate, если эта version уже была подтверждена ранее; на практике исправлению следует дать новую version.
+**Восстановление:** исправить producer/snapshot и опубликовать новую монотонную version. Повторная доставка того же исправленного payload с той же version может быть остановлена IDB version gate, если эта version уже была подтверждена ранее; на практике исправлению следует дать новую version. Секционный `DUPLICATE_ID` тоже записывает version, поэтому повтор того же слота не скачивается, а оставленная секция не обновится, пока не придёт более новая version.
 
 ### 7. IndexedDB transaction
 

@@ -13,7 +13,11 @@ import {
   getCatalogVersionKey,
   resolveCatalogStoreId,
 } from './catalogStoreNamespace';
-import { validateAndNormalizeCatalogSnapshot } from './catalogSnapshotValidation';
+import {
+  createSnapshotValidationError,
+  reportBlocksCatalogApply,
+  validateAndNormalizeCatalogSnapshot,
+} from './catalogSnapshotValidation';
 
 export {
   validateAndNormalizeCatalogSnapshot,
@@ -143,6 +147,32 @@ const assertCatalogStoreActive = (storeId, generation) => {
 const normalizeApplyOptions = (options) =>
   typeof options === 'string' ? { storeId: options } : options || {};
 
+function duplicateIdsForLog(ids) {
+  const list = (Array.isArray(ids) ? ids : []).map((id) =>
+    typeof id === 'string' ? id : String(id)
+  );
+  return list.length <= 20 ? list : list.join(', ');
+}
+
+function logKeptDuplicateSections(report) {
+  const sections = Array.isArray(report?.duplicateSections)
+    ? report.duplicateSections
+    : [];
+  for (const section of sections) {
+    appLog.warn({
+      code: 'catalog.section_duplicate_id',
+      domain: 'catalogSync',
+      message: 'Catalog section kept because of duplicate ids',
+      expected: true,
+      context: {
+        supplier: section.supplier,
+        category: section.category,
+        duplicateIds: duplicateIdsForLog(section.ids),
+      },
+    });
+  }
+}
+
 export async function applyCatalogSnapshot(snapshot, options = {}) {
   const normalizedOptions = normalizeApplyOptions(options);
   const storeId = resolveCatalogStoreId(normalizedOptions.storeId);
@@ -152,14 +182,11 @@ export async function applyCatalogSnapshot(snapshot, options = {}) {
 
   await yieldToBrowserPaint();
   const { commands, report } = validateAndNormalizeCatalogSnapshot(snapshot);
+  if (reportBlocksCatalogApply(report, commands)) {
+    throw createSnapshotValidationError(report);
+  }
   if (!report.valid) {
-    const first = report.errors[0];
-    const message = first
-      ? `Некорректный snapshot: ${first.path || 'snapshot'} — ${first.message}`
-      : 'Некорректный snapshot';
-    const error = new Error(message);
-    error.validationReport = report;
-    throw error;
+    logKeptDuplicateSections(report);
   }
 
   const result = await indexedDBService.applyCatalogSnapshot(

@@ -654,4 +654,199 @@ describe('безопасное применение snapshot каталога', 
       progressEvents(onProgress).every((event) => event.phase === 'meta')
     ).toBe(true);
   });
+
+  test('DUPLICATE_ID дисков одной секции не бросает apply и пишет остальные', async () => {
+    const { service, indexedDBService, postCatalogApplied } = loadService();
+    const snapshot = {
+      version: VERSION,
+      suppliers: {
+        vershina: {
+          supplier: 'Вершина',
+          tyres: [
+            tire({ id: 'vershina-tyre-1', code: 'vt-1', supplier: 'Вершина' }),
+          ],
+          discs: [
+            tire({
+              id: 'vershina_1230',
+              code: 'vd-a1',
+              supplier: 'Вершина',
+              diskType: 'Литой',
+            }),
+            tire({
+              id: 'vershina-good-disc',
+              code: 'vd-good',
+              supplier: 'Вершина',
+              diskType: 'Литой',
+            }),
+            tire({
+              id: 'vershina_1230',
+              code: 'vd-a2',
+              supplier: 'Вершина',
+              diskType: 'Литой',
+            }),
+            tire({
+              id: 'vershina_MEFRO 5.5*14 4*98 ET35 d5',
+              code: 'vd-b1',
+              supplier: 'Вершина',
+              diskType: 'Штампованный',
+            }),
+            tire({
+              id: 'vershina_MEFRO 5.5*14 4*98 ET35 d5',
+              code: 'vd-b2',
+              supplier: 'Вершина',
+              diskType: 'Штампованный',
+            }),
+          ],
+        },
+        shinservice: {
+          supplier: 'Шинсервис',
+          tyres: [
+            tire({
+              id: 'shinservice-tyre-1',
+              code: 'st-1',
+              supplier: 'Шинсервис',
+            }),
+          ],
+          discs: [
+            tire({
+              id: 'shinservice-disc-1',
+              code: 'sd-1',
+              supplier: 'Шинсервис',
+              diskType: 'Литой',
+            }),
+          ],
+        },
+      },
+    };
+
+    const result = await service.applyCatalogSnapshot(snapshot);
+
+    expect(result.applied).toBe(true);
+    expect(result.validationReport.valid).toBe(false);
+    expect(
+      result.validationReport.errors.some((error) => error.code === 'DUPLICATE_ID')
+    ).toBe(true);
+    const commands = indexedDBService.applyCatalogSnapshot.mock.calls[0][0];
+    expect(
+      commands.find(
+        (command) => command.supplier === 'Вершина' && command.category === 'discs'
+      )
+    ).toEqual({
+      supplier: 'Вершина',
+      category: 'discs',
+      action: 'keepPrevious',
+      status: 'failed',
+    });
+    expect(
+      commands.find(
+        (command) => command.supplier === 'Вершина' && command.category === 'tyres'
+      ).action
+    ).toBe('replace');
+    expect(
+      commands.find(
+        (command) =>
+          command.supplier === 'Шинсервис' && command.category === 'tyres'
+      ).action
+    ).toBe('replace');
+    expect(window.localStorage.getItem(VERSION_KEY)).toBe(VERSION);
+    expect(postCatalogApplied).toHaveBeenCalledWith(VERSION, 'test-store');
+
+    const duplicateLogs = console.warn.mock.calls.filter(
+      (args) => args[0] === '[app]' && args[1]?.code === 'catalog.section_duplicate_id'
+    );
+    expect(duplicateLogs).toHaveLength(1);
+    expect(duplicateLogs[0][1].context).toEqual({
+      supplier: 'Вершина',
+      category: 'discs',
+      duplicateIds: [
+        'vershina_1230',
+        'vershina_MEFRO 5.5*14 4*98 ET35 d5',
+      ],
+    });
+    expect(JSON.stringify(duplicateLogs[0][1])).not.toMatch(
+      /https?:|REACT_APP|secret|token|password/i
+    );
+  });
+
+  test('checkAndSyncCatalog применяет snapshot, если fatal только DUPLICATE_ID секции', async () => {
+    const { service } = loadService();
+    const snapshot = {
+      version: VERSION,
+      suppliers: {
+        vershina: {
+          supplier: 'Вершина',
+          tyres: [
+            tire({ id: 'vershina-tyre-dup', code: 'vt-1', supplier: 'Вершина' }),
+            tire({ id: 'vershina-tyre-dup', code: 'vt-2', supplier: 'Вершина' }),
+          ],
+          discs: [
+            tire({
+              id: 'vershina-disc-ok',
+              code: 'vd-1',
+              supplier: 'Вершина',
+              diskType: 'Литой',
+            }),
+          ],
+        },
+        shinservice: {
+          supplier: 'Шинсервис',
+          tyres: [
+            tire({
+              id: 'shinservice-tyre-1',
+              code: 'st-1',
+              supplier: 'Шинсервис',
+            }),
+          ],
+          discs: purge(),
+        },
+      },
+    };
+    global.fetch
+      .mockResolvedValueOnce(jsonResponse({ version: VERSION }))
+      .mockResolvedValueOnce(jsonResponse(snapshot));
+
+    await expect(service.checkAndSyncCatalog({ force: true })).resolves.toEqual({
+      status: 'applied',
+      version: VERSION,
+    });
+  });
+
+  test('DUPLICATE_ID вместе с MISSING_ID по-прежнему отклоняется до IDB', async () => {
+    const { service, indexedDBService, postCatalogApplied } = loadService();
+    window.localStorage.setItem(VERSION_KEY, 'old-version');
+
+    await expect(
+      service.applyCatalogSnapshot({
+        version: VERSION,
+        suppliers: {
+          vershina: {
+            supplier: 'Вершина',
+            tyres: replace([
+              tire({ id: 'vershina-tyre-1', code: 'vt-1', supplier: 'Вершина' }),
+            ]),
+            discs: replace([
+              tire({ id: 'same-disc', code: '1', supplier: 'Вершина' }),
+              tire({ id: 'same-disc', code: '2', supplier: 'Вершина' }),
+            ]),
+          },
+          shinservice: {
+            supplier: 'Шинсервис',
+            tyres: replace([
+              tire({ id: '', code: 'st-1', supplier: 'Шинсервис' }),
+            ]),
+            discs: purge(),
+          },
+        },
+      })
+    ).rejects.toThrow(/Некорректный snapshot/);
+
+    expect(indexedDBService.applyCatalogSnapshot).not.toHaveBeenCalled();
+    expect(window.localStorage.getItem(VERSION_KEY)).toBe('old-version');
+    expect(postCatalogApplied).not.toHaveBeenCalled();
+    expect(
+      console.warn.mock.calls.some(
+        (args) => args[1]?.code === 'catalog.section_duplicate_id'
+      )
+    ).toBe(false);
+  });
 });

@@ -32,6 +32,7 @@
 | version gate skip old snapshot | `catalogSyncService.test.js` | [Autosync](/06-catalog-sync/frontend-autosync) |
 | atomic single transaction apply | `catalogSyncService.commitBoundary.test.js`, `fakeIndexedDB.test.js` | [Lifecycle IDB](/05-catalog-storage/lifecycle-and-migration) |
 | wire validation fatal/warning | `catalogSnapshotValidation.test.js` | [Snapshot protocol](/06-catalog-sync/snapshot-protocol-validation) |
+| `DUPLICATE_ID` секции не бракует чужие supplier+category | `catalogSnapshotValidation.test.js`, `catalogSyncService.test.js`, `catalogSyncService.commitBoundary.test.js` | [Snapshot protocol](/06-catalog-sync/snapshot-protocol-validation) |
 | replace/keepPrevious/purge | `snapshotCommands.test.js` | [Snapshot protocol](/06-catalog-sync/snapshot-protocol-validation) |
 | lock lease fallback | `catalogSyncLock.test.js`, `catalogSyncLock.integration.test.js` | [Locks](/06-catalog-sync/locks-and-channels) |
 | demo frozen snapshot, без live `/meta` | `demoCatalogService.test.js`, `DemoCatalogHost.test.jsx`, `CatalogSyncHost.test.jsx` | [Autosync](/06-catalog-sync/frontend-autosync) |

@@ -203,38 +203,81 @@ describe('validateAndNormalizeCatalogSnapshot — identity', () => {
   });
 
   test('duplicate итогового id внутри supplier', () => {
-    const { report } = validateAndNormalizeCatalogSnapshot(
+    const { report, commands } = validateAndNormalizeCatalogSnapshot(
       snapshotOf({
         tyres: replace([
           tyreItem({ id: 'same', code: '1' }),
           tyreItem({ id: 'same', code: '2' }),
+          tyreItem({ id: 'unique', code: '3' }),
         ]),
+        discs: purge(),
       })
     );
     const dup = report.errors.find((e) => e.code === 'DUPLICATE_ID');
     expect(dup).toBeTruthy();
     expect(dup.firstPath).toContain('items[0]');
     expect(dup.path).toContain('items[1]');
+    expect(report.valid).toBe(false);
+    expect(report.blockingErrorCount).toBe(0);
+    expect(commands).toEqual([
+      {
+        supplier: SUPPLIER,
+        category: 'tyres',
+        action: 'keepPrevious',
+        status: 'failed',
+      },
+      {
+        supplier: SUPPLIER,
+        category: 'discs',
+        action: 'purge',
+        status: 'ok',
+      },
+    ]);
   });
 
-  test('duplicate итогового id между suppliers', () => {
-    const { report } = validateAndNormalizeCatalogSnapshot({
+  test('duplicate итогового id между suppliers оставляет первую секцию', () => {
+    const { report, commands } = validateAndNormalizeCatalogSnapshot({
       version: VERSION,
       schemaVersion: 1,
       suppliers: {
         a: {
           supplier: 'A',
-          tyres: replace([tyreItem({ id: 'shared', code: '1', supplier: 'A' })]),
+          tyres: replace([
+            tyreItem({ id: 'shared', code: '1', supplier: 'A' }),
+            tyreItem({ id: 'a-only', code: '2', supplier: 'A' }),
+          ]),
           discs: purge(),
         },
         b: {
           supplier: 'B',
-          tyres: replace([tyreItem({ id: 'shared', code: '1', supplier: 'B' })]),
+          tyres: replace([
+            tyreItem({ id: 'b-only', code: '3', supplier: 'B' }),
+            tyreItem({ id: 'shared', code: '1', supplier: 'B' }),
+          ]),
           discs: purge(),
         },
       },
     });
+    expect(report.valid).toBe(false);
     expect(report.errors.some((e) => e.code === 'DUPLICATE_ID')).toBe(true);
+    expect(report.blockingErrorCount).toBe(0);
+    const tyresA = commands.find(
+      (command) => command.supplier === 'A' && command.category === 'tyres'
+    );
+    const tyresB = commands.find(
+      (command) => command.supplier === 'B' && command.category === 'tyres'
+    );
+    expect(tyresA).toEqual(
+      expect.objectContaining({ action: 'replace', status: 'ok' })
+    );
+    expect(tyresA.items.map((item) => item.id)).toEqual(['shared', 'a-only']);
+    expect(tyresB).toEqual({
+      supplier: 'B',
+      category: 'tyres',
+      action: 'keepPrevious',
+      status: 'failed',
+    });
+    expect(commands).toHaveLength(4);
   });
 
   test('одинаковый code у разных suppliers с разными id проходит', () => {
@@ -639,7 +682,7 @@ describe('validateAndNormalizeCatalogSnapshot — large snapshot', () => {
         code: `C${i}`,
       })
     );
-    const { report } = validateAndNormalizeCatalogSnapshot(
+    const { report, commands } = validateAndNormalizeCatalogSnapshot(
       snapshotOf({
         schemaVersion: 1,
         tyres: replace(items),
@@ -650,6 +693,21 @@ describe('validateAndNormalizeCatalogSnapshot — large snapshot', () => {
     expect(dup).toBeTruthy();
     expect(dup.path).toContain('items[4999]');
     expect(dup.firstPath).toContain('items[0]');
+    expect(report.valid).toBe(false);
+    expect(commands).toEqual([
+      {
+        supplier: SUPPLIER,
+        category: 'tyres',
+        action: 'keepPrevious',
+        status: 'failed',
+      },
+      {
+        supplier: SUPPLIER,
+        category: 'discs',
+        action: 'purge',
+        status: 'ok',
+      },
+    ]);
   });
 
   test('report ограничивается 100 подробными проблемами', () => {
@@ -674,5 +732,164 @@ describe('validateAndNormalizeCatalogSnapshot — large snapshot', () => {
       VALIDATION_PROBLEM_LIMIT
     );
     expect(report.truncated).toBe(true);
+  });
+});
+
+const VERSINA = 'Вершина';
+const SHINSERVICE = 'Шинсервис';
+const DUP_DISC_A = 'vershina_1230';
+const DUP_DISC_B = 'vershina_MEFRO 5.5*14 4*98 ET35 d5';
+
+const commandOf = (commands, supplier, category) =>
+  commands.find(
+    (command) => command.supplier === supplier && command.category === category
+  );
+
+const writtenIds = (commands) =>
+  commands.flatMap((command) => command.items || []).map((item) => item.id);
+
+const legacySupplierSnapshot = ({
+  vershinaTyres,
+  vershinaDiscs,
+  shinserviceTyres,
+  shinserviceDiscs,
+} = {}) => ({
+  version: VERSION,
+  suppliers: {
+    vershina: {
+      supplier: VERSINA,
+      tyres: vershinaTyres || [
+        tyreItem({ id: 'vershina-tyre-1', code: 'vt-1', supplier: VERSINA }),
+      ],
+      discs: vershinaDiscs || [
+        discItem({ id: DUP_DISC_A, code: 'vd-a1', supplier: VERSINA }),
+        discItem({
+          id: 'vershina-good-disc',
+          code: 'vd-good',
+          supplier: VERSINA,
+        }),
+        discItem({ id: DUP_DISC_A, code: 'vd-a2', supplier: VERSINA }),
+        discItem({ id: DUP_DISC_B, code: 'vd-b1', supplier: VERSINA }),
+        discItem({ id: DUP_DISC_B, code: 'vd-b2', supplier: VERSINA }),
+      ],
+    },
+    shinservice: {
+      supplier: SHINSERVICE,
+      tyres: shinserviceTyres || [
+        tyreItem({
+          id: 'shinservice-tyre-1',
+          code: 'st-1',
+          supplier: SHINSERVICE,
+        }),
+      ],
+      discs: shinserviceDiscs || [
+        discItem({
+          id: 'shinservice-disc-1',
+          code: 'sd-1',
+          supplier: SHINSERVICE,
+        }),
+      ],
+    },
+  },
+});
+
+describe('validateAndNormalizeCatalogSnapshot — секция с DUPLICATE_ID', () => {
+  test('битые диски Вершины не обнуляют шины Вершины и Шинсервис', () => {
+    const { report, commands } = validateAndNormalizeCatalogSnapshot(
+      legacySupplierSnapshot()
+    );
+
+    expect(report.valid).toBe(false);
+    expect(report.blockingErrorCount).toBe(0);
+    expect(report.errors.filter((error) => error.code === 'DUPLICATE_ID')).toHaveLength(
+      2
+    );
+    expect(
+      report.warnings.some((warning) => warning.code === 'MISSING_SCHEMA_VERSION')
+    ).toBe(true);
+    expect(report.duplicateSections).toEqual([
+      {
+        supplier: VERSINA,
+        category: 'discs',
+        ids: [DUP_DISC_A, DUP_DISC_B],
+      },
+    ]);
+    expect(commandOf(commands, VERSINA, 'discs')).toEqual({
+      supplier: VERSINA,
+      category: 'discs',
+      action: 'keepPrevious',
+      status: 'failed',
+    });
+    expect(commandOf(commands, VERSINA, 'tyres')).toEqual(
+      expect.objectContaining({ action: 'replace', status: 'ok' })
+    );
+    expect(commandOf(commands, SHINSERVICE, 'tyres')).toEqual(
+      expect.objectContaining({ action: 'replace', status: 'ok' })
+    );
+    expect(commandOf(commands, SHINSERVICE, 'discs')).toEqual(
+      expect.objectContaining({ action: 'replace', status: 'ok' })
+    );
+    const ids = writtenIds(commands);
+    expect(ids).toEqual(
+      expect.arrayContaining([
+        'vershina-tyre-1',
+        'shinservice-tyre-1',
+        'shinservice-disc-1',
+      ])
+    );
+    expect(ids).not.toContain(DUP_DISC_A);
+    expect(ids).not.toContain(DUP_DISC_B);
+    expect(ids).not.toContain('vershina-good-disc');
+  });
+
+  test('повтор id в шинах оставляет диски того же поставщика', () => {
+    const { report, commands } = validateAndNormalizeCatalogSnapshot(
+      legacySupplierSnapshot({
+        vershinaTyres: [
+          tyreItem({ id: 'vershina-tyre-dup', code: 'vt-1', supplier: VERSINA }),
+          tyreItem({ id: 'vershina-tyre-ok', code: 'vt-2', supplier: VERSINA }),
+          tyreItem({ id: 'vershina-tyre-dup', code: 'vt-3', supplier: VERSINA }),
+        ],
+        vershinaDiscs: [
+          discItem({ id: 'vershina-disc-ok', code: 'vd-1', supplier: VERSINA }),
+        ],
+      })
+    );
+
+    expect(report.valid).toBe(false);
+    expect(report.errors.some((error) => error.code === 'DUPLICATE_ID')).toBe(
+      true
+    );
+    expect(report.blockingErrorCount).toBe(0);
+    expect(commandOf(commands, VERSINA, 'tyres')).toEqual({
+      supplier: VERSINA,
+      category: 'tyres',
+      action: 'keepPrevious',
+      status: 'failed',
+    });
+    expect(commandOf(commands, VERSINA, 'discs').items.map((item) => item.id)).toEqual([
+      'vershina-disc-ok',
+    ]);
+    expect(commandOf(commands, SHINSERVICE, 'tyres').action).toBe('replace');
+    expect(writtenIds(commands)).not.toContain('vershina-tyre-dup');
+    expect(writtenIds(commands)).not.toContain('vershina-tyre-ok');
+  });
+
+  test('MISSING_ID рядом с DUPLICATE_ID по-прежнему отклоняет весь snapshot', () => {
+    const { report, commands } = validateAndNormalizeCatalogSnapshot(
+      legacySupplierSnapshot({
+        shinserviceTyres: [
+          tyreItem({ id: '', code: 'st-1', supplier: SHINSERVICE }),
+        ],
+      })
+    );
+
+    expect(report.valid).toBe(false);
+    expect(report.blockingErrorCount).toBeGreaterThan(0);
+    expect(commands).toEqual([]);
+    expect(report.errors.some((error) => error.code === 'DUPLICATE_ID')).toBe(
+      true
+    );
+    expect(report.errors.some((error) => error.code === 'MISSING_ID')).toBe(true);
   });
 });

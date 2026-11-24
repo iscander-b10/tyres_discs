@@ -17,7 +17,7 @@ Production runtime каталога: **sync → validation → IDB**. Legacy sup
 | **Side effects** | localStorage version key, IndexedDB, `postCatalogApplied` |
 | **Состояние** | `getLocalCatalogVersion` / `setLocalCatalogVersion` per storeId |
 | **Внутренние вызовы** | `withCatalogSyncLock`, `validateAndNormalizeCatalogSnapshot`, `applyCatalogSnapshot`, indexedDBService |
-| **Ошибки** | `404`/пустой ответ → `skipped`; network, JSON, validation или IDB failure → log + `error`; abort/stale store → `skipped` |
+| **Ошибки** | `404`/пустой ответ → `skipped`; network, JSON, blocking validation или IDB failure → log + `error`; секционный `DUPLICATE_ID` → `applied`, битая пара supplier+category остаётся `keepPrevious`; abort/stale store → `skipped` |
 | **Прогресс** | опциональный `onProgress({ phase, receivedBytes, totalBytes, progress })` на meta / download / parse / apply; `onLockWaiting` когда writer занят; snapshot читается stream-ом; исключение callback не валит sync |
 | **Кто вызывает** | `CatalogSyncHost`, `DemoCatalogHost` (через `fetchCatalogSnapshot`), tests |
 | **Тесты** | `catalogSyncService.test.js`, `catalogSyncService.commitBoundary.test.js` |
@@ -25,7 +25,7 @@ Production runtime каталога: **sync → validation → IDB**. Legacy sup
 
 ### `applyCatalogSnapshot(snapshot, options?)`
 
-Сигнатура: `applyCatalogSnapshot(snapshot, { storeId, generation } = {})`. Frontend writer сначала валидирует весь wire snapshot, затем передаёт нормализованные команды в одну общую IDB-транзакцию для `tires`, `discs` и `metadata`. Строковый второй аргумент поддерживается как compatibility-форма `storeId`.
+Сигнатура: `applyCatalogSnapshot(snapshot, { storeId, generation } = {})`. Frontend writer сначала валидирует весь wire snapshot, затем передаёт нормализованные команды в одну общую IDB-транзакцию для `tires`, `discs` и `metadata`. Строковый второй аргумент поддерживается как compatibility-форма `storeId`. Если единственные fatal — `DUPLICATE_ID` секций, команда этой пары supplier+category становится `keepPrevious`/`failed` без items, остальные пишутся, version обновляется. Другой fatal по-прежнему бросает до IDB.
 
 ### `validateAndNormalizeCatalogSnapshot(raw)`
 
@@ -36,7 +36,8 @@ Wire JSON → normalized snapshot + validation report. Re-export из `catalogSn
 | Export | Контракт | Основная страница |
 | --- | --- | --- |
 | `validateSnapshotEnvelope(snapshot, collector)` | Проверяет `schemaVersion`, `version`, непустой `suppliers`; не проверяет production `storeId`/`slot` | [Snapshot protocol](/06-catalog-sync/snapshot-protocol-validation) |
-| `createValidationReport({ schemaVersion, snapshotVersion, supplierCount, itemCount, normalizedCount, collector })` | Создаёт итоговый report с counts, warnings/errors и `truncated` | [Snapshot protocol](/06-catalog-sync/snapshot-protocol-validation) |
+| `createValidationReport({ schemaVersion, snapshotVersion, supplierCount, itemCount, normalizedCount, collector, duplicateSections })` | Создаёт итоговый report с counts, warnings/errors, `blockingErrorCount`, `duplicateSections` и `truncated` | [Snapshot protocol](/06-catalog-sync/snapshot-protocol-validation) |
+| `reportBlocksCatalogApply(report, commands)` | `true`, если невалидный report нельзя писать в IDB. Секционный `DUPLICATE_ID` при непустых commands возвращает `false` | [Snapshot protocol](/06-catalog-sync/snapshot-protocol-validation) |
 
 Эти helpers не выполняют I/O. Обычно вызывающая сторона использует
 `validateAndNormalizeCatalogSnapshot`, а не собирает validation pipeline

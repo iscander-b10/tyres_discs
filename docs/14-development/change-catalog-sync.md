@@ -55,7 +55,7 @@ Cloud Timer slots — `yandex/catalog-sync/src/time.js` + Yandex triggers.
 
 - Разделение `meta.version` и локального `localStorage` version key
 - Commit boundary — не apply partial IDB state
-- Fatal validation → skip apply entirely
+- Blocking fatal → skip apply entirely. Секционный `DUPLICATE_ID` оставляет свою supplier+category и применяет остальные
 - Warning → apply with normalized data
 
 ## Связанные страницы

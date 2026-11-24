@@ -71,6 +71,7 @@ const createProblemCollector = () => {
   const errors = [];
   let warningCount = 0;
   let errorCount = 0;
+  let blockingErrorCount = 0;
   let truncated = false;
 
   const detailCount = () => warnings.length + errors.length;
@@ -105,6 +106,9 @@ const createProblemCollector = () => {
       });
     },
     addFatal(code, path, message, extra = {}) {
+      if (code !== 'DUPLICATE_ID') {
+        blockingErrorCount += 1;
+      }
       push('fatal', {
         severity: 'fatal',
         code,
@@ -131,6 +135,9 @@ const createProblemCollector = () => {
     get hasFatal() {
       return errorCount > 0;
     },
+    get blockingErrorCount() {
+      return blockingErrorCount;
+    },
   };
 };
 
@@ -141,6 +148,7 @@ export function createValidationReport({
   itemCount,
   normalizedCount,
   collector,
+  duplicateSections = [],
 }) {
   return {
     valid: !collector.hasFatal,
@@ -154,10 +162,38 @@ export function createValidationReport({
     normalizedCount,
     warningCount: collector.warningCount,
     errorCount: collector.errorCount,
+    blockingErrorCount: collector.blockingErrorCount,
+    duplicateSections,
     warnings: collector.warnings,
     errors: collector.errors,
     truncated: collector.truncated,
   };
+}
+
+/**
+ * true, если snapshot нельзя писать в IndexedDB.
+ * Секционный DUPLICATE_ID сам по себе запись не блокирует: команды уже
+ * переведены в keepPrevious только для своей пары supplier+category.
+ */
+export function reportBlocksCatalogApply(report, commands) {
+  if (!report || report.valid !== false) return false;
+  return !(
+    report.blockingErrorCount === 0 &&
+    Array.isArray(commands) &&
+    commands.length > 0
+  );
+}
+
+export function createSnapshotValidationError(report) {
+  const first =
+    report?.errors?.find((error) => error.code !== 'DUPLICATE_ID') ||
+    report?.errors?.[0];
+  const message = first
+    ? `Некорректный snapshot: ${first.path || 'snapshot'} — ${first.message}`
+    : 'Некорректный snapshot';
+  const error = new Error(message);
+  error.validationReport = report;
+  return error;
 }
 
 export function validateSnapshotEnvelope(snapshot, collector) {
@@ -715,12 +751,20 @@ function normalizeCatalogItem(item, path, supplier, category, collector) {
   return normalizeDisc(common, path, collector);
 }
 
-export function findDuplicateIds(idIndex, id, path, collector) {
+function rememberDuplicateId(ids, id) {
+  const key = String(id);
+  if (ids.some((value) => String(value) === key)) return;
+  ids.push(id);
+}
+
+export function findDuplicateIds(idIndex, id, path, collector, context = {}) {
   const key = String(id);
   if (hasOwn(idIndex, key)) {
     collector.addFatal('DUPLICATE_ID', path, 'повтор итогового id', {
       received: id,
       firstPath: idIndex[key],
+      supplier: context.supplier,
+      category: context.category,
     });
     return true;
   }
@@ -750,6 +794,7 @@ export function validateAndNormalizeCatalogSnapshot(snapshot) {
 
   const { schemaVersion, snapshotVersion, supplierEntries } = envelope;
   const commands = [];
+  const duplicateSections = [];
   const itemCount = { tyres: 0, discs: 0 };
   let normalizedCount = 0;
   const tyreIds = Object.create(null);
@@ -794,6 +839,8 @@ export function validateAndNormalizeCatalogSnapshot(snapshot) {
 
       const idIndex = category === 'tyres' ? tyreIds : discIds;
       const normalizedItems = [];
+      const duplicateIds = [];
+      let sectionHasDuplicate = false;
 
       for (let index = 0; index < command.items.length; index += 1) {
         const item = command.items[index];
@@ -808,13 +855,37 @@ export function validateAndNormalizeCatalogSnapshot(snapshot) {
         );
         if (!normalized) continue;
 
-        findDuplicateIds(idIndex, normalized.id, itemPath, collector);
-        normalizedItems.push(normalized);
         normalizedCount += 1;
+        const duplicated = findDuplicateIds(
+          idIndex,
+          normalized.id,
+          itemPath,
+          collector,
+          { supplier, category }
+        );
+        if (duplicated) {
+          sectionHasDuplicate = true;
+          rememberDuplicateId(duplicateIds, normalized.id);
+          continue;
+        }
+        normalizedItems.push(normalized);
       }
 
-      // Даже при fatal errors собираем команду с тем, что удалось нормализовать,
-      // но applyCatalogSnapshot не вызовется при hasFatal.
+      if (sectionHasDuplicate) {
+        duplicateSections.push({
+          supplier,
+          category,
+          ids: duplicateIds,
+        });
+        commands.push({
+          supplier,
+          category,
+          action: 'keepPrevious',
+          status: 'failed',
+        });
+        continue;
+      }
+
       commands.push({
         supplier,
         category,
@@ -832,9 +903,13 @@ export function validateAndNormalizeCatalogSnapshot(snapshot) {
     itemCount,
     normalizedCount,
     collector,
+    duplicateSections,
   });
 
-  return { commands: report.valid ? commands : [], report };
+  return {
+    commands: collector.blockingErrorCount === 0 ? commands : [],
+    report,
+  };
 }
 
 /**
@@ -842,14 +917,8 @@ export function validateAndNormalizeCatalogSnapshot(snapshot) {
  */
 export function validateCatalogSnapshot(snapshot) {
   const { commands, report } = validateAndNormalizeCatalogSnapshot(snapshot);
-  if (!report.valid) {
-    const first = report.errors[0];
-    const message = first
-      ? `Некорректный snapshot: ${first.path || 'snapshot'} — ${first.message}`
-      : 'Некорректный snapshot';
-    const error = new Error(message);
-    error.validationReport = report;
-    throw error;
+  if (reportBlocksCatalogApply(report, commands)) {
+    throw createSnapshotValidationError(report);
   }
   return commands;
 }

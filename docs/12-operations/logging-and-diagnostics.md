@@ -78,7 +78,8 @@ cookie/wrapped без учёта регистра.
 | `idb.blocked` | catalogIdbSession | `indexedDB.open` onblocked (другая вкладка держит соединение) |
 | `idb.timeout` | catalogIdbSession | open / getAll / count / legacy open не settle за hang-guard |
 | `idb.hydrate` | catalogIdbSession | RAM-кэш построен (durationMs ≥ 20) |
-| `catalog.snapshot_invalid` | catalogSyncService | Fatal validation до commit |
+| `catalog.snapshot_invalid` | catalogSyncService | Blocking fatal до commit |
+| `catalog.section_duplicate_id` | catalogSyncService | Секция supplier+category оставлена (`warn`): supplier, category, повторившиеся id |
 | `catalog.sync_failed` | catalogSyncService | Network, JSON или IDB failure |
 | `search.options_failed` | SearchParameters | Facets/options не загрузились (`warn`) |
 | `search.failed` | SearchParameters | Поиск завершился ошибкой (включая TimeoutError) |

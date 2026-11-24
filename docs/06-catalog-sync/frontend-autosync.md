@@ -126,7 +126,7 @@ sequenceDiagram
 10. Валидировать и применить snapshot; `onProgress` переходит `parse` → `apply`.
 11. Вернуть классифицированный результат; залогировать ошибку.
 
-**Side effects.** Сеть, переключение IDB namespace, IDB commit через callee, `console.info` после успешного пути, `appLog.error` при ошибке.
+**Side effects.** Сеть, переключение IDB namespace, IDB commit через callee, `console.info` после успешного пути, `appLog.warn` на секцию с повтором id, `appLog.error` при ошибке.
 
 **Callers/callees.** Caller — `CatalogSyncHost`; в тестах функция вызывается напрямую. Callees — `withCatalogSyncLock`, `fetch`, IDB service, `applyCatalogSnapshot`. `warmupCatalogReadCache` вызывает host после возврата из sync, не сам `checkAndSyncCatalog`.
 
@@ -136,7 +136,7 @@ sequenceDiagram
 - пустой локальный каталог заставляет скачать snapshot даже при равной version;
 - stale store и abort не публикуются как общая ошибка;
 - HTTP `404` преобразуется в `null`, затем в `meta empty`/`snapshot empty`;
-- HTTP non-2xx (кроме `404`), JSON parsing, validation и IDB failures дают `status: 'error'`.
+- HTTP non-2xx (кроме `404`), JSON parsing, blocking validation и IDB failures дают `status: 'error'`. Секционный `DUPLICATE_ID` даёт `applied`.
 
 **Ограничения.**
 
@@ -181,20 +181,20 @@ await checkAndSyncCatalog({
 
 1. Разрешить store и generation, проверить активность.
 2. Отдать кадр UI (`yieldToBrowserPaint`), затем синхронно провалидировать и нормализовать весь snapshot без `structuredClone` на каждый SKU.
-3. При fatal-проблеме бросить `Error` с полем `validationReport`; IDB ещё не вызван.
+3. Если `blockingErrorCount > 0` или команд нет — бросить `Error` с `validationReport`; IDB ещё не вызван. Если fatal только секционные `DUPLICATE_ID`, не бросать: битая пара supplier+category уже `keepPrevious`/`failed` без items, остальные команды идут в ту же транзакцию. Перед записью одна `appLog.warn` `catalog.section_duplicate_id` на секцию: supplier, category (`tyres` или `discs`), повторившиеся id. URL, env и секреты в эту запись не входят.
 4. Передать все команды и version в один `CatalogIdbSession.applyCatalogSnapshot`.
 5. Нижний слой открывает одну `readwrite`-транзакцию сразу на `tires`, `discs`, `metadata`.
 6. `keepPrevious` не создаёт write; `purge` становится заменой на `[]`; `replace` полностью заменяет строки данного supplier/category.
 7. Metadata version записывается в той же транзакции после товарных операций.
 8. Только после завершённого commit обновить localStorage и отправить межвкладочное событие.
 
-**Side effects.** IDB, localStorage и channel; при validation failure side effects отсутствуют. Если IDB transaction abort, localStorage и channel сохраняют прежнее состояние.
+**Side effects.** IDB, localStorage и channel; при blocking validation failure side effects отсутствуют. Секционный `DUPLICATE_ID` пишет version вместе с остальными командами. Если IDB transaction abort, localStorage и channel сохраняют прежнее состояние.
 
 **Ошибки.** Validation error содержит структурированный отчёт. IDB/stale-store ошибки пробрасываются caller. Предупреждения нормализации не блокируют commit и возвращаются в `validationReport`.
 
 **Гарантии.** Нет частичного применённого supplier/category набора: транзакция либо фиксирует товары вместе с metadata version, либо откатывается. Snapshot старее/равный текущей IDB version пропускается уже внутри транзакции — защита от TOCTOU между предварительной проверкой и commit.
 
-**Риск изменения.** Запись localStorage до `transaction.oncomplete` создаст ложный сигнал; разбиение на несколько транзакций позволит UI увидеть смешанные версии; ослабление full-snapshot validation может превратить отдельную ошибку поставщика в частичную порчу каталога.
+**Риск изменения.** Запись localStorage до `transaction.oncomplete` создаст ложный сигнал; разбиение на несколько транзакций позволит UI увидеть смешанные версии; ослабление blocking validation может превратить чужую ошибку в частичную порчу каталога. Секционный `DUPLICATE_ID` — единственное исключение, и оно не пишет частичные строки битой секции.
 
 ### `CatalogSyncHost`
 
@@ -206,7 +206,7 @@ await checkAndSyncCatalog({
 - `false` (warm start / обычный refresh) — phase сразу `ready` без `waitForShowcase`, overlay не открывался ни на кадр, warmup не вызывается, дальше тихий autosync без обязательного UI-прогресса (слот, visibility, online);
 - ошибка чтения IDB трактуется как пустой каталог (нельзя доказать, что он не пуст).
 
-`offline`, HTTP, validation и `disabled` на пустом каталоге ставят `phase: 'error'` с текстом в шторке и кнопкой «Повторить». Progress не маскирует эту ошибку. `{status:'skipped', error:'aborted'|'stale store'}` общую ошибку не показывают. Фоновый sync после `ready` шторку и toast не открывает.
+`offline`, HTTP, blocking validation и `disabled` на пустом каталоге ставят `phase: 'error'` с текстом в шторке и кнопкой «Повторить». Секционный `DUPLICATE_ID` возвращает `applied` и шторку ошибки не открывает. Progress не маскирует ошибку. `{status:'skipped', error:'aborted'|'stale store'}` общую ошибку не показывают. Фоновый sync после `ready` шторку и toast не открывает.
 
 **Async и side effects.** Его effect создаёт timer, listeners и `AbortController`. `run` ждёт sync, затем независимо от статуса читает persisted version через `bumpIfIdbAhead`.
 
@@ -232,7 +232,7 @@ await checkAndSyncCatalog({
 
 ### Первая загрузка
 
-IDB version пустая, каталог пуст. Даже если localStorage содержит старую cloudVersion, она не участвует в решении. Пользователь видит полноэкранную шторку (`phase: 'blocking'`), а не рабочий сайт. Host получает meta, скачивает snapshot, валидирует его и коммитит. Затем прогревает RAM шин и дисков, UI получает persisted version, bootstrap становится `ready`. Шторка UI держится, пока активная витрина не соберёт полки (не skeleton), затем гаснет вместе с fade-in зоны результатов. Empty «Каталог ещё загружается» в витрине нет.
+IDB version пустая, каталог пуст. Даже если localStorage содержит старую cloudVersion, она не участвует в решении. Пользователь видит полноэкранную шторку (`phase: 'blocking'`), а не рабочий сайт. Host получает meta, скачивает snapshot, валидирует его и коммитит. Затем прогревает RAM шин и дисков, UI получает persisted version, bootstrap становится `ready`. Шторка UI держится, пока активная витрина не соберёт полки (не skeleton), затем гаснет вместе с fade-in зоны результатов. Empty «Каталог ещё загружается» в витрине нет. Snapshot, у которого fatal исчерпываются повтором id в отдельных секциях, тоже коммитится: шторка доходит до витрины, а не до «Каталог не удалось прочитать.». Битая секция на пустой базе остаётся пустой.
 
 ### Повторный запуск
 
@@ -252,7 +252,11 @@ Meta могла измениться между двумя GET или API мог
 
 ### Invalid snapshot
 
-Fatal validation report блокирует вызов IDB. Service пишет `catalog.snapshot_invalid` с storeId, путём первой проблемы и числом ошибок; localStorage и channel не меняются. Подробнее о wire-командах — в [протоколе и проверке snapshot](/06-catalog-sync/snapshot-protocol-validation).
+Blocking fatal (envelope, команда, `MISSING_ID`, `SUPPLIER_MISMATCH` и остальные коды кроме секционного `DUPLICATE_ID`) блокирует вызов IDB. Service пишет `catalog.snapshot_invalid` с storeId, путём первой blocking-проблемы и числом ошибок; localStorage и channel не меняются. На холодном старте шторка получает «Каталог не удалось прочитать.».
+
+`DUPLICATE_ID` только в шинах или только в дисках одной секции так не работает. `checkAndSyncCatalog` возвращает `applied`. `resolveCatalogBootstrapError` не вызывается. Пустая IndexedDB после этого открывает каталог: битая секция пустая, вторая категория того же поставщика и остальные поставщики на экране. Если секция уже лежала в базе, её строки остаются, соседние секции обновляются. Version snapshot записывается, повтор того же слота не скачивается.
+
+Подробнее о wire-командах — в [протоколе и проверке snapshot](/06-catalog-sync/snapshot-protocol-validation).
 
 ### IDB failure
 

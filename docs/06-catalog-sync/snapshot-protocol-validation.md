@@ -2,8 +2,11 @@
 
 Snapshot — versioned JSON, который серверный catalog-sync формирует для
 магазина, а браузер целиком валидирует и нормализует до первого обращения на
-запись в IndexedDB. Главная гарантия: fatal-проблема в любой категории блокирует
-весь snapshot, а warning только нормализует конкретное поле.
+запись в IndexedDB. Warning только нормализует конкретное поле. Blocking fatal
+(битый envelope, команда, `MISSING_ID`, `SUPPLIER_MISMATCH` и остальные коды
+кроме секционного повтора id) отклоняет весь snapshot до IndexedDB.
+`DUPLICATE_ID` в шинах или в дисках переводит в `keepPrevious` только свою
+секцию supplier+category.
 
 ## Границы ответственности
 
@@ -133,11 +136,19 @@ snapshot пригодным для bootstrap. Пустой upstream-ответ �
 4. Потребовать команды обеих категорий.
 5. Проверить пару `action`/`status` и наличие/запрет `items`.
 6. Для `replace` последовательно нормализовать каждый товар.
-7. Отдельно для tyres и discs обнаружить дубликаты итогового `id` во всём
-   snapshot, включая разных suppliers.
-8. Построить report со счётчиками.
-9. Вернуть команды только если `report.valid`; при хотя бы одном fatal итоговый
-   `commands` принудительно равен `[]`.
+7. Отдельно для tyres и для discs вести общий индекс итогового `id`. Повтор
+   внутри секции supplier+category и повтор id, который уже встречался у более
+   раннего поставщика в той же категории, дают fatal `DUPLICATE_ID`. Секция, в
+   которой повтор найден, целиком становится
+   `{ action: 'keepPrevious', status: 'failed' }` без `items`: обе карточки с
+   общим id и остальные строки этой секции не пишутся. Секция, где этот id
+   встретился первым, остаётся `replace`.
+8. Построить report со счётчиками. `DUPLICATE_ID` остаётся в `errors`, поэтому
+   `report.valid === false`. Если других fatal нет, `blockingErrorCount === 0`.
+   `duplicateSections` перечисляет supplier, category (`tyres` или `discs`) и
+   повторившиеся id.
+9. Вернуть команды, если `blockingErrorCount === 0`. Любой другой fatal
+   обнуляет `commands`.
 
 ### Формат report
 
@@ -151,6 +162,8 @@ snapshot пригодным для bootstrap. Пустой upstream-ответ �
   normalizedCount,
   warningCount,
   errorCount,
+  blockingErrorCount,
+  duplicateSections: [{ supplier, category, ids }],
   warnings: [{ severity, code, path, message, received?, normalizedTo? }],
   errors: [{ severity, code, path, message, received?, firstPath? }],
   truncated
@@ -164,10 +177,15 @@ snapshot пригодным для bootstrap. Пустой upstream-ответ �
 
 ### Throwing wrapper: `validateCatalogSnapshot(snapshot)`
 
-Совместимый синхронный API возвращает только commands. При invalid report
-бросает `Error("Некорректный snapshot: <path> — <message>")` и прикладывает
-`error.validationReport`. Production sync-service использует non-throwing
-функцию, формирует такой же error после проверки report и логирует первый path.
+Совместимый синхронный API возвращает только commands. `reportBlocksCatalogApply`
+истинен, когда report невалиден и это не секционный `DUPLICATE_ID` с непустым
+списком команд. Тогда wrapper и `applyCatalogSnapshot` бросают один и тот же
+`Error("Некорректный snapshot: <path> — <message>")` с `error.validationReport`.
+Текст берёт первую ошибку, чей code не `DUPLICATE_ID`. Если fatal исчерпываются
+повтором id, wrapper возвращает команды, а apply пишет их обычным путём и до
+IDB один раз на секцию вызывает `appLog.warn` с кодом
+`catalog.section_duplicate_id`: supplier, category, повторившиеся id. URL, env
+и секреты в эту запись не входят.
 
 ## Проверка и нормализация товара
 
@@ -180,9 +198,15 @@ snapshot пригодным для bootstrap. Пустой upstream-ответ �
 - `code`: непустая строка или конечное число;
 - непустой `supplier`, точно равный supplier секции.
 
-Дубликат `id` внутри одной категории — fatal независимо от supplier. Одинаковый
-`code` разрешён, если итоговые ids различаются. Неизвестные cloneable-поля
-сохраняются, а нормализованные известные поля перезаписывают исходные.
+Повтор итогового `id` в одной категории — fatal `DUPLICATE_ID`. Индекс шин
+общий на всех поставщиков, индекс дисков тоже общий; шины и диски друг друга
+не пересекают. Повтор внутри секции или тот же id у более позднего поставщика
+переводит в `keepPrevious`/`failed` только эту пару supplier+category. Вторая
+категория того же поставщика и остальные поставщики остаются своими командами.
+Если id встретился у двух поставщиков, первая секция пишется как есть, вторая
+получает `keepPrevious`. Одинаковый `code` разрешён, если итоговые ids
+различаются. Неизвестные cloneable-поля сохраняются, а нормализованные
+известные поля перезаписывают исходные.
 
 ### Общие поля
 
@@ -239,10 +263,11 @@ sequenceDiagram
     Sync->>Sync: assert active store generation
     Sync->>V: validateAndNormalize(snapshot)
     V-->>Sync: commands + report
-    alt report invalid
+    alt blocking fatal
         Sync-->>Sync: throw Error + validationReport
         Note over IDB,LS: нет writes, version update, broadcast
-    else report valid
+    else команды приняты
+        Note over V: DUPLICATE_ID секции → keepPrevious failed
         Sync->>IDB: applyCatalogSnapshot(commands, version)
         IDB->>IDB: one readwrite tx: tires + discs + metadata
         alt transaction abort
@@ -271,7 +296,10 @@ sequenceDiagram
 - `MISSING_CATEGORY`, `INVALID_COMMAND`, `UNKNOWN_ACTION`, `INVALID_STATUS`,
   `INVALID_ITEMS`, `UNEXPECTED_ITEMS`, `AMBIGUOUS_LEGACY_ARRAY`;
 - `INVALID_ITEM`, `NOT_CLONEABLE`, `MISSING_ID`, `MISSING_CODE`,
-  `MISSING_SUPPLIER`, `SUPPLIER_MISMATCH`, `DUPLICATE_ID`.
+  `MISSING_SUPPLIER`, `SUPPLIER_MISMATCH`.
+
+`DUPLICATE_ID` тоже остаётся fatal в report, но не входит в blocking-набор:
+он обнуляет только свою секцию supplier+category.
 
 Warnings включают `MISSING_SCHEMA_VERSION`, `INVALID_AMOUNT`,
 `AMOUNT_ROUNDED`, `INVALID_PRICE`, `INVALID_DIAMETER`, `INVALID_SEASON`,
@@ -280,13 +308,17 @@ numeric fields.
 
 Правило выбора строгое: identity, command intent и schema ambiguity — fatal;
 потеря необязательного display/filter значения — warning с явной нормализацией.
+Исключение apply-слоя одно: `DUPLICATE_ID` не отклоняет файл, а оставляет
+предыдущие строки только своей секции.
 
 ## Тесты
 
 `catalogSnapshotValidation.test.js` покрывает:
 
 - envelope/schema/action/status/items и throwing wrapper;
-- identity, supplier mismatch, duplicate ids внутри и между suppliers;
+- identity, supplier mismatch, duplicate id внутри секции и между suppliers
+  (поздняя секция `keepPrevious`, ранняя `replace`, чужие команды живы);
+- `MISSING_ID` рядом с `DUPLICATE_ID` по-прежнему обнуляет commands;
 - numeric legacy ids/codes и одинаковые codes с разными ids;
 - amount/prices, шинные и дисковые поля, fractional/cargo diameter;
 - дополнительные cloneable-поля;
@@ -305,7 +337,7 @@ localStorage/broadcast, а purge затрагивает только нужно�
 ```js
 const { commands, report } = validateAndNormalizeCatalogSnapshot(snapshot);
 
-if (!report.valid) {
+if (report.blockingErrorCount > 0 || commands.length === 0) {
   console.error(report.errors[0]);
   return;
 }
@@ -324,7 +356,11 @@ post-commit localStorage и channel semantics.
 
 ## Гарантии, ограничения и риски изменений
 
-- **Гарантия:** fatal в одном товаре отклоняет весь snapshot до IDB.
+- **Гарантия:** blocking fatal в одном товаре отклоняет весь snapshot до IDB.
+  `DUPLICATE_ID` в шинах или в дисках переводит в `keepPrevious` только свою
+  секцию supplier+category. Обе карточки с общим id и остальные строки этой
+  секции не пишутся. Другая категория того же поставщика и остальные
+  поставщики применяются. Прочие fatal по-прежнему дают `commands: []` и throw.
 - **Гарантия:** warning не удаляет товар, а фиксирует преобразование в report.
 - **Гарантия:** исходный snapshot не мутируется.
 - **Ограничение:** валидация синхронна; очень большой snapshot блокирует main
@@ -335,8 +371,10 @@ post-commit localStorage и channel semantics.
   браузерный валидатор, тесты и стратегию совместимости.
 - Нельзя трактовать пустой upstream array как purge без явного доменного
   подтверждения.
-- Ослабление global duplicate-id проверки приведёт к `put`-перезаписи товара
-  одного supplier товаром другого.
+- Индекс id внутри категории по-прежнему общий. Повтор не кладёт обе карточки
+  в один `put`: более поздняя секция становится `keepPrevious`, более ранняя
+  остаётся `replace`. Частичный replace строк битой секции не делается. Ключ
+  store — `id`, поэтому запись первой секции занимает этот ключ.
 - Перенос validation после частичных writes разрушит all-or-nothing контракт.
 - Новое поле, участвующее в поиске, должно получить нормализацию, matcher,
   возможно индекс и facet tests.

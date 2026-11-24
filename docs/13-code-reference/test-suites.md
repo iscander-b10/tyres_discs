@@ -116,9 +116,9 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 | `catalogIdb/catalogIdbMemory.test.js` | RAM buckets, compact facet rows |
 | `catalogIdb/catalogReadCache.fakeIndexedDB.test.js` | один getAll, width vs season, workspace isolation, warmup обеих категорий, switch во время warmup |
 | `catalogIdb/catalogIdbSession.readStoreAll.test.js` | abort hydrate без onsuccess отклоняет Promise; timeout getAll |
-| `catalogSync/catalogSnapshotValidation.test.js` | wire validation |
+| `catalogSync/catalogSnapshotValidation.test.js` | wire validation; секционный `DUPLICATE_ID` → `keepPrevious` |
 | `catalogSync/catalogSyncService.test.js` | version gate, stream progress, abort, gzip mismatch |
-| `catalogSync/catalogSyncService.commitBoundary.test.js` | atomic commit |
+| `catalogSync/catalogSyncService.commitBoundary.test.js` | atomic commit; битая секция не затирает чужие строки |
 | `catalogSync/catalogSyncChannel.test.js` | broadcast |
 | `catalogSync/catalogSyncLock.test.js` | lock lease, onWaiting у второго waiter |
 | `catalogSync/catalogSyncLock.integration.test.js` | multi-tab writer |
