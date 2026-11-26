@@ -129,11 +129,14 @@ export async function ensureFreshCatalogBundle({
 
   if (inFlight) return inFlight;
 
-  const fetchFn = fetchImpl || globalThis.fetch;
+  const fetchFn =
+    fetchImpl ||
+    (typeof window !== 'undefined' ? window.fetch : undefined);
   if (typeof fetchFn !== 'function') return false;
 
   comparedWhileVisible = true;
-  const reloadTarget = location || globalThis.location;
+  const reloadTarget =
+    location || (typeof window !== 'undefined' ? window.location : undefined);
 
   inFlight = (async () => {
     try {
