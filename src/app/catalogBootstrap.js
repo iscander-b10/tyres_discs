@@ -7,8 +7,7 @@ export const CATALOG_BOOTSTRAP_IDLE = Object.freeze({
 export const CATALOG_BOOTSTRAP_LOADING_LABEL =
   'Загружаем каталог шин и дисков';
 
-export const CATALOG_BOOTSTRAP_WAITING_LABEL =
-  'Каталог загружается в другой вкладке';
+export const CATALOG_UPDATE_FAILED_LABEL = 'Каталог не обновился';
 
 export const CATALOG_BOOTSTRAP_WARMUP_LABEL = 'Готовим витрину';
 
@@ -106,17 +105,10 @@ export function isCatalogBytesLabel(label) {
   return typeof label === 'string' && label.startsWith(LOADED_BYTES_PREFIX);
 }
 
-export function isCatalogWaitingLabel(label) {
-  return label === CATALOG_BOOTSTRAP_WAITING_LABEL;
-}
-
 export function catalogBootstrapHeadline(catalogBootstrap) {
   const label = catalogBootstrap?.label || '';
   if (isCatalogBytesLabel(label)) {
     return label.slice(LOADED_BYTES_PREFIX.length);
-  }
-  if (isCatalogWaitingLabel(label)) {
-    return CATALOG_BOOTSTRAP_WAITING_LABEL;
   }
   const percent = Math.min(
     99,
@@ -128,7 +120,7 @@ export function catalogBootstrapHeadline(catalogBootstrap) {
 export function catalogBootstrapValueText(catalogBootstrap) {
   const label =
     catalogBootstrap?.label || CATALOG_BOOTSTRAP_LOADING_LABEL;
-  if (isCatalogBytesLabel(label) || isCatalogWaitingLabel(label)) {
+  if (isCatalogBytesLabel(label)) {
     return label;
   }
   return `${catalogBootstrapHeadline(catalogBootstrap)} ${label}`;

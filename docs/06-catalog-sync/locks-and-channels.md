@@ -68,7 +68,7 @@ sequenceDiagram
 
 **Side effects.** Занятие Web Lock или чтение/запись/удаление localStorage lease; fallback также создаёт interval heartbeat и polling timeouts. `onWaiting` вызывается один раз, если exclusive lock уже занят (`ifAvailable: true` вернул `null`, либо LS-lease занята). Исключение callback глотается.
 
-**Waiting vs error.** Ожидание writer — не ошибка sync. На cold start host показывает «Каталог загружается в другой вкладке» без фейкового download %. Когда lock отпущен, waiter входит, обычно получает `up-to-date` (снимок уже в общей IDB) и channel/`bumpIfIdbAhead` догоняет UI.
+**Waiting vs error.** Ожидание writer — не ошибка sync. На cold start host оставляет обычную шторку загрузки и не пишет, что каталог качает другая вкладка. Когда lock отпущен, waiter входит, обычно получает `up-to-date` (снимок уже в общей IDB) и channel/`bumpIfIdbAhead` догоняет UI. Вкладка с уже заполненным каталогом шторку из-за чужого lock не открывает.
 
 **Transaction boundary.** Lock шире IDB-транзакции: внутри находятся конфигурационные проверки, оба HTTP GET, version checks, validation и commit. Это намеренно предотвращает несколько snapshot download в параллельных вкладках. Сам lock не обеспечивает атомарность данных — её обеспечивает отдельная IDB `readwrite`-транзакция.
 

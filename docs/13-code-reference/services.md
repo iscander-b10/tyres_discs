@@ -18,7 +18,7 @@ Production runtime каталога: **sync → validation → IDB**. Legacy sup
 | **Состояние** | `getLocalCatalogVersion` / `setLocalCatalogVersion` per storeId |
 | **Внутренние вызовы** | `withCatalogSyncLock`, `validateAndNormalizeCatalogSnapshot`, `applyCatalogSnapshot`, indexedDBService |
 | **Ошибки** | `404`/пустой ответ → `skipped`; network, JSON, blocking validation или IDB failure → log + `error`; секционный `DUPLICATE_ID` → `applied`, битая пара supplier+category остаётся `keepPrevious`; abort/stale store → `skipped` |
-| **Прогресс** | опциональный `onProgress({ phase, receivedBytes, totalBytes, progress })` на meta / download / parse / apply; `onLockWaiting` когда writer занят; snapshot читается stream-ом; исключение callback не валит sync |
+| **Прогресс** | опциональный `onProgress({ phase, receivedBytes, totalBytes, progress })` на meta / download / parse / apply; `onLockWaiting` когда writer занят, host подпись шторки из-за него не меняет; snapshot читается stream-ом; исключение callback не валит sync |
 | **Кто вызывает** | `CatalogSyncHost`, `DemoCatalogHost` (через `fetchCatalogSnapshot`), tests |
 | **Тесты** | `catalogSyncService.test.js`, `catalogSyncService.commitBoundary.test.js` |
 | **Страница** | [Frontend autosync](/06-catalog-sync/frontend-autosync) |

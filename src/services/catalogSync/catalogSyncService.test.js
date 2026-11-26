@@ -365,7 +365,7 @@ describe('безопасное применение snapshot каталога', 
     expect(postCatalogApplied).not.toHaveBeenCalled();
   });
 
-  test('решение up-to-date принимает persisted metadata version', async () => {
+  test('непустая база с той же version не качает snapshot', async () => {
     const { service, indexedDBService } = loadService({
       getPersistedCatalogVersion: jest.fn().mockResolvedValue(VERSION),
       isCatalogEmpty: jest.fn().mockResolvedValue(false),
@@ -376,7 +376,34 @@ describe('безопасное применение snapshot каталога', 
       status: 'up-to-date',
       version: VERSION,
     });
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(global.fetch.mock.calls[0][0]).toContain('/meta');
+    expect(global.fetch.mock.calls[0][1]).toEqual(
+      expect.objectContaining({ cache: 'no-store' })
+    );
     expect(indexedDBService.applyCatalogSnapshot).not.toHaveBeenCalled();
+  });
+
+  test('пустая база качает snapshot даже при той же version', async () => {
+    const snapshot = snapshotWith({ schemaVersion: 1 });
+    const { service, indexedDBService } = loadService({
+      getPersistedCatalogVersion: jest.fn().mockResolvedValue(VERSION),
+      isCatalogEmpty: jest.fn().mockResolvedValue(true),
+    });
+    global.fetch
+      .mockResolvedValueOnce(jsonResponse({ version: VERSION }))
+      .mockResolvedValueOnce(jsonResponse(snapshot));
+
+    await expect(service.checkAndSyncCatalog()).resolves.toEqual({
+      status: 'applied',
+      version: VERSION,
+    });
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(global.fetch.mock.calls[1][0]).toContain('/snapshot');
+    expect(global.fetch.mock.calls[1][1]).toEqual(
+      expect.objectContaining({ cache: 'no-store' })
+    );
+    expect(indexedDBService.applyCatalogSnapshot).toHaveBeenCalled();
   });
 
   test('изолирует URL и local version двух storeId', async () => {

@@ -36,6 +36,7 @@ import LandingDeck from './components/LandingPage/LandingDeck';
 import ModeToggle from './components/ModeToggle/ModeToggle';
 import ScrollToTop from './components/ScrollToTop/ScrollToTop';
 import DemoCatalogBanner from './components/DemoCatalogBanner/DemoCatalogBanner';
+import CatalogUpdateNotice from './components/CatalogUpdateNotice/CatalogUpdateNotice';
 import { CatalogSyncHost } from './services/catalogSync/CatalogSyncHost';
 import { DemoCatalogHost } from './services/demoCatalog/DemoCatalogHost';
 import './App.scss';
@@ -105,7 +106,8 @@ function UnmatchedDemoRoute() {
 }
 
 function AppFrame({ appearance = 'light', onAppearanceChange }) {
-  const { sessionResetKey, workspaceResetKey } = useAppShell();
+  const { sessionResetKey, workspaceResetKey, catalogUpdateNotice } =
+    useAppShell();
   const { isAuthenticated } = useAuth();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -126,6 +128,9 @@ function AppFrame({ appearance = 'light', onAppearanceChange }) {
               <LandingPage />
             ) : (
               <>
+                {showCatalog && !demo ? (
+                  <CatalogUpdateNotice message={catalogUpdateNotice} />
+                ) : null}
                 {showCatalog && demo ? <DemoCatalogBanner /> : null}
                 {showCatalog ? (
                   <>

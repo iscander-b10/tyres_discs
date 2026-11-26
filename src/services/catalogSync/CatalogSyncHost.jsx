@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAppShell } from '../../app/AppShellContext';
 import {
-  CATALOG_BOOTSTRAP_WAITING_LABEL,
   createBlockingBootstrap,
   createErrorBootstrap,
   createReadyBootstrap,
@@ -15,10 +14,19 @@ import { useAuth } from '../../auth/AuthContext';
 import { isDemoPath } from '../../app/paths';
 import indexedDBService from '../indexedDBService';
 import {
+  ensureFreshCatalogBundle,
+  noteCatalogBundleHidden,
+} from './catalogBundleRefresh';
+import {
   checkAndSyncCatalog,
   isCatalogSyncConfigured,
   msUntilNextSyncCheck,
 } from './catalogSyncService';
+
+/** Кроме start, slot и retry meta не спрашиваем чаще раза в 30 секунд. */
+const META_CHECK_MIN_INTERVAL_MS = 30_000;
+
+const META_THROTTLE_EXEMPT = new Set(['start', 'slot', 'retry']);
 
 const WARMUP_PROGRESS = {
   tires: 97,
@@ -54,6 +62,8 @@ export function CatalogSyncHost() {
     notifyCatalogApplied,
     setCatalogBootstrap,
     registerCatalogBootstrapRetry,
+    reportCatalogUpdateFailed,
+    noteCatalogVersionWritten,
   } = useAppShell();
   const { isWorkspaceReady, workspace } = useAuth();
   const { pathname } = useLocation();
@@ -61,6 +71,10 @@ export function CatalogSyncHost() {
   notifyRef.current = notifyCatalogApplied;
   const setBootstrapRef = useRef(setCatalogBootstrap);
   setBootstrapRef.current = setCatalogBootstrap;
+  const reportFailedRef = useRef(reportCatalogUpdateFailed);
+  reportFailedRef.current = reportCatalogUpdateFailed;
+  const noteWrittenRef = useRef(noteCatalogVersionWritten);
+  noteWrittenRef.current = noteCatalogVersionWritten;
   const retryRef = useRef(null);
 
   useEffect(() => {
@@ -79,6 +93,7 @@ export function CatalogSyncHost() {
     let cancelled = false;
     let syncing = false;
     let slotTimer = null;
+    let lastMetaCheckAt = 0;
     let lastNotifiedVersion = '';
     // До isCatalogEmpty() не считаем cold start: иначе warm refresh мелькает шторкой.
     let blockingColdStart = false;
@@ -171,10 +186,27 @@ export function CatalogSyncHost() {
       markReady();
     };
 
+    const noteWarmResult = async (result) => {
+      if (!isCurrent() || blockingColdStart) return;
+      if (result?.status === 'error' || result?.status === 'offline') {
+        reportFailedRef.current?.(await readPersistedVersion());
+        return;
+      }
+      if (result?.status === 'applied') {
+        noteWrittenRef.current?.(await readPersistedVersion());
+      }
+    };
+
     const run = async (reason) => {
       if (!isCurrent() || syncing) return;
       if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
         if (reason === 'slot') return;
+      }
+      if (
+        !META_THROTTLE_EXEMPT.has(reason) &&
+        Date.now() - lastMetaCheckAt < META_CHECK_MIN_INTERVAL_MS
+      ) {
+        return;
       }
       if (!configured) {
         if (blockingColdStart) {
@@ -183,6 +215,7 @@ export function CatalogSyncHost() {
         return;
       }
 
+      lastMetaCheckAt = Date.now();
       syncing = true;
       if (blockingColdStart) applySyncProgress({ phase: 'meta', progress: 1 });
       try {
@@ -190,21 +223,16 @@ export function CatalogSyncHost() {
           storeId,
           signal: abortController.signal,
           onProgress: blockingColdStart ? applySyncProgress : undefined,
-          onLockWaiting: blockingColdStart
-            ? () => {
-                setBootstrap((current) => ({
-                  phase: 'blocking',
-                  progress: 0,
-                  label: CATALOG_BOOTSTRAP_WAITING_LABEL,
-                  ...(current?.waitForShowcase ? { waitForShowcase: true } : {}),
-                }));
-              }
-            : undefined,
         });
         if (blockingColdStart) {
           await finishColdStart(result);
         } else {
           await bumpIfIdbAhead();
+          await noteWarmResult(result);
+        }
+      } catch {
+        if (!blockingColdStart && isCurrent()) {
+          reportFailedRef.current?.(await readPersistedVersion());
         }
       } finally {
         syncing = false;
@@ -222,13 +250,30 @@ export function CatalogSyncHost() {
     };
 
     const onVisible = () => {
-      if (document.visibilityState === 'visible') {
-        run('visibility');
+      if (document.visibilityState !== 'visible') {
+        noteCatalogBundleHidden();
+        return;
       }
+      void ensureFreshCatalogBundle();
+      run('visibility');
     };
 
     const onOnline = () => {
       run('online');
+    };
+
+    const onPageShow = () => {
+      void ensureFreshCatalogBundle({ force: true });
+      run('pageshow');
+    };
+
+    const onResume = () => {
+      void ensureFreshCatalogBundle({ force: true });
+      run('resume');
+    };
+
+    const onFocus = () => {
+      run('focus');
     };
 
     const start = async () => {
@@ -264,11 +309,15 @@ export function CatalogSyncHost() {
       run('retry');
     };
 
+    void ensureFreshCatalogBundle();
     start();
     if (configured) {
       scheduleSlot();
       document.addEventListener('visibilitychange', onVisible);
       window.addEventListener('online', onOnline);
+      window.addEventListener('pageshow', onPageShow);
+      document.addEventListener('resume', onResume);
+      window.addEventListener('focus', onFocus);
     }
 
     return () => {
@@ -278,6 +327,9 @@ export function CatalogSyncHost() {
       if (slotTimer) clearTimeout(slotTimer);
       document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('online', onOnline);
+      window.removeEventListener('pageshow', onPageShow);
+      document.removeEventListener('resume', onResume);
+      window.removeEventListener('focus', onFocus);
     };
   }, [isWorkspaceReady, pathname, workspace?.storeId]);
 

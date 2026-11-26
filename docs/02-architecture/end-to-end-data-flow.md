@@ -72,7 +72,7 @@ flowchart LR
 ### Кто кого вызывает
 
 1. `WorkspaceHosts` монтирует `CatalogSyncHost`, когда workspace готов.
-2. Триггеры: старт, слоты расписания (+10 мин к серверным), `visibilitychange`, `online`.
+2. Триггеры: старт, слоты расписания (+10 мин к серверным), `visibilitychange`, `online`, `pageshow`, `resume`. `focus` не чаще одного meta за 30 секунд.
 3. `checkAndSyncCatalog` берёт exclusive lock (`withCatalogSyncLock`).
 4. `GET /v2/catalog/{storeId}/meta` через `REACT_APP_CATALOG_API_BASE` или `REACT_APP_CORS_PROXY`.
 5. Если версия новее или локально пусто → `GET .../snapshot`.
@@ -162,7 +162,7 @@ sequenceDiagram
 ## Фактическое поведение
 
 - Серверные слоты sync: 08:00, 09:30, 12:00, 15:00 МСК.
-- Браузерные проверки ориентированы на +10 минут к этим слотам, плюс start/visibility/online.
+- Браузерные проверки ориентированы на +10 минут к этим слотам, плюс start, visibility, online, pageshow и resume. `focus` не чаще одного meta за 30 секунд. `version` — время окончания прогона, не метка слота.
 - Transformers общие для cloud и frontend code path.
 - Route дисков — `/wheels`, domain category — `discs`.
 

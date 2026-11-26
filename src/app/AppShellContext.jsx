@@ -23,6 +23,7 @@ import indexedDBService from '../services/indexedDBService';
 import CatalogBootstrapOverlay from '../components/CatalogBootstrapOverlay/CatalogBootstrapOverlay';
 import {
   CATALOG_BOOTSTRAP_IDLE,
+  CATALOG_UPDATE_FAILED_LABEL,
   normalizeCatalogBootstrap,
 } from './catalogBootstrap';
 
@@ -62,6 +63,8 @@ export function AppShellProvider({ children }) {
   const [catalogBootstrap, setCatalogBootstrapState] = useState(
     CATALOG_BOOTSTRAP_IDLE
   );
+  const [catalogUpdateNotice, setCatalogUpdateNotice] = useState('');
+  const catalogUpdateBaselineRef = useRef('');
   const [catalogSurfaceReady, setCatalogSurfaceReady] = useState(false);
   const [catalogSurfaceReleased, setCatalogSurfaceReleased] = useState(true);
 
@@ -73,6 +76,8 @@ export function AppShellProvider({ children }) {
     setCatalogSnapshotVersion('');
     setCatalogDataVersion((version) => version + 1);
     setCatalogBootstrapState({ ...CATALOG_BOOTSTRAP_IDLE });
+    catalogUpdateBaselineRef.current = '';
+    setCatalogUpdateNotice('');
     setCatalogSurfaceReady(false);
     setCatalogSurfaceReleased(true);
 
@@ -190,6 +195,22 @@ export function AppShellProvider({ children }) {
     setCatalogSurfaceReleased(true);
   }, []);
 
+  const reportCatalogUpdateFailed = useCallback((localVersion = '') => {
+    catalogUpdateBaselineRef.current = String(localVersion || '');
+    setCatalogUpdateNotice(CATALOG_UPDATE_FAILED_LABEL);
+  }, []);
+
+  const noteCatalogVersionWritten = useCallback((version) => {
+    if (!version) return;
+    setCatalogUpdateNotice((current) => {
+      if (!current) return current;
+      const baseline = catalogUpdateBaselineRef.current;
+      if (baseline && !(String(version) > baseline)) return current;
+      catalogUpdateBaselineRef.current = '';
+      return '';
+    });
+  }, []);
+
   const notifyCatalogApplied = useCallback(
     (version, storeId = activeWorkspaceRef.current?.storeId) => {
       if (
@@ -216,6 +237,7 @@ export function AppShellProvider({ children }) {
     const subscribedWorkspace = workspace;
     return subscribeCatalogApplied((version) => {
       if (activeWorkspaceRef.current !== subscribedWorkspace) return;
+      noteCatalogVersionWritten(version);
       if (version && version === lastAppliedVersionRef.current) {
         return;
       }
@@ -227,7 +249,7 @@ export function AppShellProvider({ children }) {
       }
       bumpCatalogDataVersion();
     }, subscribedWorkspace.storeId);
-  }, [bumpCatalogDataVersion, isWorkspaceReady, workspace]);
+  }, [bumpCatalogDataVersion, isWorkspaceReady, noteCatalogVersionWritten, workspace]);
 
   useEffect(() => {
     const phase = catalogBootstrap.phase;
@@ -272,6 +294,9 @@ export function AppShellProvider({ children }) {
       catalogSnapshotVersion,
       bumpCatalogDataVersion,
       notifyCatalogApplied,
+      catalogUpdateNotice,
+      reportCatalogUpdateFailed,
+      noteCatalogVersionWritten,
       catalogBootstrapPhase: catalogBootstrap.phase,
       setCatalogBootstrap,
       registerCatalogBootstrapRetry,
@@ -291,6 +316,9 @@ export function AppShellProvider({ children }) {
       catalogSnapshotVersion,
       bumpCatalogDataVersion,
       notifyCatalogApplied,
+      catalogUpdateNotice,
+      reportCatalogUpdateFailed,
+      noteCatalogVersionWritten,
       catalogBootstrap.phase,
       setCatalogBootstrap,
       registerCatalogBootstrapRetry,

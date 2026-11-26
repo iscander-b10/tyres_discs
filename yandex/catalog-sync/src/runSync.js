@@ -9,7 +9,7 @@ import {
   CATALOG_SNAPSHOT_SCHEMA_VERSION,
 } from './snapshotCommands.js';
 import { loadAllSuppliersData, getSupplierLabel, SUPPLIER_LOAD_ORDER } from './suppliers/loadAll.js';
-import { resolveSlot, versionForSlot } from './time.js';
+import { resolveSlot, versionForPublication } from './time.js';
 
 function logJson(payload) {
   console.log(JSON.stringify(payload));
@@ -21,9 +21,8 @@ function logJson(payload) {
 export async function runCatalogSync(opts = {}) {
   const storeId = getStoreId();
   const slot = resolveSlot(opts.slot);
-  const version = versionForSlot(slot);
 
-  logJson({ event: 'catalog-sync-start', storeId, slot, version });
+  logJson({ event: 'catalog-sync-start', storeId, slot });
 
   const previous = await readSnapshot(storeId);
   const loadResults = await loadAllSuppliersData(storeId);
@@ -36,6 +35,7 @@ export async function runCatalogSync(opts = {}) {
 
   const okCount = metaSuppliers.filter((s) => s.ok).length;
   const failCount = metaSuppliers.length - okCount;
+  const version = versionForPublication();
 
   const snapshot = {
     schemaVersion: CATALOG_SNAPSHOT_SCHEMA_VERSION,

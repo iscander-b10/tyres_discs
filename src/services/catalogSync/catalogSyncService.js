@@ -1,7 +1,8 @@
 /**
  * Автосинхронизация каталога из Yandex Object Storage (через API Gateway).
  *
- * Триггеры: старт приложения, слот+10 МСК, visibilitychange→visible, online.
+ * Триггеры задаёт CatalogSyncHost: start, слот+10 МСК, visibility,
+ * online, pageshow, resume и throttled focus.
  * Без UI-кнопки и без toast-уведомлений — только console при отладке.
  */
 

@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { AppShellProvider, useAppShell } from './AppShellContext';
+import { subscribeCatalogApplied } from '../services/catalogSync/catalogSyncChannel';
 
 jest.mock('../auth/AuthContext', () => ({ useAuth: jest.fn() }));
 jest.mock('../services/indexedDBService', () => ({
@@ -177,5 +178,34 @@ describe('AppShell catalog bootstrap', () => {
       document.querySelector('[data-testid="catalog-bootstrap-overlay"]')
     ).not.toBeNull();
     expect(document.body.textContent).toContain('55%');
+  });
+
+  test('строка про сбой висит, пока чужая version не станет новее', async () => {
+    let listener = () => {};
+    subscribeCatalogApplied.mockImplementation((next) => {
+      listener = next;
+      return () => {};
+    });
+    await renderShell();
+
+    await act(async () => {
+      shell.reportCatalogUpdateFailed('2026-11-26T08:00:00+03:00');
+    });
+    expect(shell.catalogUpdateNotice).toBe('Каталог не обновился');
+
+    await act(async () => {
+      listener('2026-11-26T08:00:00+03:00');
+    });
+    expect(shell.catalogUpdateNotice).toBe('Каталог не обновился');
+
+    await act(async () => {
+      shell.noteCatalogVersionWritten('2026-11-26T08:00:00+03:00');
+    });
+    expect(shell.catalogUpdateNotice).toBe('Каталог не обновился');
+
+    await act(async () => {
+      listener('2026-11-26T09:30:05+03:00');
+    });
+    expect(shell.catalogUpdateNotice).toBe('');
   });
 });

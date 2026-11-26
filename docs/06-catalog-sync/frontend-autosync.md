@@ -36,11 +36,17 @@
 1. немедленно вызывает `run('start')`;
 2. планирует ближайший московский слот;
 3. слушает `visibilitychange` и запускается при переходе во `visible`;
-4. слушает браузерное событие `online`.
+4. слушает браузерное событие `online`;
+5. слушает `pageshow` (в том числе `event.persisted` после bfcache) и `resume` Page Lifecycle, если браузер его шлёт;
+6. слушает `focus`, но не на каждый клик по полю.
 
-Слоты заданы в МСК: `08:10`, `09:40`, `12:10`, `15:10`. `msUntilNextSyncCheck(now)` возвращает число миллисекунд до ближайшего строго будущего слота; если все слоты прошли — до `08:10` следующего дня. Внутренний timer ограничен снизу одной секундой.
+Слоты заданы в МСК: `08:10`, `09:40`, `12:10`, `15:10`. `msUntilNextSyncCheck(now)` возвращает число миллисекунд до ближайшего строго будущего слота; если все слоты прошли — до `08:10` следующего дня. Внутренний timer ограничен снизу одной секундой. Скрытая вкладка слот пропускает: пока машина спит, timer не живёт, а вкладка из bfcache часто не проходит `start` заново и не получает `visibilitychange`, если и так считается видимой. `pageshow` и `resume` закрывают этот пропуск.
 
-Только причина `slot` подавляется в скрытой вкладке. `start` и `online` технически могут работать при `document.visibilityState === 'hidden'`. Флаг `syncing` не допускает второй конкурентный `run` внутри одного host; координацию между вкладками выполняет lock.
+`start`, `slot` и явный `retry` холодной шторки не ограничиваются паузой. Остальные причины, включая `focus`, `pageshow`, `resume`, `visibility` и `online`, не запрашивают meta чаще одного раза в 30 секунд. Meta по-прежнему с `cache: 'no-store'`.
+
+Только причина `slot` подавляется в скрытой вкладке. `start` и `online` технически могут работать при `document.visibilityState === 'hidden'`. Флаг `syncing` не допускает второй конкурентный `run` внутри одного host; координацию между вкладками выполняет lock. Триггер во время `syncing` не ставится в очередь.
+
+При показе вкладки (`start`, переход в `visible`, `pageshow`, `resume`) host один раз за этот показ сравнивает скрипты страницы с `asset-manifest.json`. Если манифеста нет или в нём нет `static/js`, сравнивает список `<script src>` в `index.html`. Оба запроса идут с `cache: 'no-store'`. Если имя скрипта другое, вкладка делает один `location.reload()`. Повторный reload в той же `sessionStorage`-сессии не выполняется, даже если после reload HTML всё ещё старый. Service worker не используется. `focus` манифест не запрашивает.
 
 ## Основная sequence diagram
 
@@ -97,7 +103,7 @@ sequenceDiagram
 - `storeId` — магазин; пустое значение разрешается через env/default namespace;
 - `signal` — опциональный `AbortSignal` для `fetch`;
 - `onProgress` — опциональный callback `{ phase: 'meta' \| 'download' \| 'parse' \| 'apply', receivedBytes, totalBytes, progress }`. React в сервис не импортируется. Host подписывается только на cold start и кладёт `progress`/`label` в уже существующий `catalogBootstrap`; исключение в callback глотается и не превращает sync в `error`. `progress` монотонен и не достигает 100 до commit. Фаза `warmup` («Готовим витрину») не из сервиса: её ставит host после IDB;
-- `onLockWaiting` — опциональный callback, когда writer lock занят другой вкладкой. Host на blocking ставит подпись «Каталог загружается в другой вкладке» и не рисует фейковый download %. Warm start / background apply callback не передают.
+- `onLockWaiting` — опциональный callback сервиса, когда writer lock занят другой вкладкой. Host его не подписывает и не меняет подпись шторки: пустая база остаётся на обычной загрузке («Проверяем каталог» / «Загружаем каталог шин и дисков»). Текст «Каталог загружается в другой вкладке» на экран не выводится.
 
 **Результат.** `Promise` с одним из объектов:
 
@@ -140,7 +146,7 @@ sequenceDiagram
 
 **Ограничения.**
 
-- version сравнивается лексикографически, поэтому все producers обязаны использовать один сортируемый формат. Текущий cloud producer выдаёт время московского слота как `YYYY-MM-DDTHH:mm:ss+03:00`; смешивать его с `Z`-строками нельзя;
+- version сравнивается лексикографически (`meta.version <= local` и тот же gate у snapshot). Равная строка snapshot не качает, если каталог не пуст. Пустая база качает файл даже при равной version. Cloud producer пишет московское время окончания успешного прогона, `YYYY-MM-DDTHH:mm:ss+03:00`, точность до секунды. Старая строка слота того же формата остаётся меньше более поздней публикации. Смешивать формат с `Z`-строками нельзя. IndexedDB из этого пути не удаляется;
 - автоматического retry/backoff внутри одного запуска нет;
 - `navigator.onLine` — лишь ранняя эвристика, а не доказательство доступности API;
 - timeout сети не задаётся: отмена приходит только через переданный signal;
@@ -202,11 +208,11 @@ await checkAndSyncCatalog({
 
 **Cold start vs warm start.** Host сначала ждёт `isCatalogEmpty()` и **не** открывает шторку заранее: иначе refresh с уже заполненным IDB мелькает overlay на один кадр. Пока проверка идёт, `catalogBootstrap` остаётся `idle` (overlay скрыт).
 
-- `true` — только тогда `phase: 'blocking'` с `waitForShowcase: true`, скачивается один snapshot шин и дисков. `onProgress` обновляет `catalogBootstrap.progress` и `label`: meta ≈ 0–3%, download — основная доля, затем parse и apply. После успешного apply (или `up-to-date`, если снимок уже положила другая вкладка) host вызывает `warmupCatalogReadCache({ tires: true, discs: true })` — фаза «Готовим витрину», два шага. Только потом `notifyCatalogApplied` и `phase: 'ready'` с `waitForShowcase: true`. Overlay UI при этом ещё не снимается: ждёт settled витрину (полки, не skeleton), затем opacity 50ms. Если writer lock занят, шторка остаётся, label «Каталог загружается в другой вкладке», download % не имитируется. Когда lock отпущен, tab догоняет persisted version/channel; waiting ≠ error;
-- `false` (warm start / обычный refresh) — phase сразу `ready` без `waitForShowcase`, overlay не открывался ни на кадр, warmup не вызывается, дальше тихий autosync без обязательного UI-прогресса (слот, visibility, online);
+- `true` — только тогда `phase: 'blocking'` с `waitForShowcase: true`, скачивается один snapshot шин и дисков. `onProgress` обновляет `catalogBootstrap.progress` и `label`: meta ≈ 0–3%, download — основная доля, затем parse и apply. После успешного apply (или `up-to-date`, если снимок уже положила другая вкладка) host вызывает `warmupCatalogReadCache({ tires: true, discs: true })` — фаза «Готовим витрину», два шага. Только потом `notifyCatalogApplied` и `phase: 'ready'` с `waitForShowcase: true`. Overlay UI при этом ещё не снимается: ждёт settled витрину (полки, не skeleton), затем opacity 50ms. Если writer lock занят, шторка остаётся на обычной загрузке, без упоминания другой вкладки. Когда lock отпущен, tab догоняет persisted version/channel; ожидание lock не является error;
+- `false` (warm start / обычный refresh) — phase сразу `ready` без `waitForShowcase`, overlay не открывался ни на кадр, warmup не вызывается, дальше тихий autosync без обязательного UI-прогресса (слот, visibility, online, pageshow, resume). Если проверка, скачивание или запись закончились `error` или `offline`, витрина не закрывается. Над каталогом остаётся одна строка «Каталог не обновился» — без даты, без «вчера», без «неактуальный», без кнопки очистки базы и без шторки. Строка висит, пока успешный apply не запишет version строго новее той, что была в IDB на момент сбоя. `up-to-date` её не снимает. Следующий показ вкладки пробует снова сам. Чужой commit той же базы приходит через `postCatalogApplied` и снимает строку, если version новее;
 - ошибка чтения IDB трактуется как пустой каталог (нельзя доказать, что он не пуст).
 
-`offline`, HTTP, blocking validation и `disabled` на пустом каталоге ставят `phase: 'error'` с текстом в шторке и кнопкой «Повторить». Секционный `DUPLICATE_ID` возвращает `applied` и шторку ошибки не открывает. Progress не маскирует ошибку. `{status:'skipped', error:'aborted'|'stale store'}` общую ошибку не показывают. Фоновый sync после `ready` шторку и toast не открывает.
+`offline`, HTTP, blocking validation и `disabled` на пустом каталоге ставят `phase: 'error'` с текстом в шторке и кнопкой «Повторить». Секционный `DUPLICATE_ID` возвращает `applied` и шторку ошибки не открывает. Progress не маскирует ошибку. `{status:'skipped', error:'aborted'|'stale store'}` общую ошибку не показывают. Фоновый sync после `ready` шторку и toast не открывает; сбой на уже заполненном каталоге оставляет строку «Каталог не обновился».
 
 **Async и side effects.** Его effect создаёт timer, listeners и `AbortController`. `run` ждёт sync, затем независимо от статуса читает persisted version через `bumpIfIdbAhead`.
 
@@ -214,7 +220,7 @@ await checkAndSyncCatalog({
 
 **Гарантии.** Старый workspace не уведомляет новый; cleanup отменяет fetch и расписание; два события в одном host не запускают две работы одновременно; на cold start blocking выставляется после подтверждения пустого IDB и держится до commit витрины с данными; warm start не открывает overlay.
 
-**Ограничения.** `syncing` не ставит событие в очередь: триггер во время работы теряется. Следующий slot/visible/online восстановит проверку. `Content-Length` используется для процента download только если заголовок виден JS и согласован со stream; иначе бар идёт коридором ≈ 5–80%, а крупно показываются мегабайты, не «N% от файла». На cold start между mount и ответом `isCatalogEmpty()` короткое окно `idle` без шторки — это сознательный обмен против вспышки шторки на warm refresh.
+**Ограничения.** `syncing` не ставит событие в очередь: триггер во время работы теряется. Следующий slot, показ вкладки или `online` восстановит проверку, но кроме `start`, `slot` и `retry` meta не спрашивается чаще раза в 30 секунд. `Content-Length` используется для процента download только если заголовок виден JS и согласован со stream; иначе бар идёт коридором ≈ 5–80%, а крупно показываются мегабайты, не «N% от файла». На cold start между mount и ответом `isCatalogEmpty()` короткое окно `idle` без шторки — это сознательный обмен против вспышки шторки на warm refresh. GitHub Pages не даёт выставить Cache-Control из репозитория: свежий бандл для уже открытой вкладки зависит от сравнения `asset-manifest.json` при показе и одного reload за сессию.
 
 **Риск изменения.** Добавление `notifyCatalogApplied` в dependency array без ref может лишний раз перезапускать effect; удаление `isCurrent()` создаст race при logout/store switch; уведомление по network result вместо persisted version обойдёт реальный commit marker; снова ставить `blocking` до `isCatalogEmpty()` вернёт вспышку шторки на refresh; ставить `ready` до `isCatalogEmpty()` на пустом IDB даст вспышку рабочего сайта на cold start.
 
@@ -248,13 +254,13 @@ Meta могла измениться между двумя GET или API мог
 
 ### Offline или network error
 
-При `navigator.onLine === false` запросов нет, результат `offline`. Реальная сетевая ошибка, HTTP 5xx или invalid JSON дают `error` и `catalog.sync_failed`. Если каталог уже не пуст, старые товары остаются, шторки нет. Если это cold start, AppShell ставит `phase: 'error'` в шторке с кнопкой «Повторить». Событие `online` создаёт новую попытку, но отдельного backoff нет.
+При `navigator.onLine === false` запросов нет, результат `offline`. Реальная сетевая ошибка, HTTP 5xx или invalid JSON дают `error` и `catalog.sync_failed`. Если каталог уже не пуст, старые товары остаются, blocking-шторки нет, пользователь видит «Каталог не обновился». Если это cold start, AppShell ставит `phase: 'error'` в шторке с кнопкой «Повторить» и текстами «Загружаем каталог шин и дисков» / «Не удалось загрузить каталог.». Событие `online` создаёт новую попытку, но отдельного backoff нет. Очистка IndexedDB из этого пути не выполняется.
 
 ### Invalid snapshot
 
 Blocking fatal (envelope, команда, `MISSING_ID`, `SUPPLIER_MISMATCH` и остальные коды кроме секционного `DUPLICATE_ID`) блокирует вызов IDB. Service пишет `catalog.snapshot_invalid` с storeId, путём первой blocking-проблемы и числом ошибок; localStorage и channel не меняются. На холодном старте шторка получает «Каталог не удалось прочитать.».
 
-`DUPLICATE_ID` только в шинах или только в дисках одной секции так не работает. `checkAndSyncCatalog` возвращает `applied`. `resolveCatalogBootstrapError` не вызывается. Пустая IndexedDB после этого открывает каталог: битая секция пустая, вторая категория того же поставщика и остальные поставщики на экране. Если секция уже лежала в базе, её строки остаются, соседние секции обновляются. Version snapshot записывается, повтор того же слота не скачивается.
+`DUPLICATE_ID` только в шинах или только в дисках одной секции так не работает. `checkAndSyncCatalog` возвращает `applied`. `resolveCatalogBootstrapError` не вызывается. Пустая IndexedDB после этого открывает каталог: битая секция пустая, вторая категория того же поставщика и остальные поставщики на экране. Если секция уже лежала в базе, её строки остаются, соседние секции обновляются. Version публикации записывается. Та же строка version повторно не скачивается. Следующий прогон того же слота получает новую секундную version и скачивается, если она лексикографически больше.
 
 Подробнее о wire-командах — в [протоколе и проверке snapshot](/06-catalog-sync/snapshot-protocol-validation).
 
@@ -294,7 +300,7 @@ Blocking fatal (envelope, команда, `MISSING_ID`, `SUPPLIER_MISMATCH` и �
 
 - `catalogSyncService.test.js`: validation до IDB, нормализация, localStorage/broadcast только после commit, persisted version как gate, пустой каталог, store isolation, stale store, stream progress с/без Content-Length, abort посреди stream, gzip/total mismatch и onProgress на up-to-date.
 - `catalogSyncService.commitBoundary.test.js`: реальные транзакции через `fake-indexeddb`, rollback при abort, отсутствие side effects при invalid snapshot, supplier-scoped purge.
-- `CatalogSyncHost.test.jsx`: ожидание готового workspace, abort/изоляция старого магазина, UI bump по persisted version, подавление slot в hidden-вкладке, empty → blocking затем ready с `waitForShowcase`, non-empty → ready без единого вызова `blocking`/`error` и без `waitForShowcase`, onProgress → progress/label, warmup до notify, waiting lock без download %, offline на пустом каталоге → error, stale/abort без общей ошибки.
+- `CatalogSyncHost.test.jsx`: ожидание готового workspace, abort/изоляция старого магазина, UI bump по persisted version, подавление slot в hidden-вкладке, empty → blocking затем ready с `waitForShowcase`, non-empty → ready без единого вызова `blocking`/`error` и без `waitForShowcase`, onProgress → progress/label, warmup до notify, ожидание lock без текста про другую вкладку, offline на пустом каталоге → error, stale/abort без общей ошибки, `pageshow`/`resume` после 30 секунд, `focus` внутри 30 секунд без повторного meta, слот внутри 30 секунд, ошибка на непустом каталоге без blocking-шторки.
 - `catalogSyncLock.integration.test.js`: два параллельных запуска скачивают snapshot один раз.
 
 Тесты не доказывают доступность реального API, поведение браузера при длительном suspend вкладки или восстановление после исчерпания quota.

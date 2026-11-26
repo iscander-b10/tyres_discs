@@ -8,6 +8,7 @@ import { CatalogSyncHost } from './CatalogSyncHost';
 import {
   checkAndSyncCatalog,
   isCatalogSyncConfigured,
+  msUntilNextSyncCheck,
 } from './catalogSyncService';
 
 jest.mock('../../app/AppShellContext', () => ({ useAppShell: jest.fn() }));
@@ -22,10 +23,14 @@ jest.mock('../indexedDBService', () => ({
     warmupCatalogReadCache: jest.fn(),
   },
 }));
+jest.mock('./catalogBundleRefresh', () => ({
+  ensureFreshCatalogBundle: jest.fn(() => Promise.resolve(false)),
+  noteCatalogBundleHidden: jest.fn(),
+}));
 jest.mock('./catalogSyncService', () => ({
   checkAndSyncCatalog: jest.fn(),
   isCatalogSyncConfigured: jest.fn(),
-  msUntilNextSyncCheck: () => 60_000,
+  msUntilNextSyncCheck: jest.fn(() => 60_000),
 }));
 
 const deferred = () => {
@@ -43,6 +48,8 @@ describe('CatalogSyncHost workspace lifecycle', () => {
   let notifyCatalogApplied;
   let setCatalogBootstrap;
   let registerCatalogBootstrapRetry;
+  let reportCatalogUpdateFailed;
+  let noteCatalogVersionWritten;
   let bootstrap;
   let activeStore;
   let generation;
@@ -61,6 +68,8 @@ describe('CatalogSyncHost workspace lifecycle', () => {
         typeof update === 'function' ? update(bootstrap) : { ...update };
     });
     registerCatalogBootstrapRetry = jest.fn(() => jest.fn());
+    reportCatalogUpdateFailed = jest.fn();
+    noteCatalogVersionWritten = jest.fn();
     activeStore = null;
     generation = 0;
     visibilityState = 'visible';
@@ -74,6 +83,8 @@ describe('CatalogSyncHost workspace lifecycle', () => {
       notifyCatalogApplied,
       setCatalogBootstrap,
       registerCatalogBootstrapRetry,
+      reportCatalogUpdateFailed,
+      noteCatalogVersionWritten,
     });
     isCatalogSyncConfigured.mockReturnValue(true);
     indexedDBService.isCatalogEmpty.mockResolvedValue(false);
@@ -457,7 +468,7 @@ describe('CatalogSyncHost workspace lifecycle', () => {
     expect(bootstrap.phase).toBe('ready');
   });
 
-  test('вторая вкладка на blocking: waiting без download %, затем ready', async () => {
+  test('ожидание lock на пустой базе не упоминает другую вкладку', async () => {
     const sync = deferred();
     indexedDBService.isCatalogEmpty.mockResolvedValue(true);
     checkAndSyncCatalog.mockImplementation(({ onLockWaiting }) => {
@@ -476,8 +487,11 @@ describe('CatalogSyncHost workspace lifecycle', () => {
     });
 
     expect(bootstrap.phase).toBe('blocking');
-    expect(bootstrap.label).toBe('Каталог загружается в другой вкладке');
-    expect(bootstrap.progress).toBe(0);
+    expect(bootstrap.label).toBe('Проверяем каталог');
+    expect(bootstrap.label).not.toBe('Каталог загружается в другой вкладке');
+    expect(document.body.textContent).not.toContain(
+      'Каталог загружается в другой вкладке'
+    );
     expect(bootstrap.error).toBeUndefined();
 
     indexedDBService.isCatalogEmpty.mockResolvedValue(false);
@@ -492,5 +506,165 @@ describe('CatalogSyncHost workspace lifecycle', () => {
     expect(indexedDBService.warmupCatalogReadCache).toHaveBeenCalled();
     expect(notifyCatalogApplied).toHaveBeenCalledWith('v1', 'store-a');
     expect(bootstrap.phase).toBe('ready');
+  });
+
+  test('pageshow и resume запускают проверку, focus внутри 30 секунд — нет', async () => {
+    jest.useFakeTimers();
+    msUntilNextSyncCheck.mockReturnValue(24 * 60 * 60 * 1000);
+    checkAndSyncCatalog.mockResolvedValue({
+      status: 'up-to-date',
+      version: 'v1',
+    });
+    indexedDBService.getPersistedCatalogVersion.mockResolvedValue('v1');
+    auth = {
+      isWorkspaceReady: true,
+      workspace: { accountId: 'account-a', storeId: 'store-a' },
+    };
+
+    await render();
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(checkAndSyncCatalog).toHaveBeenCalledTimes(1);
+
+    const pageShow = new Event('pageshow');
+    Object.defineProperty(pageShow, 'persisted', { value: true });
+    await act(async () => {
+      window.dispatchEvent(pageShow);
+      window.dispatchEvent(new Event('focus'));
+      await Promise.resolve();
+    });
+    expect(checkAndSyncCatalog).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      jest.advanceTimersByTime(30_000);
+      window.dispatchEvent(pageShow);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(checkAndSyncCatalog).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      document.dispatchEvent(new Event('resume'));
+      await Promise.resolve();
+    });
+    expect(checkAndSyncCatalog).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      jest.advanceTimersByTime(30_000);
+      document.dispatchEvent(new Event('resume'));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(checkAndSyncCatalog).toHaveBeenCalledTimes(3);
+
+    await act(async () => {
+      jest.advanceTimersByTime(29_000);
+      window.dispatchEvent(new Event('focus'));
+      await Promise.resolve();
+    });
+    expect(checkAndSyncCatalog).toHaveBeenCalledTimes(3);
+  });
+
+  test('слот внутри 30 секунд всё равно запрашивает meta', async () => {
+    jest.useFakeTimers();
+    msUntilNextSyncCheck.mockReturnValue(1000);
+    checkAndSyncCatalog.mockResolvedValue({
+      status: 'up-to-date',
+      version: 'v1',
+    });
+    indexedDBService.getPersistedCatalogVersion.mockResolvedValue('v1');
+    auth = {
+      isWorkspaceReady: true,
+      workspace: { accountId: 'account-a', storeId: 'store-a' },
+    };
+
+    await render();
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(checkAndSyncCatalog).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'));
+      await Promise.resolve();
+    });
+    expect(checkAndSyncCatalog).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(checkAndSyncCatalog).toHaveBeenCalledTimes(2);
+  });
+
+  test('ошибка sync при непустом каталоге не открывает blocking-шторку', async () => {
+    jest.useFakeTimers();
+    msUntilNextSyncCheck.mockReturnValue(24 * 60 * 60 * 1000);
+    indexedDBService.isCatalogEmpty.mockResolvedValue(false);
+    indexedDBService.getPersistedCatalogVersion.mockResolvedValue(
+      '2026-11-26T08:00:00+03:00'
+    );
+    checkAndSyncCatalog.mockResolvedValue({
+      status: 'error',
+      error: 'HTTP 503',
+    });
+    auth = {
+      isWorkspaceReady: true,
+      workspace: { accountId: 'account-a', storeId: 'store-a' },
+    };
+
+    await render();
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(reportCatalogUpdateFailed).toHaveBeenCalledWith(
+      '2026-11-26T08:00:00+03:00'
+    );
+    expect(noteCatalogVersionWritten).not.toHaveBeenCalled();
+    const phases = setCatalogBootstrap.mock.calls.map(([update]) => {
+      const next =
+        typeof update === 'function' ? update({ phase: 'idle' }) : update;
+      return next?.phase;
+    });
+    expect(phases).not.toContain('blocking');
+    expect(phases).not.toContain('error');
+    expect(bootstrap.phase).toBe('ready');
+
+    checkAndSyncCatalog.mockResolvedValue({
+      status: 'up-to-date',
+      version: '2026-11-26T08:00:00+03:00',
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(30_000);
+      window.dispatchEvent(new Event('pageshow'));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(checkAndSyncCatalog).toHaveBeenCalledTimes(2);
+    expect(noteCatalogVersionWritten).not.toHaveBeenCalled();
+
+    indexedDBService.getPersistedCatalogVersion.mockResolvedValue(
+      '2026-11-26T09:30:05+03:00'
+    );
+    checkAndSyncCatalog.mockResolvedValue({
+      status: 'applied',
+      version: '2026-11-26T09:30:05+03:00',
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(30_000);
+      window.dispatchEvent(new Event('pageshow'));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(noteCatalogVersionWritten).toHaveBeenCalledWith(
+      '2026-11-26T09:30:05+03:00'
+    );
+    expect(phases).not.toContain('blocking');
   });
 });

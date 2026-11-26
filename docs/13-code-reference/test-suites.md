@@ -97,7 +97,7 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 | `filterDiscRangeSelectOptions.test.js` | UI-фильтр опций range: пустой other, inclusive ≥/≤, дробные ЦО, отрицательный ET |
 | `CatalogShowcase.appLog.test.jsx` | error logging on showcase fail |
 | `CatalogShowcase.bootstrap.test.jsx` | пустой store / loading → skeleton; Empty «Каталог ещё загружается» отсутствует; notify только на settled полках |
-| `CatalogBootstrapOverlay.test.jsx` | шторка на blocking/error, нет на idle/ready, Escape не закрывает, indeterminate-спиннер вокруг статичного %/МБ без линейного бара и без fill 0–100, staff МБ при неизвестном Content-Length, demo % без МБ, waiting lock без 0% и без текста в круге, error без кольца и бара, waitForShowcase держит до витрины затем fade |
+| `CatalogBootstrapOverlay.test.jsx` | шторка на blocking/error, нет на idle/ready, Escape не закрывает, indeterminate-спиннер вокруг статичного %/МБ без линейного бара и без fill 0–100, staff МБ при неизвестном Content-Length, demo % без МБ, обычная загрузка без текста про другую вкладку, error без кольца и бара, waitForShowcase держит до витрины затем fade |
 | `CatalogResultsFade.test.jsx` | delayed unmount 50ms, reduced-motion сразу |
 
 **Страница:** [Async race guards](/08-search-showcase/async-race-guards).
@@ -122,7 +122,7 @@ Setup: `src/setupTests.js`. CI: `.github/workflows/test.yml`.
 | `catalogSync/catalogSyncChannel.test.js` | broadcast |
 | `catalogSync/catalogSyncLock.test.js` | lock lease, onWaiting у второго waiter |
 | `catalogSync/catalogSyncLock.integration.test.js` | multi-tab writer |
-| `catalogSync/CatalogSyncHost.test.jsx` | triggers, empty → blocking, non-empty без кадра blocking, onProgress → label, warmup до notify, waiting lock; на `/demo*` `checkAndSyncCatalog` не вызывается |
+| `catalogSync/CatalogSyncHost.test.jsx` | triggers, pageshow/resume, focus throttle, empty → blocking, non-empty без кадра blocking, ошибка непустого каталога без шторки, onProgress → label, warmup до notify, lock без текста про другую вкладку; на `/demo*` `checkAndSyncCatalog` не вызывается |
 | `demoCatalog/demoCatalogService.test.js` | fetch static snapshot, progress от meta.bytes, `hideBytesLabel` |
 | `demoCatalog/DemoCatalogHost.test.jsx` | пустой IDB → overlay + download; непустой → без overlay и без повторного fetch |
 | `dataTransformers.test.js` | getMargin 15/23/18, discMargin 20 → 1200, изоляция второго storeId, нет `* 1.2` в transformDiscs |

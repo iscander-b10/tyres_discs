@@ -120,22 +120,23 @@ async function runCatalogSync(
 **Callers/callees.**
 
 - caller: `handler`;
-- callees: `getStoreId`, `resolveSlot`, `versionForSlot`, `readSnapshot`,
+- callees: `getStoreId`, `resolveSlot`, `versionForPublication`, `readSnapshot`,
   `loadAllSuppliersData`, `buildSnapshotSuppliers`, `writeSnapshot`,
   `writeMeta`.
 
 **Пошаговый алгоритм.**
 
 1. Получить `storeId` (`STORE_ID`, default `ElistaIvanor`).
-2. Разрешить slot и построить `version`.
-3. Записать JSON start-log.
+2. Разрешить slot. Это подпись окна, не ключ version.
+3. Записать JSON start-log со `storeId` и `slot`, без version.
 4. Прочитать предыдущий `snapshot.json`; отсутствующий объект даёт `null`.
 5. Последовательно загрузить пять поставщиков.
 6. Для каждой категории построить command с учётом предыдущего snapshot.
 7. Посчитать успешных/неуспешных поставщиков.
-8. Собрать snapshot с payload и компактный meta без товаров.
-9. Сначала записать snapshot, затем meta.
-10. Записать finish-log и вернуть `{ meta }`.
+8. Взять `version` как московское время этого момента (`versionForPublication`), формат `YYYY-MM-DDTHH:mm:ss+03:00`, точность до секунды. Поле `slot` в snapshot и meta остаётся подписью окна (`08:00`, `09:30`, `12:00`, `15:00`).
+9. Собрать snapshot с payload и компактный meta без товаров. Обе записи получают одну и ту же `version`.
+10. Сначала записать snapshot, затем meta.
+11. Записать finish-log и вернуть `{ meta }`.
 
 **Input/output.** Вход — опциональный slot; raw supplier payload функция получает
 через callees. Выход не содержит snapshot, только meta. Полный snapshot
@@ -165,27 +166,36 @@ error logs.
 увидеть новую meta.version и скачать старый snapshot. Текущий порядок уменьшает
 этот риск, но не даёт полной атомарности.
 
-## Время: `resolveSlot` и `versionForSlot`
+## Время: `resolveSlot` и `versionForPublication`
+
+Расписание Timer не меняется: те же четыре слота. Чаще к поставщикам функция не ходит.
 
 ### `resolveSlot(explicit)`
 
 Синхронная чистая относительно storage функция. Если `explicit` точно входит в
 `['08:00', '09:30', '12:00', '15:00']`, возвращает его; иначе выбирает ближайший
 уже прошедший slot по времени `Europe/Moscow`. До первого слота default остаётся
-`08:00`, то есть фактически это ещё не прошедший слот.
+`08:00`, то есть фактически это ещё не прошедший слот. Результат пишется в поле
+`slot` и не становится `version`.
 
-### `versionForSlot(slot, now = new Date())`
+### `versionForPublication(now = new Date())`
 
-Возвращает строку вида `2026-08-24T12:00:00+03:00`, используя московскую дату и
-переданный slot. Формат задуман для лексикографического сравнения клиентом.
+Возвращает московское время окончания успешного прогона, например
+`2026-11-26T08:00:42+03:00`. Строка берётся непосредственно перед сборкой
+snapshot/meta, после успешной загрузки поставщиков. Два прогона одного слота в
+один день получают две разные строки; более поздняя лексикографически больше.
+Старая version слота (`versionForSlot`, секунды всегда `00`) остаётся меньше
+публикации, которая завершилась позже в тот же день.
+
+`versionForSlot(slot, now)` остаётся для frozen demo snapshot
+(`scripts/build-demo-snapshot-local`). Облачный `runCatalogSync` его не вызывает.
 
 **Ограничения.**
 
 - формат `slot` отдельно regex-валидацией не защищён;
-- два запуска одного слота в один день получают одинаковую version;
-- повторный запуск может изменить payload без увеличения version; обычный клиент
-  с непустым каталогом тогда сочтёт себя up-to-date;
-- `resolveSlot` при неверном explicit молча выбирает время, а не бросает.
+- два прогона в одну и ту же секунду получают одинаковую version;
+- `resolveSlot` при неверном explicit молча выбирает время, а не бросает;
+- если запись snapshot или meta падает, эта version в Object Storage не публикуется.
 
 ## Команды snapshot
 
@@ -301,6 +311,8 @@ Meta:
 
 ## Что подтверждают тесты
 
+`yandex/catalog-sync/src/time.test.js` фиксирует: повтор слота `08:00` в один день даёт большую `versionForPublication`, а прежняя строка `versionForSlot` того же дня меньше более поздней публикации.
+
 `yandex/catalog-sync/src/snapshotCommands.test.js` фиксирует:
 
 - `schemaVersion === 1`;
@@ -316,7 +328,7 @@ Downstream `catalogSnapshotValidation.test.js` проверяет wire-схем�
 а `catalogSyncService.commitBoundary.test.js` — что validation failure/abort не
 изменяют IndexedDB, localStorage и broadcast.
 
-Не покрыты прямыми тестами `handler`, `runCatalogSync`, `time`, storage,
+Не покрыты прямыми тестами `handler`, `runCatalogSync`, storage,
 supplier fetch/load и реальная интеграция с Object Storage. Поэтому порядок PUT,
 конкурентные запуски, timeout и event shapes остаются интеграционными рисками.
 

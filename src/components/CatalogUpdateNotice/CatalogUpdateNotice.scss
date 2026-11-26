@@ -1,0 +1,8 @@
+@use '../../styles/tokens' as *;
+
+.catalog-update-notice {
+  margin: 0 0 $space-3;
+  color: $color-text-muted;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+}

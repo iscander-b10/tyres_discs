@@ -17,5 +17,5 @@ $snapUrl = "$GatewayBase/v2/catalog/$StoreId/snapshot"
 curl.exe -sS -o NUL -w "HTTP:%{http_code} SIZE:%{size_download}`n" $snapUrl
 
 Write-Host ""
-Write-Host "Expect: meta HTTP 200 JSON with storeId/version; snapshot HTTP 200 size >> 0."
-Write-Host "If 404 — ещё не было успешного sync (invoke Timer / function)."
+Write-Host 'Expect: meta HTTP 200 JSON with storeId/version; snapshot HTTP 200, size > 0.'
+Write-Host 'If HTTP 404: no successful sync yet; invoke the function or wait for the timer.'

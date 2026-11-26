@@ -6,7 +6,6 @@ import {
   catalogBootstrapHeadline,
   catalogBootstrapValueText,
   isCatalogBytesLabel,
-  isCatalogWaitingLabel,
 } from '../../app/catalogBootstrap';
 import {
   CATALOG_SURFACE_FADE_MS,
@@ -45,11 +44,9 @@ function CatalogBootstrapOverlay({
   const displayPercent = Math.min(99, percent);
   const headline = catalogBootstrapHeadline(catalogBootstrap);
   const valueText = catalogBootstrapValueText(catalogBootstrap);
-  const isWaiting = isCatalogWaitingLabel(label);
-  const caption =
-    isCatalogBytesLabel(label) || isWaiting
-      ? CATALOG_BOOTSTRAP_LOADING_LABEL
-      : label || CATALOG_BOOTSTRAP_LOADING_LABEL;
+  const caption = isCatalogBytesLabel(label)
+    ? CATALOG_BOOTSTRAP_LOADING_LABEL
+    : label || CATALOG_BOOTSTRAP_LOADING_LABEL;
 
   useEffect(() => {
     if (open) {
@@ -178,27 +175,15 @@ function CatalogBootstrapOverlay({
         ) : (
           <>
             <div className="catalog-bootstrap-overlay__meters">
-              <div
-                className={[
-                  'catalog-bootstrap-overlay__circle',
-                  isWaiting ? 'catalog-bootstrap-overlay__circle--waiting' : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-              >
+              <div className="catalog-bootstrap-overlay__circle">
                 <span
                   className="catalog-bootstrap-overlay__spinner"
                   aria-hidden="true"
                 />
-                {isWaiting ? null : (
-                  <span className="catalog-bootstrap-overlay__percent">
-                    {headline}
-                  </span>
-                )}
+                <span className="catalog-bootstrap-overlay__percent">
+                  {headline}
+                </span>
               </div>
-              {isWaiting ? (
-                <p className="catalog-bootstrap-overlay__percent">{headline}</p>
-              ) : null}
             </div>
             <p className="catalog-bootstrap-overlay__label">{caption}</p>
           </>

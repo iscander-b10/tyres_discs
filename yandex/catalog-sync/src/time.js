@@ -27,7 +27,8 @@ export function getMoscowParts(date = new Date()) {
 }
 
 /**
- * ISO версии слота: `2026-08-20T08:00:00+03:00`
+ * ISO версии слота: `2026-08-20T08:00:00+03:00`.
+ * Для frozen demo snapshot. Публикация облака использует `versionForPublication`.
  * @param {string} slot `HH:MM`
  * @param {Date} [now]
  */
@@ -37,6 +38,17 @@ export function versionForSlot(slot, now = new Date()) {
   const hour = String(hh).padStart(2, '0');
   const minute = String(mm || '00').padStart(2, '0');
   return `${m.year}-${m.month}-${m.day}T${hour}:${minute}:00+03:00`;
+}
+
+/**
+ * Версия успешной публикации: московское время окончания прогона, до секунды.
+ * `2026-11-26T08:00:42+03:00`. Лексикографически новее предыдущего слота и
+ * предыдущего прогона того же слота в тот же день.
+ * @param {Date} [now]
+ */
+export function versionForPublication(now = new Date()) {
+  const m = getMoscowParts(now);
+  return `${m.year}-${m.month}-${m.day}T${m.hour}:${m.minute}:${m.second}+03:00`;
 }
 
 /**

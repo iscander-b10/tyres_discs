@@ -117,34 +117,31 @@ describe('CatalogBootstrapOverlay', () => {
     );
   });
 
-  test('ожидание lock не показывает фейковый download %', () => {
+  test('обычная загрузка не упоминает другую вкладку', () => {
     render(
       <CatalogBootstrapOverlay
         catalogBootstrap={{
           phase: 'blocking',
           progress: 0,
-          label: 'Каталог загружается в другой вкладке',
+          label: 'Проверяем каталог',
         }}
       />
     );
 
     const overlay = screen.getByTestId('catalog-bootstrap-overlay');
+    expect(screen.getByText('Проверяем каталог')).toBeInTheDocument();
+    expect(screen.getByText('0%')).toBeInTheDocument();
     expect(
-      screen.getByText('Каталог загружается в другой вкладке')
-    ).toBeInTheDocument();
-    expect(screen.queryByText('0%')).not.toBeInTheDocument();
+      screen.queryByText('Каталог загружается в другой вкладке')
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('progressbar')).toHaveAttribute(
       'aria-valuetext',
-      'Каталог загружается в другой вкладке'
+      '0% Проверяем каталог'
     );
     expect(screen.queryByRole('button', { name: 'Повторить' })).toBeNull();
-    const circle = overlay.querySelector(
-      '.catalog-bootstrap-overlay__circle--waiting'
-    );
-    expect(circle).toBeTruthy();
-    expect(circle.querySelector('.catalog-bootstrap-overlay__spinner')).toBeTruthy();
-    expect(circle).not.toHaveTextContent('0%');
-    expect(circle).not.toHaveTextContent('Каталог загружается в другой вкладке');
+    expect(
+      overlay.querySelector('.catalog-bootstrap-overlay__circle--waiting')
+    ).toBeNull();
     expect(overlay.querySelector('.catalog-bootstrap-overlay__bar')).toBeNull();
   });
 

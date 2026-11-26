@@ -73,7 +73,8 @@
 | Export | Назначение |
 | --- | --- |
 | `SYNC_SLOTS` | Timer slots MSK |
-| `versionForSlot`, `resolveSlot` | Version string generation |
+| `versionForPublication` | Version успешной публикации: московское время до секунды |
+| `versionForSlot`, `resolveSlot` | Подпись слота; `versionForSlot` остаётся у frozen demo snapshot |
 
 **Страница:** [Catalog lifecycle](/06-catalog-sync/catalog-lifecycle).
 
